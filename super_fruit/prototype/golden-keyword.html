@@ -1,0 +1,1008 @@
+<title>슈퍼프룻 황금키워드</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Hahmlet:wght@500;700&family=IBM+Plex+Sans+KR:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap">
+<style>
+:root{
+  color-scheme: light;
+  --bg:#faf9f5; --surface:#ffffff; --surface-2:#f2f1ec; --surface-3:#e8e7e0;
+  --line:#dedcd3; --line-strong:#c4c2b6;
+  --ink:#14160f; --ink-2:#54564c; --ink-3:#7c7e72;
+  --brand:#15654e; --brand-soft:#e3efe9; --brand-ink:#0d4433;
+  --up:#c0392b; --down:#1d5ca8;
+  --good:#1a7f47; --good-bg:#e4f2e9;
+  --warn:#a8620a; --warn-bg:#f8eddd;
+  --skip:#6b6d62; --skip-bg:#ecebe5;
+  --s1:#2a78d6; --s2:#eb6834;
+  --seq1:#e6eefb; --seq2:#c3d9f6; --seq3:#9ec5f4; --seq4:#6da7ec; --seq5:#3987e5; --seq6:#256abf; --seq7:#184f95;
+  --shadow:0 1px 2px rgba(20,22,15,.06), 0 4px 14px rgba(20,22,15,.05);
+}
+@media (prefers-color-scheme: dark){
+  :root:not([data-theme="light"]){
+    color-scheme: dark;
+    --bg:#131611; --surface:#1b1e18; --surface-2:#232720; --surface-3:#2d3129;
+    --line:#333730; --line-strong:#4a4e45;
+    --ink:#f2f3ea; --ink-2:#b6b9ab; --ink-3:#8b8e81;
+    --brand:#4fae8c; --brand-soft:#1c3129; --brand-ink:#8fd4b8;
+    --up:#e5695a; --down:#6fa4e8;
+    --good:#57b382; --good-bg:#1a3126;
+    --warn:#d99a45; --warn-bg:#33281a;
+    --skip:#8b8d82; --skip-bg:#272a23;
+    --s1:#3987e5; --s2:#d95926;
+    --seq1:#1d2a3c; --seq2:#22405f; --seq3:#184f95; --seq4:#256abf; --seq5:#3987e5; --seq6:#6da7ec; --seq7:#9ec5f4;
+    --shadow:0 1px 2px rgba(0,0,0,.4), 0 4px 14px rgba(0,0,0,.3);
+  }
+}
+:root[data-theme="dark"]{
+  color-scheme: dark;
+  --bg:#131611; --surface:#1b1e18; --surface-2:#232720; --surface-3:#2d3129;
+  --line:#333730; --line-strong:#4a4e45;
+  --ink:#f2f3ea; --ink-2:#b6b9ab; --ink-3:#8b8e81;
+  --brand:#4fae8c; --brand-soft:#1c3129; --brand-ink:#8fd4b8;
+  --up:#e5695a; --down:#6fa4e8;
+  --good:#57b382; --good-bg:#1a3126;
+  --warn:#d99a45; --warn-bg:#33281a;
+  --skip:#8b8d82; --skip-bg:#272a23;
+  --s1:#3987e5; --s2:#d95926;
+  --seq1:#1d2a3c; --seq2:#22405f; --seq3:#184f95; --seq4:#256abf; --seq5:#3987e5; --seq6:#6da7ec; --seq7:#9ec5f4;
+  --shadow:0 1px 2px rgba(0,0,0,.4), 0 4px 14px rgba(0,0,0,.3);
+}
+
+*{box-sizing:border-box}
+body{
+  margin:0; background:var(--bg); color:var(--ink);
+  font-family:"IBM Plex Sans KR",-apple-system,BlinkMacSystemFont,"Malgun Gothic",sans-serif;
+  font-size:14px; line-height:1.5; -webkit-font-smoothing:antialiased;
+}
+.num{font-family:"IBM Plex Mono","IBM Plex Sans KR",monospace; font-variant-numeric:tabular-nums; font-feature-settings:"tnum"}
+.wrap{max-width:1180px; margin:0 auto; padding-inline:16px; padding-block:0 56px}
+
+/* ---------- header ---------- */
+.top{border-bottom:1px solid var(--line); background:var(--surface); position:sticky; top:0; z-index:20}
+.top-in{max-width:1180px; margin:0 auto; padding-inline:16px; padding-block:14px;
+  display:flex; align-items:baseline; gap:14px; flex-wrap:wrap}
+.mark{font-family:Hahmlet,"IBM Plex Sans KR",serif; font-weight:700; font-size:21px; letter-spacing:-.02em; color:var(--brand); margin:0}
+.mark span{color:var(--ink)}
+.tag{font-size:11px; letter-spacing:.09em; text-transform:uppercase; color:var(--ink-3); font-weight:600}
+.top-sp{flex:1}
+.sample{display:inline-flex; align-items:center; gap:7px; font-size:12px; font-weight:600;
+  color:var(--warn); background:var(--warn-bg); border:1px solid color-mix(in srgb,var(--warn) 28%, transparent);
+  padding:4px 10px; border-radius:999px}
+.sample::before{content:""; width:6px; height:6px; border-radius:50%; background:var(--warn); flex:none}
+
+/* ---------- item rail ---------- */
+.stage{display:grid; grid-template-columns:196px 1fr; gap:22px; margin-top:22px; align-items:start}
+.rail{display:flex; flex-direction:column; gap:5px; position:sticky; top:74px}
+.rail-h{font-size:11px; letter-spacing:.09em; text-transform:uppercase; color:var(--ink-3); font-weight:700; margin:0 0 4px 2px}
+.item{display:flex; align-items:center; gap:9px; width:100%; text-align:left; cursor:pointer;
+  background:transparent; border:1px solid transparent; border-radius:8px; padding:8px 10px;
+  font:inherit; color:var(--ink-2); transition:background .12s, color .12s}
+.item:hover{background:var(--surface-2); color:var(--ink)}
+.item[aria-pressed="true"]{background:var(--brand-soft); color:var(--brand-ink); border-color:color-mix(in srgb,var(--brand) 30%, transparent); font-weight:600}
+.dot{width:7px; height:7px; border-radius:50%; flex:none}
+.dot.peak{background:var(--up)} .dot.enter{background:var(--good)}
+.dot.exit{background:var(--down)} .dot.off{background:var(--line-strong)}
+.item-n{flex:1}
+.item-s{font-size:11px; color:var(--ink-3); font-weight:500}
+.item[aria-pressed="true"] .item-s{color:var(--brand-ink); opacity:.8}
+
+/* ---------- item header ---------- */
+.head{display:flex; align-items:flex-end; gap:16px; flex-wrap:wrap; margin-bottom:16px}
+.head h2{font-family:Hahmlet,serif; font-size:28px; font-weight:700; margin:0; letter-spacing:-.02em}
+.season{display:inline-flex; align-items:center; gap:7px; font-size:12.5px; font-weight:600; padding:5px 11px; border-radius:7px}
+.season.peak{background:color-mix(in srgb,var(--up) 12%, transparent); color:var(--up)}
+.season.enter{background:var(--good-bg); color:var(--good)}
+.season.exit{background:color-mix(in srgb,var(--down) 12%, transparent); color:var(--down)}
+.season.off{background:var(--skip-bg); color:var(--skip)}
+.head-sp{flex:1}
+.stamp{font-size:11.5px; color:var(--ink-3); text-align:right; line-height:1.6}
+
+/* ---------- tabs ---------- */
+.tabs{display:flex; gap:2px; border-bottom:1px solid var(--line); margin-bottom:18px; overflow-x:auto}
+.tab{background:none; border:0; border-bottom:2px solid transparent; cursor:pointer; font:inherit;
+  font-weight:600; font-size:13.5px; color:var(--ink-3); padding:9px 14px; white-space:nowrap; margin-bottom:-1px}
+.tab:hover{color:var(--ink)}
+.tab[aria-selected="true"]{color:var(--brand); border-bottom-color:var(--brand)}
+:focus-visible{outline:2px solid var(--brand); outline-offset:2px; border-radius:4px}
+
+/* ---------- filters ---------- */
+.filters{display:flex; gap:20px; align-items:center; flex-wrap:wrap; background:var(--surface);
+  border:1px solid var(--line); border-radius:10px; padding:12px 16px; margin-bottom:14px}
+.f{display:flex; flex-direction:column; gap:5px; min-width:168px}
+.f label{font-size:11px; letter-spacing:.05em; text-transform:uppercase; color:var(--ink-3); font-weight:700}
+.f-row{display:flex; align-items:center; gap:9px}
+input[type=range]{flex:1; accent-color:var(--brand); min-width:96px}
+.f-val{font-size:12.5px; font-weight:600; min-width:56px; text-align:right}
+.chips{display:flex; gap:5px}
+.chip{cursor:pointer; font:inherit; font-size:12px; font-weight:600; padding:4px 11px; border-radius:999px;
+  border:1px solid var(--line-strong); background:var(--surface); color:var(--ink-2)}
+.chip[aria-pressed="true"]{background:var(--ink); color:var(--surface); border-color:var(--ink)}
+.f-sp{flex:1}
+.count{font-size:12.5px; color:var(--ink-2)}
+.count b{color:var(--ink); font-weight:700}
+
+/* ---------- table ---------- */
+.tbox{background:var(--surface); border:1px solid var(--line); border-radius:10px; overflow:hidden; box-shadow:var(--shadow)}
+.tscroll{overflow-x:auto}
+table{border-collapse:collapse; width:100%; min-width:860px}
+th{font-size:10.5px; letter-spacing:.05em; text-transform:uppercase; color:var(--ink-3); font-weight:700;
+  text-align:right; padding:10px 12px; border-bottom:1px solid var(--line); background:var(--surface-2); white-space:nowrap}
+th:first-child{text-align:left}
+th.grp{text-align:center; border-left:1px solid var(--line)}
+td{padding:9px 12px; text-align:right; border-bottom:1px solid var(--line); white-space:nowrap; font-size:13px}
+td:first-child{text-align:left}
+tbody tr{cursor:pointer}
+tbody tr:hover{background:var(--surface-2)}
+tbody tr:last-child td{border-bottom:0}
+.kw{font-weight:600; color:var(--ink)}
+.sub{font-size:11px; color:var(--ink-3); font-weight:400}
+.dim{color:var(--ink-3)}
+.bidcell{border-left:1px solid var(--line)}
+.pill{display:inline-block; font-size:11.5px; font-weight:700; padding:2.5px 9px; border-radius:999px}
+.pill.good{background:var(--good-bg); color:var(--good)}
+.pill.warn{background:var(--warn-bg); color:var(--warn)}
+.pill.skip{background:var(--skip-bg); color:var(--skip)}
+.score{display:inline-flex; align-items:center; gap:7px; justify-content:flex-end}
+.bar{width:44px; height:5px; border-radius:3px; background:var(--surface-3); overflow:hidden; flex:none}
+.bar i{display:block; height:100%; border-radius:3px; background:var(--brand)}
+.empty{padding:36px 16px; text-align:center; color:var(--ink-3); font-size:13px}
+
+/* ---------- cards / charts ---------- */
+.grid2{display:grid; grid-template-columns:repeat(auto-fit,minmax(300px,1fr)); gap:14px}
+.card{background:var(--surface); border:1px solid var(--line); border-radius:10px; padding:16px; box-shadow:var(--shadow)}
+.card h3{font-size:13px; font-weight:700; margin:0 0 2px; letter-spacing:-.01em}
+.card .note{font-size:11.5px; color:var(--ink-3); margin:0 0 13px}
+.legend{display:flex; gap:14px; flex-wrap:wrap; font-size:12px; color:var(--ink-2); margin-top:9px}
+.legend i{display:inline-block; width:9px; height:9px; border-radius:2px; margin-right:5px; vertical-align:-1px}
+svg{display:block; width:100%; height:auto; overflow:visible}
+.gl{stroke:var(--line); stroke-width:1}
+.ax{fill:var(--ink-3); font-size:10px; font-family:"IBM Plex Mono",monospace}
+.vlabel{fill:var(--ink-2); font-size:10.5px; font-family:"IBM Plex Mono",monospace; font-weight:600}
+
+/* verdict card */
+.verdict{border:1px solid var(--line); border-radius:10px; overflow:hidden; background:var(--surface); box-shadow:var(--shadow); margin-bottom:14px}
+.v-top{display:flex; align-items:center; gap:12px; padding:14px 16px; border-bottom:1px solid var(--line)}
+.v-top h3{margin:0; font-size:18px; font-family:Hahmlet,serif; letter-spacing:-.01em; flex:1}
+.v-body{display:grid; grid-template-columns:repeat(auto-fit,minmax(158px,1fr)); gap:0}
+.v-cell{padding:13px 16px; border-right:1px solid var(--line); border-bottom:1px solid var(--line)}
+.v-cell:last-child{border-right:0}
+.v-k{font-size:10.5px; letter-spacing:.06em; text-transform:uppercase; color:var(--ink-3); font-weight:700; margin-bottom:4px}
+.v-v{font-size:19px; font-weight:600; letter-spacing:-.02em}
+.v-s{font-size:11.5px; color:var(--ink-3); margin-top:2px}
+.why{padding:13px 16px; border-bottom:1px solid var(--line)}
+.why:last-child{border-bottom:0}
+.why-k{font-size:10.5px; letter-spacing:.06em; text-transform:uppercase; font-weight:700; margin-bottom:4px}
+.why-good{color:var(--good)} .why-warn{color:var(--warn)}
+.why p{margin:0; font-size:13px; color:var(--ink-2); line-height:1.6}
+.up{color:var(--up); font-weight:600} .down{color:var(--down); font-weight:600}
+
+/* heatmap */
+.hm{overflow-x:auto}
+.hm table{min-width:640px; border-collapse:separate; border-spacing:2px}
+.hm th{background:transparent; border:0; text-align:center; padding:3px; font-size:10.5px}
+.hm th:first-child{text-align:left; padding-left:2px}
+.hm td{border:0; padding:0; text-align:center}
+.cell{height:34px; border-radius:4px; display:flex; align-items:center; justify-content:center;
+  font-size:11px; font-weight:600; font-family:"IBM Plex Mono",monospace; cursor:default}
+.cell.now{outline:2px solid var(--ink); outline-offset:-2px}
+.hm td:first-child{text-align:left; font-size:12.5px; font-weight:600; padding-right:8px; white-space:nowrap}
+.ramp{display:flex; align-items:center; gap:7px; font-size:11.5px; color:var(--ink-3); margin-top:11px}
+.ramp i{width:22px; height:9px; display:inline-block}
+
+/* margin calc */
+.calc{display:flex; gap:16px; align-items:flex-end; flex-wrap:wrap; margin-bottom:14px}
+.calc .f label{margin-bottom:1px}
+input[type=number]{font:inherit; font-family:"IBM Plex Mono",monospace; width:118px; padding:7px 10px;
+  border:1px solid var(--line-strong); border-radius:7px; background:var(--surface); color:var(--ink)}
+.mbox{display:flex; gap:0; border:1px solid var(--line); border-radius:9px; overflow:hidden; background:var(--surface)}
+.mbox div{padding:9px 15px; border-right:1px solid var(--line)}
+.mbox div:last-child{border-right:0}
+.mbox .v-k{margin-bottom:2px}
+.mbox .v-v{font-size:17px}
+
+/* tooltip */
+.tip{position:fixed; pointer-events:none; z-index:60; background:var(--ink); color:var(--bg);
+  padding:7px 10px; border-radius:7px; font-size:11.5px; line-height:1.45; opacity:0; transition:opacity .1s;
+  box-shadow:0 4px 16px rgba(0,0,0,.22); white-space:nowrap; font-weight:500}
+.tip b{font-weight:700}
+
+.foot{margin-top:26px; padding-top:16px; border-top:1px solid var(--line); font-size:12px; color:var(--ink-3); line-height:1.75}
+.foot b{color:var(--ink-2)}
+.formula{font-family:"IBM Plex Mono",monospace; font-size:11.5px; background:var(--surface-2);
+  border:1px solid var(--line); border-radius:7px; padding:9px 12px; color:var(--ink-2); margin-top:9px; overflow-x:auto}
+
+@media (max-width:820px){
+  .stage{grid-template-columns:1fr; gap:16px}
+  .rail{position:static; flex-direction:row; overflow-x:auto; padding-bottom:4px}
+  .rail-h{display:none}
+  .item{width:auto; white-space:nowrap; border:1px solid var(--line); flex:none}
+  .head h2{font-size:23px}
+}
+@media (prefers-reduced-motion:reduce){*{transition:none!important}}
+</style>
+
+<header class="top">
+  <div class="top-in">
+    <h1 class="mark">슈퍼프룻 <span>황금키워드</span></h1>
+    <span class="tag">농산물 키워드 관제</span>
+    <span class="top-sp"></span>
+    <span class="sample">샘플 데이터 · 실제 NAVER 수치 아님</span>
+  </div>
+</header>
+
+<div class="wrap">
+  <div class="stage">
+    <nav class="rail" id="rail" aria-label="품목 선택">
+      <p class="rail-h">품목</p>
+    </nav>
+
+    <main>
+      <div class="head">
+        <h2 id="itemName">샤인머스캣</h2>
+        <span class="season" id="seasonBadge">시즌</span>
+        <span class="head-sp"></span>
+        <div class="stamp">
+          검색광고 지표 2026-09-10 조회<br>
+          KAMIS 도매 2026-09-09 조사
+        </div>
+      </div>
+
+      <div class="tabs" role="tablist">
+        <button class="tab" role="tab" aria-selected="true" data-tab="gold">황금키워드</button>
+        <button class="tab" role="tab" aria-selected="false" data-tab="detail">키워드 상세</button>
+        <button class="tab" role="tab" aria-selected="false" data-tab="timing">월별 판매 타이밍</button>
+        <button class="tab" role="tab" aria-selected="false" data-tab="supply">공급가 비교</button>
+      </div>
+
+      <!-- ========== TAB 1 ========== -->
+      <section id="panel-gold">
+        <div class="filters">
+          <div class="f">
+            <label for="fVol">최소 월 검색수</label>
+            <div class="f-row">
+              <input type="range" id="fVol" min="0" max="30000" step="500" value="2000">
+              <span class="f-val num" id="fVolV">2,000</span>
+            </div>
+          </div>
+          <div class="f">
+            <label for="fComp">최대 경쟁강도</label>
+            <div class="f-row">
+              <input type="range" id="fComp" min="1" max="10" step="0.5" value="10">
+              <span class="f-val num" id="fCompV">10.0</span>
+            </div>
+          </div>
+          <div class="f" style="min-width:auto">
+            <label>판정</label>
+            <div class="chips" id="fVerdict">
+              <button class="chip" data-v="린정" aria-pressed="true">린정</button>
+              <button class="chip" data-v="반린정" aria-pressed="true">반린정</button>
+              <button class="chip" data-v="패스" aria-pressed="false">패스</button>
+            </div>
+          </div>
+          <span class="f-sp"></span>
+          <span class="count" id="count"></span>
+        </div>
+
+        <div class="tbox">
+          <div class="tscroll">
+            <table id="kwTable">
+              <thead>
+                <tr>
+                  <th rowspan="2">키워드</th>
+                  <th rowspan="2">월 검색수</th>
+                  <th class="grp" colspan="2">1위 입찰가</th>
+                  <th class="grp" colspan="2">2위 입찰가</th>
+                  <th class="grp" colspan="2">3위 입찰가</th>
+                  <th rowspan="2" class="bidcell">광고<br>깊이</th>
+                  <th rowspan="2">경쟁<br>강도</th>
+                  <th rowspan="2">황금점수</th>
+                  <th rowspan="2">판정</th>
+                </tr>
+                <tr>
+                  <th class="grp">PC</th><th>모바일</th>
+                  <th class="grp">PC</th><th>모바일</th>
+                  <th class="grp">PC</th><th>모바일</th>
+                </tr>
+              </thead>
+              <tbody id="kwBody"></tbody>
+            </table>
+          </div>
+        </div>
+
+        <div class="formula" id="formulaBox"></div>
+      </section>
+
+      <!-- ========== TAB 2 ========== -->
+      <section id="panel-detail" hidden>
+        <div class="verdict" id="vCard"></div>
+        <div class="grid2">
+          <div class="card" style="grid-column:1/-1">
+            <h3>3년 검색 추세</h3>
+            <p class="note">최근 36개월 · 기기별 월 검색수</p>
+            <div id="trendChart"></div>
+            <div class="legend">
+              <span><i style="background:var(--s1)"></i>PC</span>
+              <span><i style="background:var(--s2)"></i>모바일</span>
+            </div>
+          </div>
+          <div class="card">
+            <h3>연령대 × 성별 클릭 구성</h3>
+            <p class="note">쇼핑인사이트 기준 · 합계 100%</p>
+            <div id="ageChart"></div>
+            <div class="legend">
+              <span><i style="background:var(--s1)"></i>남성</span>
+              <span><i style="background:var(--s2)"></i>여성</span>
+            </div>
+          </div>
+          <div class="card">
+            <h3>기기 비중과 입찰가</h3>
+            <p class="note">PC / 모바일 검색 비중 · 순위별 입찰가</p>
+            <div id="devChart"></div>
+          </div>
+        </div>
+      </section>
+
+      <!-- ========== TAB 3 ========== -->
+      <section id="panel-timing" hidden>
+        <div class="card" style="margin-bottom:14px">
+          <h3>이번 달 들어갈 품목</h3>
+          <p class="note">9월 기준 · 시즌 진입 구간이거나 피크인 품목</p>
+          <div id="nowList"></div>
+        </div>
+        <div class="card">
+          <h3>월별 검색 지수</h3>
+          <p class="note">품목별 연중 최고치를 100으로 환산 · 굵은 테두리가 이번 달</p>
+          <div class="hm" id="heat"></div>
+          <div class="ramp">
+            <span>낮음</span>
+            <i style="background:var(--seq1)"></i><i style="background:var(--seq2)"></i><i style="background:var(--seq3)"></i>
+            <i style="background:var(--seq4)"></i><i style="background:var(--seq5)"></i><i style="background:var(--seq6)"></i><i style="background:var(--seq7)"></i>
+            <span>높음</span>
+          </div>
+        </div>
+      </section>
+
+      <!-- ========== TAB 4 ========== -->
+      <section id="panel-supply" hidden>
+        <div class="calc">
+          <div class="f">
+            <label for="sellPrice">예상 판매가 (원)</label>
+            <input type="number" id="sellPrice" step="100" value="29900">
+          </div>
+          <div class="mbox" id="marginBox"></div>
+        </div>
+        <div class="tbox">
+          <div class="tscroll">
+            <table>
+              <thead>
+                <tr>
+                  <th>공급사</th><th>규격</th><th>공급가</th><th>kg 단가</th>
+                  <th>도매 대비</th><th>배송</th><th>마진율</th><th>판정</th>
+                </tr>
+              </thead>
+              <tbody id="supBody"></tbody>
+            </table>
+          </div>
+        </div>
+        <div class="card" style="margin-top:14px">
+          <h3>공급가와 도매시세 비교</h3>
+          <p class="note" id="kamisNote"></p>
+          <div id="supChart"></div>
+        </div>
+      </section>
+
+      <div class="foot">
+        <b>데이터 출처</b> · 월 검색수 · 클릭수 · 입찰가 · 광고 깊이는 NAVER 검색광고 API,
+        3년 추세는 검색어트렌드, 연령 · 성별 구성은 쇼핑인사이트, 도매 시세는 KAMIS, 공급가는 공급사 API를 전제로 설계했다.<br>
+        <b>경쟁강도는 광고 기반 추정이다.</b> 쇼핑검색 API가 2026-07-31 종료되어 상품수 원본이 없다.
+        광고 깊이와 1위 입찰가로 대신 재고 있으므로, 광고를 돌지 않는 시장은 실제보다 낮게 잡힌다.<br>
+        <b>이 화면의 모든 숫자는 샘플이다.</b> 계산 로직과 판정 규칙은 실제로 동작하며, 실데이터를 연결하면 그대로 쓴다.
+      </div>
+    </main>
+  </div>
+</div>
+
+<div class="tip" id="tip" role="status"></div>
+
+<script>
+(function(){
+"use strict";
+
+/* ============ 샘플 데이터 ============ */
+/* 실제 NAVER 수치가 아니다. 형태와 규모만 현실적으로 맞춘 예시값이다. */
+
+var MONTHS = ["1월","2월","3월","4월","5월","6월","7월","8월","9월","10월","11월","12월"];
+var NOW_M = 8; // 0-indexed → 9월
+
+// kw: [키워드, PC검색, 모바일검색, 1위PC입찰가, 1위MO입찰가, 광고깊이]
+var ITEMS = [
+  { id:"shine", name:"샤인머스캣", peak:8,
+    shape:[18,14,12,13,18,26,48,86,100,78,40,30],
+    profile:{ m:38, age:[4,13,26,29,20,8] },
+    kamis:{ price:12400, unit:"kg", grade:"상품(上)", wow:-3.2 },
+    sup:[
+      ["온그린","2kg 생과",18500,"익일"],
+      ["농협하나로","2kg 생과",19800,"2일"],
+      ["산지직거래A","2kg 생과",17200,"3일"],
+      ["온그린","4kg 생과",34500,"익일"]
+    ],
+    kw:[
+      ["샤인머스캣",            9800, 41200, 1840, 2130, 14],
+      ["샤인머스캣 2kg",        2100, 12400,  980, 1120,  9],
+      ["샤인머스캣 선물세트",   1600,  9800, 1420, 1680, 11],
+      ["샤인머스캣 못난이",      420,  6900,  310,  380,  3],
+      ["샤인머스캣 가정용",      680,  8200,  420,  510,  4],
+      ["샤인머스캣 4kg",         890,  5100,  760,  840,  6],
+      ["프리미엄 샤인머스캣",    340,  2900, 1180, 1350,  8],
+      ["씨없는 청포도",          720,  7400,  290,  340,  3],
+      ["샤인머스캣 대과",        260,  3100,  540,  620,  5],
+      ["샤인머스캣 산지직송",    380,  4600,  350,  410,  4]
+    ]},
+  { id:"apple", name:"사과", peak:10,
+    shape:[42,34,28,24,22,20,22,30,58,88,100,76],
+    profile:{ m:41, age:[3,9,19,27,26,16] },
+    kamis:{ price:4300, unit:"kg", grade:"상품(上)", wow:1.8 },
+    sup:[
+      ["온그린","5kg 부사",23400,"익일"],
+      ["농협하나로","5kg 부사",25100,"2일"],
+      ["산지직거래B","5kg 부사",21800,"3일"]
+    ],
+    kw:[
+      ["사과",                 8600, 38900, 1520, 1760, 15],
+      ["사과 5kg",             1900, 11200,  740,  860,  8],
+      ["부사 사과",             820,  6300,  480,  550,  5],
+      ["사과 못난이",           510,  7800,  260,  310,  3],
+      ["꿀사과",                640,  5900,  620,  710,  6],
+      ["사과 선물세트",        1100,  6800, 1280, 1490, 10],
+      ["아오리 사과",           390,  3400,  340,  400,  4],
+      ["사과 10kg",             580,  3900,  690,  790,  6]
+    ]},
+  { id:"pear", name:"배", peak:8,
+    shape:[26,20,16,14,13,14,20,44,100,52,44,68],
+    profile:{ m:44, age:[2,6,15,26,30,21] },
+    kamis:{ price:5100, unit:"kg", grade:"상품(上)", wow:6.4 },
+    sup:[
+      ["온그린","7.5kg 신고",41200,"익일"],
+      ["농협하나로","7.5kg 신고",43800,"2일"],
+      ["산지직거래C","7.5kg 신고",38900,"4일"]
+    ],
+    kw:[
+      ["배",                   4200, 19800, 1180, 1360, 12],
+      ["신고배",                980,  6400,  520,  600,  6],
+      ["배 선물세트",          1300,  8100, 1640, 1890, 12],
+      ["제수용 배",             410,  3900,  380,  440,  4],
+      ["배 5kg",                620,  4300,  460,  530,  5],
+      ["배 못난이",             230,  2800,  210,  250,  2]
+    ]},
+  { id:"citrus", name:"감귤", peak:11,
+    shape:[76,48,26,16,12,11,12,14,20,40,84,100],
+    profile:{ m:35, age:[6,17,28,26,16,7] },
+    kamis:{ price:3600, unit:"kg", grade:"상품(上)", wow:-1.1 },
+    sup:[
+      ["온그린","5kg 노지",16800,"익일"],
+      ["제주직송D","5kg 노지",15200,"3일"],
+      ["농협하나로","5kg 노지",18400,"2일"]
+    ],
+    kw:[
+      ["감귤",                 5400, 27600, 1340, 1550, 13],
+      ["제주 감귤",            1800, 12900,  820,  950,  9],
+      ["귤 5kg",                740,  6100,  390,  450,  5],
+      ["한라봉",               1200,  9400,  980, 1140,  9],
+      ["천혜향",                890,  7700,  910, 1050,  8],
+      ["감귤 못난이",           320,  4800,  240,  290,  3],
+      ["타이벡 감귤",           180,  2100,  460,  530,  4]
+    ]},
+  { id:"berry", name:"딸기", peak:0,
+    shape:[100,92,74,38,16,8,6,6,8,14,40,82],
+    profile:{ m:31, age:[9,22,31,22,11,5] },
+    kamis:{ price:14800, unit:"kg", grade:"상품(上)", wow:0 },
+    sup:[
+      ["온그린","1kg 설향",13900,"익일"],
+      ["산지직거래E","1kg 설향",12600,"익일"],
+      ["농협하나로","1kg 설향",15200,"2일"]
+    ],
+    kw:[
+      ["딸기",                 7900, 44800, 1920, 2210, 15],
+      ["설향 딸기",            1100,  8600,  680,  790,  7],
+      ["딸기 1kg",              830,  7200,  510,  590,  6],
+      ["논산 딸기",             460,  4100,  420,  490,  5],
+      ["딸기 선물세트",         540,  3600, 1380, 1600, 10],
+      ["못난이 딸기",           210,  3300,  230,  270,  3]
+    ]},
+  { id:"melon", name:"멜론", peak:5,
+    shape:[14,13,18,34,72,100,88,54,26,17,13,12],
+    profile:{ m:40, age:[3,11,24,29,22,11] },
+    kamis:{ price:6900, unit:"kg", grade:"상품(上)", wow:-8.6 },
+    sup:[
+      ["온그린","2통 머스크",24800,"익일"],
+      ["농협하나로","2통 머스크",26900,"2일"]
+    ],
+    kw:[
+      ["멜론",                 3100, 16400, 1240, 1430, 12],
+      ["머스크멜론",            720,  5800,  640,  740,  6],
+      ["멜론 선물세트",         480,  3100, 1520, 1760, 11],
+      ["백자 멜론",             190,  1900,  380,  440,  4],
+      ["멜론 못난이",           140,  1700,  200,  240,  2]
+    ]}
+];
+
+/* ============ 판정 엔진 ============ */
+/* 이 규칙이 무기의 핵심이다. 숫자는 형 장사 기준으로 바꿔야 한다. */
+var RULE = { minVol:5000, maxComp:5.0, goldGood:55, goldSkip:30, volSkip:2000, marginGood:25, marginSkip:15 };
+
+function metrics(k){
+  var pc=k[1], mo=k[2], bid=k[3], bidMo=k[4], depth=k[5];
+  var total = pc+mo;
+  var moShare = mo/total;
+  // 경쟁 = 광고 깊이 55% + 1위 입찰가 45%. 상품수 원본이 없어 광고로 대리 측정한다.
+  var comp = 0.55*(depth/15) + 0.45*(bid/2500);
+  var demand = Math.log10(total+1) - 3;
+  var gold = (demand/(comp+0.25))*26;
+  if(moShare>0.75) gold += 6;                 // 농산물은 모바일 구매가 강하다
+  gold = Math.max(0, Math.min(100, gold));
+  return {
+    total:total, pc:pc, mo:mo, moShare:moShare, depth:depth,
+    bid:[[bid,bidMo],[Math.round(bid*0.78),Math.round(bidMo*0.78)],[Math.round(bid*0.61),Math.round(bidMo*0.61)]],
+    comp:Math.min(10, comp*7), gold:Math.round(gold)
+  };
+}
+
+function verdict(m, seasonState){
+  var pass = [], fail = [];
+  (m.gold>=RULE.goldGood ? pass : fail).push("황금점수 "+m.gold);
+  (m.total>=RULE.minVol ? pass : fail).push("월 검색 "+fmt(m.total));
+  (m.comp<=RULE.maxComp ? pass : fail).push("경쟁강도 "+m.comp.toFixed(1));
+
+  var v;
+  if(m.gold<RULE.goldSkip || m.total<RULE.volSkip) v="패스";
+  else if(fail.length===0 && seasonState!=="exit") v="린정";
+  else v="반린정";
+
+  var why, care;
+  if(v==="린정"){
+    why = "황금점수 "+m.gold+" · 월 검색 "+fmt(m.total)+" · 경쟁강도 "+m.comp.toFixed(1)+" 모두 기준 통과"
+        + (seasonState==="enter" ? " · 시즌 진입 구간" : seasonState==="peak" ? " · 시즌 피크" : "");
+    care = m.moShare>0.8
+      ? "모바일 검색이 "+Math.round(m.moShare*100)+"%다. PC 입찰은 줄이고 모바일에 몰아라."
+      : "1위 입찰가가 "+fmt(m.bid[0][1])+"원이다. 3위권("+fmt(m.bid[2][1])+"원)부터 시험하고 올려라.";
+  } else if(v==="반린정"){
+    why = "통과 "+(pass.length?pass.join(" · "):"없음")+" / 미달 "+fail.join(" · ")
+        + (seasonState==="exit" ? " · 시즌 철수 구간" : "");
+    care = seasonState==="exit"
+      ? "시즌이 끝나는 중이다. 재고를 남기지 마라."
+      : (m.comp>RULE.maxComp
+        ? "경쟁강도가 기준을 넘는다. 광고 깊이 "+m.depth+"단이면 상위 노출 비용이 빠르게 는다."
+        : "검색량이 얇다. 단독으로 걸지 말고 상위 키워드에 묶어라.");
+  } else {
+    why = "황금점수 "+m.gold+" · 월 검색 "+fmt(m.total)+" — 진입 기준 미달";
+    care = "지금은 넘어가라. 시즌이 바뀌면 다시 본다.";
+  }
+  return { v:v, why:why, care:care };
+}
+
+/* ============ 유틸 ============ */
+function fmt(n){ return n.toLocaleString("ko-KR"); }
+function el(t,c,x){ var e=document.createElement(t); if(c)e.className=c; if(x!=null)e.textContent=x; return e; }
+function seasonOf(item){
+  var p=item.peak, d=(NOW_M-p+12)%12;
+  if(d===0) return "peak";
+  if(d>=9) return "enter";      // 피크 1~3개월 전
+  if(d<=2) return "exit";       // 피크 1~2개월 후
+  return "off";
+}
+var SEASON_TXT={peak:"시즌 피크",enter:"시즌 진입",exit:"시즌 철수",off:"비수기"};
+function seasonDetail(item){
+  var s=seasonOf(item), p=item.peak, d=(p-NOW_M+12)%12;
+  if(s==="peak") return "시즌 피크 · 지금이 정점";
+  if(s==="enter") return "시즌 진입 · 피크까지 "+d+"개월";
+  if(s==="exit") return "시즌 철수 · 피크 지난 지 "+((NOW_M-p+12)%12)+"개월";
+  return "비수기 · 피크까지 "+d+"개월";
+}
+function seedRand(seed){ var s=seed; return function(){ s=(s*16807)%2147483647; return s/2147483647; }; }
+
+/* 3년 시계열: 시즌 곡선 × 완만한 추세 × 결정적 노이즈 */
+function series(item, base, seed){
+  var r=seedRand(seed), out=[];
+  for(var i=0;i<36;i++){
+    var mo=(NOW_M-35+i+1200)%12;
+    var v = base*(item.shape[mo]/100)*(0.86+0.28*(i/35))*(0.9+0.2*r());
+    out.push(Math.max(1, Math.round(v)));
+  }
+  return out;
+}
+
+/* ============ 툴팁 ============ */
+var tip=document.getElementById("tip");
+function showTip(e,html){
+  tip.innerHTML=html; tip.style.opacity="1";
+  var x=e.clientX+14, y=e.clientY+14;
+  var w=tip.offsetWidth, h=tip.offsetHeight;
+  if(x+w>innerWidth-8) x=e.clientX-w-14;
+  if(y+h>innerHeight-8) y=e.clientY-h-14;
+  tip.style.left=x+"px"; tip.style.top=y+"px";
+}
+function hideTip(){ tip.style.opacity="0"; }
+
+/* ============ 상태 ============ */
+var cur=ITEMS[0], curKw=null, tab="gold";
+var filt={vol:2000, comp:10, v:{"린정":true,"반린정":true,"패스":false}};
+
+/* ============ 품목 레일 ============ */
+var rail=document.getElementById("rail");
+ITEMS.forEach(function(it){
+  var b=el("button","item"); b.type="button"; b.setAttribute("aria-pressed", it===cur);
+  var s=seasonOf(it);
+  b.appendChild(el("span","dot "+s));
+  b.appendChild(el("span","item-n",it.name));
+  b.appendChild(el("span","item-s",SEASON_TXT[s]));
+  b.onclick=function(){ cur=it; curKw=null; rail.querySelectorAll(".item").forEach(function(x,i){ x.setAttribute("aria-pressed", ITEMS[i]===cur); }); renderAll(); };
+  rail.appendChild(b);
+});
+
+/* ============ 탭 ============ */
+var PANELS={gold:"panel-gold",detail:"panel-detail",timing:"panel-timing",supply:"panel-supply"};
+document.querySelectorAll(".tab").forEach(function(t){
+  t.onclick=function(){ setTab(t.dataset.tab); };
+});
+function setTab(name){
+  tab=name;
+  document.querySelectorAll(".tab").forEach(function(t){ t.setAttribute("aria-selected", t.dataset.tab===name); });
+  for(var k in PANELS) document.getElementById(PANELS[k]).hidden = (k!==name);
+  if(name==="detail") renderDetail();
+  if(name==="timing") renderTiming();
+  if(name==="supply") renderSupply();
+}
+
+/* ============ 필터 ============ */
+var fVol=document.getElementById("fVol"), fComp=document.getElementById("fComp");
+fVol.oninput=function(){ filt.vol=+fVol.value; document.getElementById("fVolV").textContent=fmt(filt.vol); renderTable(); };
+fComp.oninput=function(){ filt.comp=+fComp.value; document.getElementById("fCompV").textContent=filt.comp.toFixed(1); renderTable(); };
+document.getElementById("fVerdict").querySelectorAll(".chip").forEach(function(c){
+  c.onclick=function(){
+    var on=c.getAttribute("aria-pressed")!=="true";
+    c.setAttribute("aria-pressed",on); filt.v[c.dataset.v]=on; renderTable();
+  };
+});
+
+/* ============ 표 ============ */
+function rows(){
+  var s=seasonOf(cur);
+  return cur.kw.map(function(k){
+    var m=metrics(k), vd=verdict(m,s);
+    return { kw:k[0], m:m, vd:vd, raw:k };
+  }).sort(function(a,b){ return b.m.gold-a.m.gold; });
+}
+function renderTable(){
+  var all=rows();
+  var list=all.filter(function(r){
+    return r.m.total>=filt.vol && r.m.comp<=filt.comp && filt.v[r.vd.v];
+  });
+  var body=document.getElementById("kwBody"); body.innerHTML="";
+  document.getElementById("count").innerHTML="<b>"+list.length+"</b>개 / 전체 "+all.length+"개";
+
+  if(!list.length){
+    var tr=el("tr"), td=el("td","empty","조건에 맞는 키워드가 없다. 필터를 넓혀봐라.");
+    td.colSpan=12; td.style.textAlign="center"; tr.appendChild(td); body.appendChild(tr); return;
+  }
+
+  list.forEach(function(r){
+    var m=r.m, tr=el("tr");
+    tr.onclick=function(){ curKw=r.kw; setTab("detail"); };
+    var c1=el("td");
+    c1.appendChild(el("div","kw",r.kw));
+    c1.appendChild(el("div","sub","광고 "+m.depth+"단 · 모바일 "+Math.round(m.moShare*100)+"%"));
+    tr.appendChild(c1);
+
+    var c2=el("td","num");
+    c2.appendChild(el("div",null,fmt(m.total)));
+    c2.appendChild(el("div","sub","PC "+fmt(m.pc)+" / MO "+fmt(m.mo)));
+    tr.appendChild(c2);
+
+    for(var i=0;i<3;i++){
+      var a=el("td","num bidcell",fmt(m.bid[i][0])); tr.appendChild(a);
+      var b=el("td","num",fmt(m.bid[i][1])); tr.appendChild(b);
+    }
+    tr.appendChild(el("td","num bidcell dim",String(m.depth)));
+    tr.appendChild(el("td","num",m.comp.toFixed(1)));
+
+    var cg=el("td"); var w=el("span","score");
+    var bar=el("span","bar"); var fill=el("i"); fill.style.width=m.gold+"%"; bar.appendChild(fill);
+    w.appendChild(bar); w.appendChild(el("span","num",String(m.gold)));
+    cg.appendChild(w); tr.appendChild(cg);
+
+    var cv=el("td"); var cls=r.vd.v==="린정"?"good":r.vd.v==="반린정"?"warn":"skip";
+    cv.appendChild(el("span","pill "+cls,r.vd.v)); tr.appendChild(cv);
+    body.appendChild(tr);
+  });
+
+  document.getElementById("formulaBox").textContent =
+    "황금점수 = (log10(월검색수) − 3) ÷ (경쟁 + 0.25) × 26   |   경쟁 = 광고깊이/15 × 0.55 + 1위입찰가/2500 × 0.45   |   "+
+    "모바일 비중 75% 초과 시 +6   |   린정 = 점수 "+RULE.goldGood+"↑ · 검색 "+fmt(RULE.minVol)+"↑ · 경쟁 "+RULE.maxComp.toFixed(1)+"↓ 전부 충족";
+}
+
+/* ============ 상세 ============ */
+function renderDetail(){
+  var list=rows();
+  var r = list.filter(function(x){ return x.kw===curKw; })[0] || list[0];
+  curKw=r.kw;
+  var m=r.m, vd=r.vd, s=seasonOf(cur);
+
+  var kamis=cur.kamis;
+  var cls=vd.v==="린정"?"good":vd.v==="반린정"?"warn":"skip";
+  var v=document.getElementById("vCard");
+  v.innerHTML=
+   '<div class="v-top"><h3>'+r.kw+'</h3><span class="pill '+cls+'" style="font-size:13px;padding:4px 13px">'+vd.v+'</span></div>'
+  +'<div class="v-body">'
+  +cell("월 검색수",fmt(m.total),"PC "+fmt(m.pc)+" · 모바일 "+fmt(m.mo))
+  +cell("1위 입찰가",fmt(m.bid[0][1])+"원","모바일 · PC "+fmt(m.bid[0][0])+"원")
+  +cell("경쟁강도",m.comp.toFixed(1),"광고 "+m.depth+"단 · 광고 기반 추정")
+  +cell("황금점수",String(m.gold),"100점 만점")
+  +cell("시즌",SEASON_TXT[s],seasonDetail(cur).split(" · ")[1]||"")
+  +cell("도매 시세",fmt(kamis.price)+"원/"+kamis.unit,
+        kamis.grade+" · <span class=\""+(kamis.wow>0?"up":kamis.wow<0?"down":"")+"\">"+
+        (kamis.wow>0?"▲":kamis.wow<0?"▼":"—")+" "+Math.abs(kamis.wow).toFixed(1)+"% 전주비</span>")
+  +'</div>'
+  +'<div class="why"><div class="why-k why-'+(vd.v==="린정"?"good":"warn")+'">왜 '+vd.v+'</div><p>'+vd.why+'</p></div>'
+  +'<div class="why"><div class="why-k why-warn">주의</div><p>'+vd.care+'</p></div>';
+
+  drawTrend(r);
+  drawAge(r);
+  drawDevice(r);
+}
+function cell(k,val,sub){
+  return '<div class="v-cell"><div class="v-k">'+k+'</div><div class="v-v num">'+val+'</div>'+(sub?'<div class="v-s">'+sub+'</div>':'')+'</div>';
+}
+
+/* --- 3년 추세 라인 --- */
+function drawTrend(r){
+  var seed=r.kw.length*977+r.m.total%9973;
+  var pc=series(cur,r.m.pc,seed), mo=series(cur,r.m.mo,seed+31);
+  var W=760,H=230,L=52,R=14,T=14,B=30;
+  var iw=W-L-R, ih=H-T-B;
+  var max=Math.max.apply(null,pc.concat(mo))*1.1;
+  var step=iw/35;
+  function X(i){ return L+i*step; }
+  function Y(v){ return T+ih-(v/max)*ih; }
+  function path(a){ return a.map(function(v,i){ return (i?"L":"M")+X(i).toFixed(1)+" "+Y(v).toFixed(1); }).join(" "); }
+
+  var ticks=[0,max/2,max].map(function(v){
+    return '<line class="gl" x1="'+L+'" y1="'+Y(v)+'" x2="'+(W-R)+'" y2="'+Y(v)+'"/>'
+         + '<text class="ax" x="'+(L-8)+'" y="'+(Y(v)+3.5)+'" text-anchor="end">'+fmt(Math.round(v))+'</text>';
+  }).join("");
+
+  var xl="";
+  for(var i=0;i<36;i+=6){
+    var mo2=(NOW_M-35+i+1200)%12;
+    var yr=Math.floor((i-35+NOW_M)/12);
+    xl+='<text class="ax" x="'+X(i)+'" y="'+(H-10)+'" text-anchor="middle">'+MONTHS[mo2]+'</text>';
+  }
+  xl+='<text class="ax" x="'+X(35)+'" y="'+(H-10)+'" text-anchor="end">이번달</text>';
+
+  var hot='';
+  for(var j=0;j<36;j++){
+    hot+='<rect x="'+(X(j)-step/2)+'" y="'+T+'" width="'+step+'" height="'+ih+'" fill="transparent" '
+       + 'data-i="'+j+'" data-pc="'+pc[j]+'" data-mo="'+mo[j]+'"/>';
+  }
+
+  var svg='<svg viewBox="0 0 '+W+' '+H+'" role="img" aria-label="'+r.kw+' 36개월 검색 추세">'
+    +ticks+xl
+    +'<path d="'+path(pc)+'" fill="none" stroke="var(--s1)" stroke-width="2" stroke-linejoin="round"/>'
+    +'<path d="'+path(mo)+'" fill="none" stroke="var(--s2)" stroke-width="2" stroke-linejoin="round"/>'
+    +'<circle cx="'+X(35)+'" cy="'+Y(pc[35])+'" r="4" fill="var(--s1)" stroke="var(--surface)" stroke-width="2"/>'
+    +'<circle cx="'+X(35)+'" cy="'+Y(mo[35])+'" r="4" fill="var(--s2)" stroke="var(--surface)" stroke-width="2"/>'
+    +'<line id="cross" x1="0" y1="'+T+'" x2="0" y2="'+(T+ih)+'" stroke="var(--line-strong)" stroke-width="1" opacity="0"/>'
+    +hot+'</svg>';
+  var box=document.getElementById("trendChart"); box.innerHTML=svg;
+
+  var cross=box.querySelector("#cross");
+  box.querySelectorAll("rect[data-i]").forEach(function(rc){
+    rc.addEventListener("mousemove",function(e){
+      var i=+rc.dataset.i, mo2=(NOW_M-35+i+1200)%12;
+      cross.setAttribute("x1",X(i)); cross.setAttribute("x2",X(i)); cross.setAttribute("opacity","1");
+      showTip(e,"<b>"+MONTHS[mo2]+"</b>"+(i===35?" (이번달)":"")+"<br>PC "+fmt(+rc.dataset.pc)+"<br>모바일 "+fmt(+rc.dataset.mo));
+    });
+    rc.addEventListener("mouseleave",function(){ cross.setAttribute("opacity","0"); hideTip(); });
+  });
+}
+
+/* --- 연령 × 성별 --- */
+function drawAge(r){
+  var LB=["10대","20대","30대","40대","50대","60대+"];
+  var mShare=cur.profile.m/100;
+  var jitter=(r.m.moShare-0.85)*18;
+  var base=cur.profile.age.map(function(v,i){ return Math.max(1, v + (i<3? jitter : -jitter*0.7)); });
+  var sum=base.reduce(function(a,b){return a+b;},0);
+  var pct=base.map(function(v){ return v/sum*100; });
+
+  var W=440,H=210,L=42,R=10,T=10,B=26, iw=W-L-R, ih=H-T-B;
+  var max=Math.max.apply(null,pct)*1.15;
+  var gw=iw/6, bw=(gw-10)/2;
+  var g="";
+  for(var i=0;i<6;i++){
+    var mv=pct[i]*mShare, fv=pct[i]*(1-mShare);
+    var x0=L+i*gw+5;
+    [[mv,"var(--s1)",0,"남성"],[fv,"var(--s2)",bw+2,"여성"]].forEach(function(d){
+      var h=(d[0]/max)*ih, y=T+ih-h;
+      g+='<rect x="'+(x0+d[2])+'" y="'+y+'" width="'+bw+'" height="'+Math.max(2,h)+'" rx="3" fill="'+d[1]+'" '
+       + 'data-t="'+LB[i]+' '+d[3]+' '+d[0].toFixed(1)+'%"/>';
+    });
+    g+='<text class="ax" x="'+(L+i*gw+gw/2)+'" y="'+(H-9)+'" text-anchor="middle">'+LB[i]+'</text>';
+  }
+  var ticks=[0,max/2,max].map(function(v){
+    return '<line class="gl" x1="'+L+'" y1="'+(T+ih-(v/max)*ih)+'" x2="'+(W-R)+'" y2="'+(T+ih-(v/max)*ih)+'"/>'
+      +'<text class="ax" x="'+(L-7)+'" y="'+(T+ih-(v/max)*ih+3.5)+'" text-anchor="end">'+v.toFixed(0)+'%</text>';
+  }).join("");
+  var box=document.getElementById("ageChart");
+  box.innerHTML='<svg viewBox="0 0 '+W+' '+H+'" role="img" aria-label="연령대별 성별 클릭 구성">'+ticks+g+'</svg>';
+  box.querySelectorAll("rect[data-t]").forEach(function(b){
+    b.addEventListener("mousemove",function(e){ showTip(e,b.dataset.t); });
+    b.addEventListener("mouseleave",hideTip);
+  });
+}
+
+/* --- 기기 비중 + 입찰가 --- */
+function drawDevice(r){
+  var m=r.m, W=440,H=210;
+  var moPct=m.moShare*100, pcPct=100-moPct;
+  var barY=18, barH=30, L=10, iw=W-20;
+  var pw=iw*pcPct/100;
+  var s='<svg viewBox="0 0 '+W+' '+H+'" role="img" aria-label="기기 비중과 순위별 입찰가">'
+   +'<text class="vlabel" x="'+L+'" y="12">기기 비중</text>'
+   +'<rect x="'+L+'" y="'+barY+'" width="'+pw+'" height="'+barH+'" rx="4" fill="var(--s1)" data-t="PC '+pcPct.toFixed(1)+'%"/>'
+   +'<rect x="'+(L+pw+2)+'" y="'+barY+'" width="'+(iw-pw-2)+'" height="'+barH+'" rx="4" fill="var(--s2)" data-t="모바일 '+moPct.toFixed(1)+'%"/>'
+   +'<text class="ax" x="'+(L+6)+'" y="'+(barY+19)+'" fill="#fff" style="font-weight:600">PC '+pcPct.toFixed(0)+'%</text>'
+   +'<text class="ax" x="'+(W-L-6)+'" y="'+(barY+19)+'" fill="#fff" text-anchor="end" style="font-weight:600">모바일 '+moPct.toFixed(0)+'%</text>';
+
+  var top=78;
+  s+='<text class="vlabel" x="'+L+'" y="'+(top-8)+'">순위별 입찰가 (원)</text>';
+  var maxBid=m.bid[0][1]*1.12, rw=iw-108;
+  for(var i=0;i<3;i++){
+    var y=top+i*36;
+    s+='<text class="ax" x="'+L+'" y="'+(y+18)+'">'+(i+1)+'위</text>';
+    [[m.bid[i][0],"var(--s1)",0,"PC"],[m.bid[i][1],"var(--s2)",13,"모바일"]].forEach(function(d){
+      var w=(d[0]/maxBid)*rw;
+      s+='<rect x="34" y="'+(y+d[2])+'" width="'+Math.max(2,w)+'" height="11" rx="3" fill="'+d[1]+'" data-t="'+(i+1)+'위 '+d[3]+' '+fmt(d[0])+'원"/>';
+    });
+    s+='<text class="ax" x="'+(W-L)+'" y="'+(y+13)+'" text-anchor="end">'+fmt(m.bid[i][0])+' / '+fmt(m.bid[i][1])+'</text>';
+  }
+  s+='</svg>';
+  var box=document.getElementById("devChart"); box.innerHTML=s;
+  box.querySelectorAll("[data-t]").forEach(function(b){
+    b.addEventListener("mousemove",function(e){ showTip(e,b.dataset.t); });
+    b.addEventListener("mouseleave",hideTip);
+  });
+}
+
+/* ============ 월별 타이밍 ============ */
+function renderTiming(){
+  var now=ITEMS.filter(function(it){ var s=seasonOf(it); return s==="enter"||s==="peak"; });
+  var box=document.getElementById("nowList"); box.innerHTML="";
+  if(!now.length){ box.appendChild(el("p","note","이번 달 진입 구간인 품목이 없다.")); }
+  now.forEach(function(it){
+    var s=seasonOf(it);
+    var d=el("div"); d.style.cssText="display:flex;gap:11px;align-items:center;padding:9px 0;border-bottom:1px solid var(--line)";
+    d.innerHTML='<span class="dot '+s+'"></span><b style="min-width:82px">'+it.name+'</b>'
+      +'<span class="season '+s+'" style="font-size:11.5px;padding:3px 9px">'+SEASON_TXT[s]+'</span>'
+      +'<span class="sub" style="flex:1">'+seasonDetail(it)+'</span>'
+      +'<span class="num sub">도매 '+fmt(it.kamis.price)+'원/'+it.kamis.unit+'</span>';
+    box.appendChild(d);
+  });
+  if(box.lastChild) box.lastChild.style.borderBottom="0";
+
+  var h='<table><thead><tr><th></th>';
+  MONTHS.forEach(function(m,i){ h+='<th'+(i===NOW_M?' style="color:var(--ink);font-weight:800"':'')+'>'+m.replace("월","")+'</th>'; });
+  h+='</tr></thead><tbody>';
+  ITEMS.forEach(function(it){
+    h+='<tr><td>'+it.name+'</td>';
+    it.shape.forEach(function(v,i){
+      var step = v>=90?7 : v>=72?6 : v>=54?5 : v>=38?4 : v>=24?3 : v>=14?2 : 1;
+      var light = step<=3;
+      h+='<td><div class="cell'+(i===NOW_M?" now":"")+'" style="background:var(--seq'+step+');color:'+(light?"var(--ink-2)":"#fff")+'" '
+        +'data-t="'+it.name+' '+MONTHS[i]+' · 지수 '+v+'">'+v+'</div></td>';
+    });
+    h+='</tr>';
+  });
+  h+='</tbody></table>';
+  var hm=document.getElementById("heat"); hm.innerHTML=h;
+  hm.querySelectorAll("[data-t]").forEach(function(c){
+    c.addEventListener("mousemove",function(e){ showTip(e,c.dataset.t); });
+    c.addEventListener("mouseleave",hideTip);
+  });
+}
+
+/* ============ 공급가 ============ */
+function parseSpec(sp){
+  var m=sp.match(/([\d.]+)\s*kg/);
+  if(m) return {kg:parseFloat(m[1]), txt:sp};
+  var t=sp.match(/(\d+)\s*통/);
+  if(t) return {kg:parseFloat(t[1])*1.6, txt:sp};   // 멜론 1통 ≈ 1.6kg 가정
+  return {kg:null, txt:sp};
+}
+function renderSupply(){
+  var sell=+document.getElementById("sellPrice").value||0;
+  var k=cur.kamis;
+  var body=document.getElementById("supBody"); body.innerHTML="";
+  var best=null;
+
+  cur.sup.forEach(function(s){
+    var name=s[0], spec=s[1], price=s[2], ship=s[3];
+    var pk=parseSpec(spec);
+    var perKg = pk.kg ? Math.round(price/pk.kg) : null;
+    var vs = perKg ? ((perKg-k.price)/k.price*100) : null;
+    var margin = sell>0 ? ((sell-price)/sell*100) : 0;
+    var v = margin>=RULE.marginGood ? "린정" : margin>=RULE.marginSkip ? "반린정" : "패스";
+    if(!best || margin>best.margin) best={name:name,margin:margin,price:price,spec:spec};
+
+    var tr=el("tr");
+    tr.appendChild(el("td","kw",name));
+    tr.appendChild(el("td","dim",spec));
+    tr.appendChild(el("td","num",fmt(price)+"원"));
+    tr.appendChild(el("td","num",perKg?fmt(perKg)+"원":"—"));
+    var tv=el("td","num");
+    if(vs===null){ tv.textContent="—"; tv.className="num dim"; }
+    else { tv.innerHTML='<span class="'+(vs>0?"up":"down")+'">'+(vs>0?"+":"")+vs.toFixed(1)+"%</span>"; }
+    tr.appendChild(tv);
+    tr.appendChild(el("td","dim",ship));
+    tr.appendChild(el("td","num",margin.toFixed(1)+"%"));
+    var cv=el("td"); cv.appendChild(el("span","pill "+(v==="린정"?"good":v==="반린정"?"warn":"skip"),v));
+    tr.appendChild(cv);
+    body.appendChild(tr);
+  });
+
+  var mb=document.getElementById("marginBox");
+  mb.innerHTML=
+    '<div><div class="v-k">최고 마진</div><div class="v-v num">'+(best?best.margin.toFixed(1)+"%":"—")+'</div></div>'
+   +'<div><div class="v-k">공급사</div><div class="v-v" style="font-size:15px">'+(best?best.name:"—")+'</div></div>'
+   +'<div><div class="v-k">공급가</div><div class="v-v num">'+(best?fmt(best.price)+"원":"—")+'</div></div>'
+   +'<div><div class="v-k">기준</div><div class="v-v" style="font-size:15px">린정 '+RULE.marginGood+'%↑</div></div>';
+
+  document.getElementById("kamisNote").innerHTML=
+    "KAMIS 도매 "+fmt(k.price)+"원/"+k.unit+" ("+k.grade+", 2026-09-09 조사) 대비 kg 단가 · "
+    +'<span class="'+(k.wow>0?"up":k.wow<0?"down":"")+'">'+(k.wow>0?"▲":k.wow<0?"▼":"—")+" "+Math.abs(k.wow).toFixed(1)+"% 전주비</span>";
+
+  // 공급가 kg단가 가로 막대 + 도매 기준선
+  var data=cur.sup.map(function(s){
+    var pk=parseSpec(s[1]);
+    return { n:s[0]+" "+s[1], v: pk.kg? Math.round(s[2]/pk.kg) : 0 };
+  }).filter(function(d){ return d.v>0; });
+  var W=760, rowH=34, H=data.length*rowH+38, L=150, R=64;
+  var max=Math.max(k.price, Math.max.apply(null,data.map(function(d){return d.v;})))*1.18;
+  var iw=W-L-R;
+  var s2='<svg viewBox="0 0 '+W+' '+H+'" role="img" aria-label="공급사별 kg 단가와 도매 시세 비교">';
+  var kx=L+(k.price/max)*iw;
+  s2+='<line x1="'+kx+'" y1="6" x2="'+kx+'" y2="'+(H-26)+'" stroke="var(--ink-2)" stroke-width="1.5" stroke-dasharray="4 3"/>'
+    + '<text class="ax" x="'+(kx+5)+'" y="'+(H-12)+'" style="font-weight:700;fill:var(--ink-2)">KAMIS 도매 '+fmt(k.price)+'</text>';
+  data.forEach(function(d,i){
+    var y=8+i*rowH, w=(d.v/max)*iw;
+    var over=d.v>k.price;
+    s2+='<text class="ax" x="'+(L-8)+'" y="'+(y+15)+'" text-anchor="end" style="fill:var(--ink-2);font-size:11px">'+d.n+'</text>'
+      + '<rect x="'+L+'" y="'+y+'" width="'+Math.max(2,w)+'" height="20" rx="4" fill="'+(over?"var(--s2)":"var(--s1)")+'" '
+      + 'data-t="'+d.n+' · '+fmt(d.v)+'원/kg · 도매 대비 '+((d.v-k.price)/k.price*100).toFixed(1)+'%"/>'
+      + '<text class="vlabel" x="'+(L+w+7)+'" y="'+(y+14)+'">'+fmt(d.v)+'</text>';
+  });
+  s2+='</svg>';
+  var box=document.getElementById("supChart"); box.innerHTML=s2;
+  box.querySelectorAll("[data-t]").forEach(function(b){
+    b.addEventListener("mousemove",function(e){ showTip(e,b.dataset.t); });
+    b.addEventListener("mouseleave",hideTip);
+  });
+}
+document.getElementById("sellPrice").addEventListener("input",function(){ if(tab==="supply") renderSupply(); });
+
+/* ============ 렌더 ============ */
+function renderAll(){
+  document.getElementById("itemName").textContent=cur.name;
+  var s=seasonOf(cur), sb=document.getElementById("seasonBadge");
+  sb.className="season "+s; sb.textContent=seasonDetail(cur);
+  document.getElementById("sellPrice").value = cur.id==="shine"?29900 : cur.id==="apple"?32900 :
+    cur.id==="pear"?54900 : cur.id==="citrus"?21900 : cur.id==="berry"?19900 : 34900;
+  renderTable();
+  if(tab==="detail") renderDetail();
+  if(tab==="timing") renderTiming();
+  if(tab==="supply") renderSupply();
+}
+document.getElementById("fVolV").textContent=fmt(filt.vol);
+document.getElementById("fCompV").textContent=filt.comp.toFixed(1);
+renderAll();
+})();
+</script>

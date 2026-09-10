@@ -25,6 +25,7 @@ C:/Users/kluck/Downloads/3. 판매상품/상세페이지_참고/saengsaeng-agri-
 | `docs/03-action-guide.md` | **1·2순위 실행 절차 + 로컬 세션 지시문** |
 | `docs/04-itemscout-pandarank.md` | 아이템스카우트+판다랭크 결합 검토 · 크롤링 판례 |
 | `docs/05-weapon-spec.md` | **무기 설계서 — 판정 엔진 · 화면 · 로드맵** |
+| `prototype/golden-keyword.html` | **동작하는 프로토타입** — 황금키워드 · 상세 · 월별 타이밍 · 공급가 |
 
 ## 현재 상태 요약 (2026-09-10 기준)
 
@@ -36,3 +37,14 @@ C:/Users/kluck/Downloads/3. 판매상품/상세페이지_참고/saengsaeng-agri-
 - 실제로 끊긴 건 **쇼핑 검색 API 하나** (2026-07-31, 대체 없음)
 - **네이버 API 약관 개정 시행 (2026-09-07)** → `docs/01-feasibility.md` 리스크 1 참조
 - **최우선 과제: 카테고리 ID 버그** → `docs/03-action-guide.md`
+
+## 프로토타입
+
+`prototype/golden-keyword.html` — 단일 HTML. 브라우저로 바로 열린다.
+판정 엔진과 황금점수 계산은 실제로 동작하며, 표시되는 수치는 전부 샘플이다.
+기준값은 스크립트 상단 `RULE` 객체 한 곳에서 바꾼다.
+
+```js
+var RULE = { minVol:5000, maxComp:5.0, goldGood:55, goldSkip:30,
+             volSkip:2000, marginGood:25, marginSkip:15 };
+```
