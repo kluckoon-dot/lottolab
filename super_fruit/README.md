@@ -20,6 +20,7 @@ C:/Users/kluck/Downloads/3. 판매상품/상세페이지_참고/saengsaeng-agri-
 | `docs/00-source-log.md` | 원본 ChatGPT 대화 기록 (판단 근거) |
 | `docs/01-feasibility.md` | **타당성 판정 — 여기부터 읽어라** |
 | `docs/02-data-sources.md` | 데이터 소스별 생존 여부·약관·대체안 |
+| `docs/03-action-guide.md` | **1·2순위 실행 절차 + 로컬 세션 지시문** |
 
 ## 현재 상태 요약 (2026-09-10 기준)
 
@@ -27,4 +28,7 @@ C:/Users/kluck/Downloads/3. 판매상품/상세페이지_참고/saengsaeng-agri-
 - 데이터 수집: **부분 완료** (SearchAd 31%, 검색트렌드 29%, 쇼핑인사이트 33%)
 - 6개월 매출·판매량·평균가격: 화면에서 제거 완료, 내부 필드는 잔존
 - 공급가 맞비교(온그린/어드민플러스): **미착수** — Access Key 0개
+- 네이버 검색어트렌드·쇼핑인사이트: **종료 아님, API 허브로 이관.** 개발자센터 키는 2027-06-30까지
+- 실제로 끊긴 건 **쇼핑 검색 API 하나** (2026-07-31, 대체 없음)
 - **네이버 API 약관 개정 시행 (2026-09-07)** → `docs/01-feasibility.md` 리스크 1 참조
+- **최우선 과제: 카테고리 ID 버그** → `docs/03-action-guide.md`
