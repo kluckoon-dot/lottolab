@@ -29,6 +29,7 @@ C:/Users/kluck/Downloads/3. 판매상품/상세페이지_참고/saengsaeng-agri-
 | `prototype/keyword-lab.html` | **동작하는 프로토타입 v2** — 202품종 범용 |
 | `prototype/golden-keyword.html` | 프로토타입 v1 (6품목 고정, 참고용) |
 | `prototype/supply-calendar.json` | 수확 캘린더 202품종 · 인기 TOP20 (시트 추출) |
+| `prototype/fetch-naver.mjs` | **검색광고 API 수집기** — 네트워크 열리면 바로 동작 |
 
 ## 현재 상태 요약 (2026-09-10 기준)
 

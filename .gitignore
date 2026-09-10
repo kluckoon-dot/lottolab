@@ -1,0 +1,4 @@
+.env
+.env.local
+super_fruit/prototype/naver-out/
+node_modules/

@@ -4,14 +4,57 @@
 
 ---
 
-## 먼저 — 여기서는 못 가져온다
+## 먼저 — 지금 막혀 있는 것과 푸는 법
 
-이 작업 환경은 외부 네트워크가 정책으로 막혀 있다. `chatgpt.com`, `dhlottery`,
-`ncloud.com`, 형이 준 배포 사이트까지 전부 프록시가 403으로 끊었다.
-**NAVER API도 여기서는 호출할 수 없고, 나는 형의 API 키도 갖고 있지 않다.**
+이 클라우드 세션은 외부 네트워크가 정책으로 막혀 있다. 실제로 확인한 결과다.
 
-그래서 실데이터 연결은 **형 로컬 세션에서** 해야 한다.
-이 문서는 그때 그대로 쓰는 설계서다. 프로토타입의 데이터 모델은 이미 이 구조에 맞춰 짜놨다.
+```
+api.searchad.naver.com          403  Host not in allowlist
+openapi.naver.com               403
+datalab.naver.com               403
+search.shopping.naver.com       403
+naveropenapi.apigw.ntruss.com   403
+```
+
+프록시가 돌려주는 문구가 곧 해법이다.
+**"Add this host to your network egress settings to allow access."**
+
+즉 **환경의 네트워크 정책에 호스트를 추가하면 이 세션에서도 직접 호출할 수 있다.**
+원격 환경은 생성 시 네트워크 정책을 고르게 되어 있다 →
+https://code.claude.com/docs/en/claude-code-on-the-web
+
+**막힌 것은 네트워크뿐이 아니다. 두 가지가 따로다.**
+
+| 필요한 것 | 지금 상태 | 푸는 법 |
+|---|---|---|
+| 네트워크 도달 | 차단 | 환경 egress 허용목록에 호스트 추가 |
+| 인증 | 없음 | 검색광고 API 키 발급 (아래 1번) |
+
+**"웹에 로그인해주면 알아서 뽑아와라"는 성립하지 않는다.**
+이 환경의 브라우저는 컨테이너 안 헤드리스라 사람이 보거나 입력할 수 없고,
+공유 브라우저 세션이라는 것이 없다. 비밀번호를 건네받는 것도 하지 않는다.
+그리고 로그인 상태로 검색광고 웹 화면을 자동 조작하는 것은
+`docs/04-itemscout-pandarank.md`에서 패스로 판정한 크롤링에 해당한다.
+
+**API 키가 크롤링보다 쉽다.** 발급 2분, 무료, 우리가 필요한 지표가 그대로 나온다.
+
+### 실행 경로 세 가지
+
+| 경로 | 내용 | 비고 |
+|---|---|---|
+| **A** | 이 환경의 egress에 네이버 호스트 추가 + 키 주입 | 여기서 내가 직접 수집. 키가 컨테이너에 남는다 |
+| **B** | 형 로컬 세션에서 `fetch-naver.mjs` 실행 | 키가 로컬에만 남는다. **추천** |
+| **C** | 응답 JSON 한 건만 붙여넣기 | 파서 확정용. A나 B의 전 단계 |
+
+수집기는 이미 만들어놨다 → `prototype/fetch-naver.mjs`
+서명·호출·정규화·한도 처리까지 동작을 확인했고, 위 403 한 군데에서만 멈춘다.
+네트워크가 열리면 그대로 돈다.
+
+```
+node fetch-naver.mjs --probe 샤인머스캣              첫 실행. 응답 원본을 덤프한다
+node fetch-naver.mjs --keywords 샤인머스캣,사과       지표 수집
+node fetch-naver.mjs --from supply-calendar.json --limit 40
+```
 
 ---
 
