@@ -21,6 +21,7 @@ C:/Users/kluck/Downloads/3. 판매상품/상세페이지_참고/saengsaeng-agri-
 | `docs/01-feasibility.md` | **타당성 판정 — 여기부터 읽어라** |
 | `docs/02-data-sources.md` | 데이터 소스별 생존 여부·약관·대체안 |
 | `docs/03-action-guide.md` | **1·2순위 실행 절차 + 로컬 세션 지시문** |
+| `docs/04-itemscout-pandarank.md` | 아이템스카우트+판다랭크 결합 검토 · 크롤링 판례 |
 
 ## 현재 상태 요약 (2026-09-10 기준)
 
