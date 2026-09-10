@@ -1,0 +1,1087 @@
+<title>슈퍼프룻 키워드랩</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Hahmlet:wght@500;700&family=IBM+Plex+Sans+KR:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap">
+<style>
+:root{
+  color-scheme: light;
+  --bg:#faf9f5; --surface:#ffffff; --surface-2:#f2f1ec; --surface-3:#e8e7e0;
+  --line:#dedcd3; --line-strong:#c4c2b6;
+  --ink:#14160f; --ink-2:#54564c; --ink-3:#7c7e72;
+  --brand:#15654e; --brand-soft:#e3efe9; --brand-ink:#0d4433;
+  --up:#c0392b; --down:#1d5ca8;
+  --good:#1a7f47; --good-bg:#e4f2e9;
+  --warn:#a8620a; --warn-bg:#f8eddd;
+  --skip:#6b6d62; --skip-bg:#ecebe5;
+  --s1:#2a78d6; --s2:#eb6834;
+  --harvest:#e8c33a; --harvest-bg:#fbf1c8; --enter:#2f9e6e;
+  --seq1:#e6eefb; --seq2:#c3d9f6; --seq3:#9ec5f4; --seq4:#6da7ec; --seq5:#3987e5; --seq6:#256abf; --seq7:#184f95;
+  --shadow:0 1px 2px rgba(20,22,15,.06), 0 4px 14px rgba(20,22,15,.05);
+}
+@media (prefers-color-scheme: dark){
+  :root:not([data-theme="light"]){
+    color-scheme: dark;
+    --bg:#131611; --surface:#1b1e18; --surface-2:#232720; --surface-3:#2d3129;
+    --line:#333730; --line-strong:#4a4e45;
+    --ink:#f2f3ea; --ink-2:#b6b9ab; --ink-3:#8b8e81;
+    --brand:#4fae8c; --brand-soft:#1c3129; --brand-ink:#8fd4b8;
+    --up:#e5695a; --down:#6fa4e8;
+    --good:#57b382; --good-bg:#1a3126;
+    --warn:#d99a45; --warn-bg:#33281a;
+    --skip:#8b8d82; --skip-bg:#272a23;
+    --s1:#3987e5; --s2:#d95926;
+    --harvest:#c9a52c; --harvest-bg:#332d16; --enter:#3fa98a;
+    --seq1:#1d2a3c; --seq2:#22405f; --seq3:#184f95; --seq4:#256abf; --seq5:#3987e5; --seq6:#6da7ec; --seq7:#9ec5f4;
+    --shadow:0 1px 2px rgba(0,0,0,.4), 0 4px 14px rgba(0,0,0,.3);
+  }
+}
+:root[data-theme="dark"]{
+  color-scheme: dark;
+  --bg:#131611; --surface:#1b1e18; --surface-2:#232720; --surface-3:#2d3129;
+  --line:#333730; --line-strong:#4a4e45;
+  --ink:#f2f3ea; --ink-2:#b6b9ab; --ink-3:#8b8e81;
+  --brand:#4fae8c; --brand-soft:#1c3129; --brand-ink:#8fd4b8;
+  --up:#e5695a; --down:#6fa4e8;
+  --good:#57b382; --good-bg:#1a3126;
+  --warn:#d99a45; --warn-bg:#33281a;
+  --skip:#8b8d82; --skip-bg:#272a23;
+  --s1:#3987e5; --s2:#d95926;
+  --harvest:#c9a52c; --harvest-bg:#332d16; --enter:#3fa98a;
+  --seq1:#1d2a3c; --seq2:#22405f; --seq3:#184f95; --seq4:#256abf; --seq5:#3987e5; --seq6:#6da7ec; --seq7:#9ec5f4;
+  --shadow:0 1px 2px rgba(0,0,0,.4), 0 4px 14px rgba(0,0,0,.3);
+}
+*{box-sizing:border-box}
+body{margin:0; background:var(--bg); color:var(--ink);
+  font-family:"IBM Plex Sans KR",-apple-system,BlinkMacSystemFont,"Malgun Gothic",sans-serif;
+  font-size:14px; line-height:1.5; -webkit-font-smoothing:antialiased}
+.num{font-family:"IBM Plex Mono","IBM Plex Sans KR",monospace; font-variant-numeric:tabular-nums}
+.wrap{max-width:1240px; margin:0 auto; padding-inline:16px; padding-block:0 56px}
+
+.top{border-bottom:1px solid var(--line); background:var(--surface); position:sticky; top:0; z-index:30}
+.top-in{max-width:1240px; margin:0 auto; padding-inline:16px; padding-block:12px; display:flex; align-items:center; gap:13px; flex-wrap:wrap}
+.mark{font-family:Hahmlet,serif; font-weight:700; font-size:20px; letter-spacing:-.02em; color:var(--brand); margin:0}
+.mark span{color:var(--ink)}
+.tag{font-size:11px; letter-spacing:.09em; text-transform:uppercase; color:var(--ink-3); font-weight:600}
+.top-sp{flex:1}
+.sample{display:inline-flex; align-items:center; gap:7px; font-size:11.5px; font-weight:600; color:var(--warn);
+  background:var(--warn-bg); border:1px solid color-mix(in srgb,var(--warn) 28%, transparent); padding:4px 10px; border-radius:999px}
+.sample::before{content:""; width:6px; height:6px; border-radius:50%; background:var(--warn); flex:none}
+
+/* 판매 설정 바 */
+.setbar{background:var(--surface-2); border-bottom:1px solid var(--line); position:sticky; top:53px; z-index:29}
+.setbar-in{max-width:1240px; margin:0 auto; padding-inline:16px; padding-block:9px; display:flex; gap:16px; align-items:center; flex-wrap:wrap}
+.set-k{font-size:10.5px; letter-spacing:.06em; text-transform:uppercase; color:var(--ink-3); font-weight:700; margin-right:2px}
+.seg{display:inline-flex; border:1px solid var(--line-strong); border-radius:7px; overflow:hidden}
+.seg button{font:inherit; font-size:12.5px; font-weight:600; padding:4px 13px; border:0; background:var(--surface); color:var(--ink-2); cursor:pointer}
+.seg button[aria-pressed="true"]{background:var(--brand); color:#fff}
+select,input[type=number],input[type=text],input[type=search]{font:inherit; font-size:13px; padding:5px 9px;
+  border:1px solid var(--line-strong); border-radius:7px; background:var(--surface); color:var(--ink)}
+input[type=number]{font-family:"IBM Plex Mono",monospace; width:96px}
+.setgrp{display:flex; align-items:center; gap:7px; flex-wrap:wrap}
+.feeout{font-size:12.5px; font-weight:700; color:var(--brand-ink); background:var(--brand-soft); padding:4px 11px; border-radius:7px}
+
+.stage{display:grid; grid-template-columns:236px minmax(0,1fr); gap:22px; margin-top:20px; align-items:start}
+.stage>*{min-width:0}
+.rail{position:sticky; top:112px; display:flex; flex-direction:column; gap:9px; max-height:calc(100vh - 130px)}
+.rail input[type=search]{width:100%}
+.vlist{overflow-y:auto; border:1px solid var(--line); border-radius:9px; background:var(--surface); flex:1; min-height:200px}
+.vitem{display:flex; align-items:center; gap:8px; width:100%; text-align:left; cursor:pointer; background:transparent;
+  border:0; border-bottom:1px solid var(--line); padding:7px 10px; font:inherit; font-size:13px; color:var(--ink-2)}
+.vitem:last-child{border-bottom:0}
+.vitem:hover{background:var(--surface-2); color:var(--ink)}
+.vitem[aria-pressed="true"]{background:var(--brand-soft); color:var(--brand-ink); font-weight:600}
+.dot{width:7px; height:7px; border-radius:50%; flex:none}
+.dot.enter{background:var(--enter)} .dot.season{background:var(--harvest)}
+.dot.late{background:var(--down)} .dot.off{background:var(--line-strong)}
+.vitem b{flex:1; font-weight:inherit} .vitem em{font-style:normal; font-size:10.5px; color:var(--ink-3)}
+.railnote{font-size:11px; color:var(--ink-3); line-height:1.6}
+
+.head{display:flex; align-items:flex-end; gap:14px; flex-wrap:wrap; margin-bottom:14px}
+.head h2{font-family:Hahmlet,serif; font-size:26px; font-weight:700; margin:0; letter-spacing:-.02em}
+.head .cat{font-size:12px; color:var(--ink-3); font-weight:600; letter-spacing:.04em}
+.season{display:inline-flex; align-items:center; gap:6px; font-size:12.5px; font-weight:600; padding:5px 11px; border-radius:7px}
+.season.enter{background:var(--good-bg); color:var(--good)}
+.season.season{background:var(--harvest-bg); color:var(--warn)}
+.season.late{background:color-mix(in srgb,var(--down) 12%, transparent); color:var(--down)}
+.season.off{background:var(--skip-bg); color:var(--skip)}
+.head-sp{flex:1}
+.stamp{font-size:11px; color:var(--ink-3); text-align:right; line-height:1.6}
+.itemnote{font-size:12.5px; color:var(--ink-2); background:var(--surface-2); border-left:3px solid var(--brand);
+  padding:9px 13px; border-radius:0 7px 7px 0; margin-bottom:14px; line-height:1.6}
+
+.tabs{display:flex; gap:2px; border-bottom:1px solid var(--line); margin-bottom:16px; overflow-x:auto}
+.tab{background:none; border:0; border-bottom:2px solid transparent; cursor:pointer; font:inherit; font-weight:600;
+  font-size:13.5px; color:var(--ink-3); padding:9px 14px; white-space:nowrap; margin-bottom:-1px}
+.tab:hover{color:var(--ink)}
+.tab[aria-selected="true"]{color:var(--brand); border-bottom-color:var(--brand)}
+:focus-visible{outline:2px solid var(--brand); outline-offset:2px; border-radius:4px}
+
+.filters{display:flex; gap:18px; align-items:center; flex-wrap:wrap; background:var(--surface);
+  border:1px solid var(--line); border-radius:10px; padding:11px 15px; margin-bottom:13px}
+.f{display:flex; flex-direction:column; gap:4px; min-width:158px}
+.f label{font-size:10.5px; letter-spacing:.05em; text-transform:uppercase; color:var(--ink-3); font-weight:700}
+.f-row{display:flex; align-items:center; gap:8px}
+input[type=range]{flex:1; accent-color:var(--brand); min-width:88px}
+.f-val{font-size:12.5px; font-weight:600; min-width:54px; text-align:right}
+.chips{display:flex; gap:5px}
+.chip{cursor:pointer; font:inherit; font-size:12px; font-weight:600; padding:4px 11px; border-radius:999px;
+  border:1px solid var(--line-strong); background:var(--surface); color:var(--ink-2)}
+.chip[aria-pressed="true"]{background:var(--ink); color:var(--surface); border-color:var(--ink)}
+.f-sp{flex:1}
+.count{font-size:12.5px; color:var(--ink-2)} .count b{color:var(--ink); font-weight:700}
+
+.tbox{background:var(--surface); border:1px solid var(--line); border-radius:10px; overflow:hidden; box-shadow:var(--shadow)}
+.tscroll{overflow-x:auto}
+table{border-collapse:collapse; width:100%; min-width:930px}
+th{font-size:10px; letter-spacing:.04em; text-transform:uppercase; color:var(--ink-3); font-weight:700;
+  text-align:right; padding:8px 7px; border-bottom:1px solid var(--line); background:var(--surface-2); white-space:nowrap}
+th:first-child{text-align:left}
+th.grp{text-align:center; border-left:1px solid var(--line)}
+td{padding:8px 7px; text-align:right; border-bottom:1px solid var(--line); white-space:nowrap; font-size:13px}
+td:first-child{text-align:left}
+tbody tr{cursor:pointer} tbody tr:hover{background:var(--surface-2)}
+tbody tr:last-child td{border-bottom:0}
+.kw{font-weight:600; color:var(--ink)}
+.sub{font-size:11px; color:var(--ink-3); font-weight:400}
+.dim{color:var(--ink-3)} .bidcell{border-left:1px solid var(--line)}
+.pill{display:inline-block; font-size:11.5px; font-weight:700; padding:2.5px 9px; border-radius:999px}
+.pill.good{background:var(--good-bg); color:var(--good)}
+.pill.warn{background:var(--warn-bg); color:var(--warn)}
+.pill.skip{background:var(--skip-bg); color:var(--skip)}
+.score{display:inline-flex; align-items:center; gap:7px; justify-content:flex-end}
+.bar{width:40px; height:5px; border-radius:3px; background:var(--surface-3); overflow:hidden; flex:none}
+.bar i{display:block; height:100%; border-radius:3px; background:var(--brand)}
+.empty{padding:34px 16px; text-align:center; color:var(--ink-3); font-size:13px}
+.more{width:100%; display:block; padding:11px; border:0; border-top:1px solid var(--line); background:var(--surface-2);
+  font:inherit; font-size:13px; font-weight:600; color:var(--brand); cursor:pointer}
+.more:hover{background:var(--surface-3)}
+.cvr-ok{color:var(--good); font-weight:600} .cvr-no{color:var(--up); font-weight:600}
+
+.grid2{display:grid; grid-template-columns:repeat(auto-fit,minmax(300px,1fr)); gap:13px}
+.card{background:var(--surface); border:1px solid var(--line); border-radius:10px; padding:15px; box-shadow:var(--shadow)}
+.card h3{font-size:13px; font-weight:700; margin:0 0 2px; letter-spacing:-.01em}
+.card .note{font-size:11.5px; color:var(--ink-3); margin:0 0 12px}
+.legend{display:flex; gap:14px; flex-wrap:wrap; font-size:12px; color:var(--ink-2); margin-top:9px}
+.legend i{display:inline-block; width:9px; height:9px; border-radius:2px; margin-right:5px; vertical-align:-1px}
+svg{display:block; width:100%; height:auto; overflow:visible}
+.gl{stroke:var(--line); stroke-width:1}
+.ax{fill:var(--ink-3); font-size:10px; font-family:"IBM Plex Mono",monospace}
+.vlabel{fill:var(--ink-2); font-size:10.5px; font-family:"IBM Plex Mono",monospace; font-weight:600}
+
+.verdict{border:1px solid var(--line); border-radius:10px; overflow:hidden; background:var(--surface); box-shadow:var(--shadow); margin-bottom:13px}
+.v-top{display:flex; align-items:center; gap:12px; padding:13px 15px; border-bottom:1px solid var(--line)}
+.v-top h3{margin:0; font-size:17px; font-family:Hahmlet,serif; flex:1}
+.v-body{display:grid; grid-template-columns:repeat(auto-fit,minmax(150px,1fr))}
+.v-cell{padding:12px 15px; border-right:1px solid var(--line); border-bottom:1px solid var(--line)}
+.v-cell:last-child{border-right:0}
+.v-k{font-size:10.5px; letter-spacing:.06em; text-transform:uppercase; color:var(--ink-3); font-weight:700; margin-bottom:3px}
+.v-v{font-size:18px; font-weight:600; letter-spacing:-.02em}
+.v-s{font-size:11.5px; color:var(--ink-3); margin-top:2px}
+.why{padding:12px 15px; border-bottom:1px solid var(--line)}
+.why:last-child{border-bottom:0}
+.why-k{font-size:10.5px; letter-spacing:.06em; text-transform:uppercase; font-weight:700; margin-bottom:4px}
+.why-good{color:var(--good)} .why-warn{color:var(--warn)}
+.why p{margin:0; font-size:13px; color:var(--ink-2); line-height:1.6}
+.up{color:var(--up); font-weight:600} .down{color:var(--down); font-weight:600}
+
+.hm{overflow-x:auto}
+.hm table{min-width:600px; border-collapse:separate; border-spacing:2px}
+.hm th{background:transparent; border:0; text-align:center; padding:3px; font-size:10.5px}
+.hm th:first-child{text-align:left; padding-left:2px}
+.hm td{border:0; padding:0; text-align:center}
+.hm td:first-child{text-align:left; font-size:12.5px; font-weight:600; padding-right:8px; white-space:nowrap}
+.cell{height:32px; border-radius:4px; display:flex; align-items:center; justify-content:center;
+  font-size:11px; font-weight:600; font-family:"IBM Plex Mono",monospace}
+.cell.now{outline:2px solid var(--ink); outline-offset:-2px}
+.ramp{display:flex; align-items:center; gap:6px; font-size:11.5px; color:var(--ink-3); margin-top:10px; flex-wrap:wrap}
+.ramp i{width:20px; height:9px; display:inline-block}
+
+.toprow{display:flex; gap:11px; align-items:center; padding:9px 0; border-bottom:1px solid var(--line); cursor:pointer}
+.toprow:hover{background:var(--surface-2)}
+.toprow:last-child{border-bottom:0}
+.rank{font-family:"IBM Plex Mono",monospace; font-weight:700; font-size:13px; color:var(--ink-3); width:22px; text-align:right}
+.toprow b{min-width:120px; font-size:13.5px}
+.toprow .sub{flex:1}
+
+.mbox{display:flex; border:1px solid var(--line); border-radius:9px; overflow:hidden; background:var(--surface); flex-wrap:wrap}
+.mbox div{padding:10px 15px; border-right:1px solid var(--line); flex:1; min-width:118px}
+.mbox div:last-child{border-right:0}
+.mbox .v-v{font-size:17px}
+
+.tip{position:fixed; pointer-events:none; z-index:60; background:var(--ink); color:var(--bg); padding:7px 10px;
+  border-radius:7px; font-size:11.5px; line-height:1.45; opacity:0; transition:opacity .1s; white-space:nowrap; font-weight:500;
+  box-shadow:0 4px 16px rgba(0,0,0,.22)}
+.foot{margin-top:24px; padding-top:15px; border-top:1px solid var(--line); font-size:12px; color:var(--ink-3); line-height:1.75}
+.foot b{color:var(--ink-2)}
+.formula{font-family:"IBM Plex Mono",monospace; font-size:11.5px; background:var(--surface-2); border:1px solid var(--line);
+  border-radius:7px; padding:9px 12px; color:var(--ink-2); margin-top:9px; overflow-x:auto; line-height:1.8}
+
+@media (max-width:880px){
+  .stage{grid-template-columns:minmax(0,1fr)}
+  .rail{position:static; max-height:none}
+  .vlist{max-height:220px}
+  .setbar{position:static}
+  .head h2{font-size:22px}
+}
+@media (prefers-reduced-motion:reduce){*{transition:none!important}}
+</style>
+<header class="top">
+  <div class="top-in">
+    <h1 class="mark">슈퍼프룻 <span>키워드랩</span></h1>
+    <span class="tag" id="scale">범용 키워드 관제</span>
+    <span class="top-sp"></span>
+    <span class="sample">NAVER 지표는 샘플 · 수확 캘린더와 마진 공식은 실데이터</span>
+  </div>
+</header>
+
+<div class="setbar">
+  <div class="setbar-in">
+    <span class="set-k">판매 설정</span>
+    <div class="seg" id="platSeg">
+      <button type="button" data-p="naver" aria-pressed="true">네이버</button>
+      <button type="button" data-p="coupang" aria-pressed="false">쿠팡</button>
+    </div>
+    <div class="setgrp" id="naverFees">
+      <label class="set-k" for="orderFee">주문관리</label>
+      <select id="orderFee">
+        <option value="0.0198">매출 3억 이하 · 1.98%</option>
+        <option value="0.0259">3억~5억 · 2.59%</option>
+        <option value="0.0275">5억~10억 · 2.75%</option>
+        <option value="0.0303">10억~30억 · 3.03%</option>
+        <option value="0.0363" selected>30억 이상 · 첫해 · 3.63%</option>
+      </select>
+      <label class="set-k" for="linkFee">매출연동</label>
+      <select id="linkFee">
+        <option value="0.03" selected>검색 구매 · 3%</option>
+        <option value="0.01">광고·마케팅 구매 · 1%</option>
+      </select>
+    </div>
+    <div class="setgrp" id="coupangFees" hidden>
+      <label class="set-k" for="cpFee">쿠팡 수수료 %</label>
+      <input type="number" id="cpFee" value="11.66" step="0.01" style="width:84px">
+    </div>
+    <div class="setgrp">
+      <label class="set-k" for="shipFee">배송비</label>
+      <input type="number" id="shipFee" value="0" step="100" style="width:84px">
+    </div>
+    <div class="setgrp">
+      <label class="set-k" for="tgtCvr">목표 전환율 %</label>
+      <input type="number" id="tgtCvr" value="3" step="0.1" style="width:72px">
+    </div>
+    <span class="f-sp"></span>
+    <span class="feeout" id="feeOut"></span>
+  </div>
+</div>
+
+<div class="wrap">
+  <div class="stage">
+    <nav class="rail" aria-label="품목 탐색">
+      <input type="search" id="q" placeholder="키워드 · 품종 검색" autocomplete="off">
+      <select id="catSel" aria-label="카테고리"></select>
+      <div class="vlist" id="vlist"></div>
+      <p class="railnote" id="railNote"></p>
+    </nav>
+
+    <main>
+      <div class="head">
+        <div>
+          <div class="cat" id="itemCat"></div>
+          <h2 id="itemName">—</h2>
+        </div>
+        <span class="season" id="seasonBadge"></span>
+        <span class="head-sp"></span>
+        <div class="stamp">
+          NAVER 검색광고 지표 2026-09-10 조회<br>
+          수확 캘린더 · 연간 공급표 200선
+        </div>
+      </div>
+      <div class="itemnote" id="itemNote" hidden></div>
+
+      <div class="tabs" role="tablist">
+        <button class="tab" role="tab" aria-selected="true" data-tab="gold">황금키워드</button>
+        <button class="tab" role="tab" aria-selected="false" data-tab="detail">키워드 상세</button>
+        <button class="tab" role="tab" aria-selected="false" data-tab="timing">이번달 TOP 10</button>
+        <button class="tab" role="tab" aria-selected="false" data-tab="margin">마진 · 광고효율</button>
+      </div>
+
+      <section id="panel-gold">
+        <div class="filters">
+          <div class="f">
+            <label for="fVol">최소 월 검색수</label>
+            <div class="f-row"><input type="range" id="fVol" min="0" max="30000" step="500" value="1000"><span class="f-val num" id="fVolV"></span></div>
+          </div>
+          <div class="f">
+            <label for="fComp">최대 경쟁강도</label>
+            <div class="f-row"><input type="range" id="fComp" min="1" max="10" step="0.5" value="10"><span class="f-val num" id="fCompV"></span></div>
+          </div>
+          <div class="f" style="min-width:auto">
+            <label>판정</label>
+            <div class="chips" id="fVerdict">
+              <button class="chip" data-v="린정" aria-pressed="true">린정</button>
+              <button class="chip" data-v="반린정" aria-pressed="true">반린정</button>
+              <button class="chip" data-v="패스" aria-pressed="false">패스</button>
+            </div>
+          </div>
+          <div class="f" style="min-width:auto">
+            <label>범위</label>
+            <div class="chips" id="fScope">
+              <button class="chip" data-s="item" aria-pressed="true">선택 품종</button>
+              <button class="chip" data-s="cat" aria-pressed="false">카테고리 전체</button>
+              <button class="chip" data-s="all" aria-pressed="false">전 품목</button>
+            </div>
+          </div>
+          <span class="f-sp"></span>
+          <span class="count" id="count"></span>
+        </div>
+        <div class="tbox">
+          <div class="tscroll">
+            <table>
+              <thead>
+                <tr>
+                  <th rowspan="2">키워드</th>
+                  <th rowspan="2">월 검색수</th>
+                  <th class="grp" colspan="2">1위 입찰가</th>
+                  <th class="grp" colspan="2">2위 입찰가</th>
+                  <th class="grp" colspan="2">3위 입찰가</th>
+                  <th rowspan="2" class="bidcell">광고<br>깊이</th>
+                  <th rowspan="2">경쟁<br>강도</th>
+                  <th rowspan="2">손익분기<br>전환율</th>
+                  <th rowspan="2">황금점수</th>
+                  <th rowspan="2">판정</th>
+                </tr>
+                <tr>
+                  <th class="grp">PC</th><th>모바일</th>
+                  <th class="grp">PC</th><th>모바일</th>
+                  <th class="grp">PC</th><th>모바일</th>
+                </tr>
+              </thead>
+              <tbody id="kwBody"></tbody>
+            </table>
+          </div>
+          <button class="more" id="moreBtn" hidden></button>
+        </div>
+        <div class="formula" id="formulaBox"></div>
+      </section>
+
+      <section id="panel-detail" hidden>
+        <div class="verdict" id="vCard"></div>
+        <div class="grid2">
+          <div class="card" style="grid-column:1/-1">
+            <h3>3년 검색 추세</h3>
+            <p class="note">최근 36개월 · 기기별 월 검색수 · 수확 캘린더 기반 시즌 곡선</p>
+            <div id="trendChart"></div>
+            <div class="legend"><span><i style="background:var(--s1)"></i>PC</span><span><i style="background:var(--s2)"></i>모바일</span></div>
+          </div>
+          <div class="card">
+            <h3>연령대 × 성별 클릭 구성</h3>
+            <p class="note">쇼핑인사이트 기준 · 합계 100%</p>
+            <div id="ageChart"></div>
+            <div class="legend"><span><i style="background:var(--s1)"></i>남성</span><span><i style="background:var(--s2)"></i>여성</span></div>
+          </div>
+          <div class="card">
+            <h3>기기 비중과 입찰가</h3>
+            <p class="note">PC / 모바일 검색 비중 · 순위별 입찰가</p>
+            <div id="devChart"></div>
+          </div>
+          <div class="card" style="grid-column:1/-1">
+            <h3>순위별 광고 감당력</h3>
+            <p class="note" id="cvrNote"></p>
+            <div id="cvrChart"></div>
+          </div>
+        </div>
+      </section>
+
+      <section id="panel-timing" hidden>
+        <div class="card" style="margin-bottom:13px">
+          <h3>이번 달 들어갈 품목 TOP 10</h3>
+          <p class="note" id="topNote"></p>
+          <div id="nowList"></div>
+        </div>
+        <div class="card">
+          <h3>TOP 10 월별 검색 지수</h3>
+          <p class="note">품목별 연중 최고치를 100으로 환산 · 굵은 테두리가 이번 달</p>
+          <div class="hm" id="heat"></div>
+          <div class="ramp">
+            <span>낮음</span>
+            <i style="background:var(--seq1)"></i><i style="background:var(--seq2)"></i><i style="background:var(--seq3)"></i>
+            <i style="background:var(--seq4)"></i><i style="background:var(--seq5)"></i><i style="background:var(--seq6)"></i><i style="background:var(--seq7)"></i>
+            <span>높음</span>
+            <span style="margin-left:12px">검색 지수는 수확 캘린더에서 파생한 모델값이다</span>
+          </div>
+        </div>
+      </section>
+
+      <section id="panel-margin" hidden>
+        <div class="filters">
+          <div class="f"><label for="supPrice">공급가 (원)</label><input type="number" id="supPrice" step="100"></div>
+          <div class="f"><label for="sellPrice">판매가 (원)</label><input type="number" id="sellPrice" step="100"></div>
+          <div class="f" style="min-width:auto"><label>&nbsp;</label>
+            <button class="chip" id="autoPrice" type="button" aria-pressed="false">판매가 자동 (공급가 ×1.58)</button>
+          </div>
+          <span class="f-sp"></span>
+          <span class="count" id="marginScope"></span>
+        </div>
+        <div class="mbox" id="marginBox" style="margin-bottom:13px"></div>
+        <div class="tbox">
+          <div class="tscroll">
+            <table>
+              <thead><tr>
+                <th>키워드</th><th>월 검색수</th><th>3위 입찰가</th><th>필요 전환율</th>
+                <th>목표 대비</th><th>1회 판매 광고비</th><th>실마진</th><th>실마진율</th><th>판정</th>
+              </tr></thead>
+              <tbody id="marBody"></tbody>
+            </table>
+          </div>
+        </div>
+        <div class="card" style="margin-top:13px">
+          <h3>마진 구성</h3>
+          <p class="note" id="breakNote"></p>
+          <div id="breakChart"></div>
+        </div>
+        <div class="formula" id="marFormula"></div>
+      </section>
+
+      <div class="foot">
+        <b>진짜 데이터</b> · 수확 캘린더 202품종 45카테고리(초록=수확 직전 진입, 노랑=공급 시기), 2개월 단위 인기 TOP20,
+        네이버·쿠팡 마진 공식과 수수료 구간은 업로드한 시트에서 그대로 가져왔다. 홍로사과·무화과 공급가는 시트의 실측값이다.<br>
+        <b>샘플 데이터</b> · 월 검색수 · 입찰가 · 광고 깊이 · 연령 · 성별 구성은 형태와 규모만 맞춘 예시값이다.
+        NAVER 검색광고 API와 쇼핑인사이트를 연결하면 그대로 대체된다.<br>
+        <b>경쟁강도는 광고 기반 추정이다.</b> 쇼핑검색 API가 2026-07-31 종료되어 상품수 원본이 없다.
+        광고 깊이와 1위 입찰가로 대신 재므로 광고를 돌지 않는 시장은 실제보다 낮게 잡힌다.<br>
+        <b>카테고리는 고정되어 있지 않다.</b> 캘린더에 행을 추가하면 그 품목이 그대로 탐색·판정 대상이 된다. 과일·채소 밖도 같은 구조로 동작한다.
+      </div>
+    </main>
+  </div>
+</div>
+<div class="tip" id="tip" role="status"></div>
+<script>
+(function(){
+"use strict";
+var CATALOG = {"items":[{"c":"감귤","v":"카라향","s":"..........GYYYY.....................","n":"4~5월이 제철인 봄시즌 감귤 품종으로 봄시기에 귤 판매량 올리기 좋음"},{"c":"감귤","v":"탐라향","s":".......GYYY.........................","n":"3~4월이 제철인 봄시즌 감귤 품종으로 봄시기에 귤 판매량 올리기 좋음"},{"c":"감귤","v":"수라향(설국향)","s":".....GYYY...........................","n":"2~3월 잠깐 수확하는 신품종으로 당도 최고좋음! 다만 씨앗이 있고 껍질까기 어려운 편"},{"c":"감귤","v":"만다린","s":".......GYYYYY.......................","n":"수입산 귤로 환타처럼 단맛이 좋은 품종으로 국산 귤이 몇개없는 봄시즌에 인기"},{"c":"감귤","v":"청귤","s":"......................GYYYY.........","n":"새콤해서 청 담그기 용으로 구매하며 수확기간 짧아 네이버에서만 예약판매로 추천"},{"c":"감귤","v":"황금향","s":"...................GYYYYYYYYYYYYYYYY","n":"여름부터 겨울까지 수확하는 황금색 귤로, 여름에는 좀 밍밍해서 가을겨울 초 진입 추천"},{"c":"감귤","v":"극조생귤","s":"..........................GYYY......","n":"제일 빨리 수확 감귤, 초록색 빛깔+산도가 높아 타이밍 선점엔 좋으나 CS 감안 필요"},{"c":"감귤","v":"유라조생귤","s":"...........................GYY......","n":"제일 빨리 수확 감귤, 초록색 빛깔+산도가 높아 타이밍 선점엔 좋으나 CS 감안 필요"},{"c":"감귤","v":"조생귤","s":"..............................GYYYYY","n":"빠른 수확 감귤, 당도가 좀 더 좋아짐, CS 두렵다면 11월 초 조생귤로 귤 시작 추천"},{"c":"감귤","v":"타이벡감귤","s":"...............................GYYYY","n":"품종은 일반 감귤이나 \"타이벡농법\"으로 재배한 감귤, 당도가 제일 좋아서 선호가 높음"},{"c":"감귤","v":"비가림감귤","s":"...............................GYYYY","n":"품종은 일반 감귤이나 \"비가림농법\"으로 재배한 감귤, 당도 좋은 편"},{"c":"감귤","v":"윈터프린스","s":"YYYYY.............................GY","n":"신품종 귤로 12월 부터 2월까지 수확하며 매닝아층 많음"},{"c":"감귤","v":"홍매향(홍미향)","s":"...............................GYYYY","n":"새빨간 신품종 홍귤로 당도가 좋고 색이 신기해 선물용으로도 좋음"},{"c":"한라봉","v":"한라봉","s":"YYYYYY............................GY","n":"당도가 좋으나 품종키워드가 적어서 네이버 판매는 어려운편, 쿠팡을 더 추천"},{"c":"천혜향","v":"천혜향","s":"YYYY............................GYYY","n":"해당 2개 품종은 카테고리가 귤이 아님! 아예 새롭게 카테고리까지 생길 만큼 인기많은 귤 품종으로 당도 좋고 선물용으로 인기많음 다만 품종키워드가 적어서 네이버 판매는 어려운편, 쿠팡을 더 추천"},{"c":"레드향","v":"레드향","s":"YYYY..............................GY","n":""},{"c":"딸기","v":"설향딸기","s":"YYYYYY........................GYYYYY","n":"딸기의 70% 이상 차지하는 국민 품종, 기본적인 새콤달콤 딸기로 11월 진입 추천"},{"c":"딸기","v":"장희딸기","s":"YYY...........................GYYYYY","n":"수확이 빠른 편에 속하는 딸기 품종 2가지, 타이밍 선점에 좋으나 소싱 어렵고 무르기 쉬운 부드러운 탓에 CS 감안 필요"},{"c":"딸기","v":"죽향딸기","s":"YYY...........................GYYYYY","n":""},{"c":"딸기","v":"비타베리","s":"YYYYYY...........................GYY","n":"신품종 빨간딸기로 당도가 좀 더 좋음 12월에 진입시 차별화 판매 가능"},{"c":"딸기","v":"금실딸기","s":"YYYYYY...........................GYY","n":""},{"c":"딸기","v":"킹스베리","s":"YYYYYY...........................GYY","n":"신품종 대왕딸기로 매니아층 확실! 미리 단가 확인하여 예약받을 수 있으면 더 BEST"},{"c":"딸기","v":"신데렐라 딸기","s":"YYYYYY...........................GYY","n":"신품종 하얀딸기로 선물용으로 인기 많음"},{"c":"딸기","v":"만년설 딸기","s":"YYYYYY...........................GYY","n":"신품종 하얀딸기로 선물용 인기 많음, 다만 만년설 딸기를 소싱한 때만 키워드 사용가능"},{"c":"딸기","v":"산딸기","s":"........GYYYY....................GYY","n":"매니아층이 있으며 1년 2번 나오나, 봄시즌에는 무르기 쉬워 CS 감안 필요"},{"c":"사과","v":"아오리사과","s":"...................GYYYY............","n":"7~8월에 가장 빨리 수확하는 사과 품종으로 초록색이며 약간의 산도가 있음 맛은 빨간사과 보다 덜 달지만 매니아층 있으며 네이버의 경우 사과 타이밍 선점에 좋음"},{"c":"사과","v":"썸머킹사과","s":"....................GYYY............","n":""},{"c":"사과","v":"홍로사과","s":".......................GYYYY........","n":"빨간사과 중 수확시기 가장 빠름, 다만 울퉁불퉁 생김새로 정품도 못난이로 종종 오해"},{"c":"사과","v":"감홍사과","s":"...........................GYYY.....","n":"빨간사과 중 가장 인기많은 품종, 당도최고! 다만 검붉은 색 탓에 색감 CS 가끔있음"},{"c":"사과","v":"엔부사과(복숭아사과)","s":"...........................GYYYYYY..","n":"신품종 피치애플, 복숭아빛 과육으로 인기많음 but 핑크빛 없는 경우도 많아 CS 감안"},{"c":"사과","v":"시나노골드","s":"YYYYYY....................GYYYYYYYYY","n":"노란사과로 빨간사과 보다 개운하게 달콤함, 매니아층 있고 저장성 좋아 판매기간 길음"},{"c":"사과","v":"부사","s":"YYYYYYYYYYYYYYYYYYYYYYYYYYYYYGYYYYYY","n":"저장성 좋아 1년 내내 판매가능 빨간사과 But 경쟁이 치열해 메인으로는 비추천"},{"c":"사과","v":"루비에스(미니사과)","s":"........................GYYYYYY.....","n":"작은 미니사과 품종으로 수확 빠른 편, But 10월에 큰사과 많아지면 인기 적어지는편"},{"c":"사과","v":"엔비사과","s":"YY...........................GYYYYYY","n":"해외에서 들어온 품종으로 당도가 좋아 인기 많은 신품종사과, 판매기간 긴 편"},{"c":"사과","v":"별사과","s":"..........................GYYYY.....","n":"신품종 별모양 사과, 다만 작위적인 모양탓에 팬층이 많지는 않아 메인으로는 비추천"},{"c":"복숭아","v":"신비복숭아","s":"...............GYYYY................","n":"속이 하얀 신품종 천도복숭아로 당도가 정말 좋음, 미리 소싱해 5월 부터 예약추천"},{"c":"복숭아","v":"하우스천도복숭아","s":"............GYY.....................","n":"복숭아 중 수확시기 가장 빨라서 5월 초 타이밍 선점할 때 추천, 가격비싼게 단점"},{"c":"복숭아","v":"노지천도복숭아","s":"...............GYYYYYYYY............","n":"천도복숭아는 6월부터는 하우스에서 노지로 변경되며 가격이 대폭 인하됨"},{"c":"복숭아","v":"하우스털복숭아(말랑)","s":"...............GYYYYYYYYY...........","n":"딱복은 7월 중순부터 수확시작되어 5월에 진입 못 한 사람도 이때 도전해볼만 함"},{"c":"복숭아","v":"노지털복숭아(말랑)","s":".................GYYYYYYY...........","n":"물복은 6월 부터 수확시작되어 천도에 못 들어갔어도 6월 진입 해볼만함"},{"c":"복숭아","v":"노지털복숭아(딱딱)","s":"...................GYYYYY...........","n":"딱복은 7월 중순부터 수확시작되어 5월에 진입 못 한 사람도 이때 도전해볼만 함"},{"c":"복숭아","v":"옐로드림(망고복숭아)","s":"..................GYYY..............","n":"신품종 황도복숭아로 매니아층이 있음, 소싱 가능하다면 해볼만함"},{"c":"복숭아","v":"대극천(반납작복숭아)","s":".................GYYY...............","n":"한국판 납작복숭아로 불리우는 딱딱이+납작교배품종, 그러나 안 납작해서 납작복숭아로 팔면 CS 폭발하므로 안 납작 설명을 상세페이지에 필수로 해야함"},{"c":"복숭아","v":"납작복숭아(거반도)","s":".....................GYYYY..........","n":"유럽에서 인기많은 신품종 복숭아로 7월 말 수확이나 미리 소싱해 6월 부터 예약추천"},{"c":"자두","v":"하우스 대석자두","s":"............GYYY....................","n":"자두 중 수확시기 가장 빨라서 5월 초 타이밍 선점할 때 추천, 가격비싼게 단점"},{"c":"자두","v":"노지 대석자두","s":"................GYYY................","n":"자두 중 가장 기본품종으로 6말7초 부터 하우스에서 노지로 변경, 가격이 대폭 인하됨"},{"c":"자두","v":"후무사자두","s":"..................GYYY..............","n":"자두 알이 좀 더 굵어지는 시기로, 대석에 이어 팔면 좋음"},{"c":"자두","v":"추희자두","s":"......................GYYYY.........","n":"자두 품종중 알이 가장 큰 편이며 늦여름부터 초가을까지 나오는 자두의 마무리투수"},{"c":"자두","v":"체리자두","s":"...................GYYY.............","n":"속이 체리색깔인 신품종 자두로 매니아층 많음, 다만 수확기간 짧아 쿠팡 판매어려움"},{"c":"자두","v":"피자두","s":"...................GYYY.............","n":"체리자두와 비슷하게 속이 빨간 자두 품종으로 매니아층 많음"},{"c":"자두","v":"푸룬자두","s":"......................GYY...........","n":"보통 건자두로 많이 먹는 품종으로 건강식으로 유명, 소싱만 성공하면 판매 추천"},{"c":"자두","v":"켈시자두(첼시자두)","s":".....................GYYY...........","n":"초록색 껍질이 특징으로 샤인머스켓 자두로도 불리는 신품종, 소싱 어려운 편"},{"c":"포도","v":"샤인머스켓","s":"YYYYYY.............GYYYYYYYYYYYYYYYY","n":"7월 부터 하우스가 출하되어 설까지 나옴, 다만 겨울 부터는 품질이 나빠 비추천"},{"c":"포도","v":"레드샤인(마이하트)","s":"............................GYYYY...","n":"하트모양으로 열매가 맺히는 신품종 빨간 샤인머스켓 포도"},{"c":"포도","v":"켐벨포도","s":".....................GYYYYYYYYYYY...","n":"포도의 근본, 새콤달콤한 보라포도로 어른들이 많이 찾음"},{"c":"포도","v":"거봉포도","s":".....................GYYYYYYYYYYY...","n":"켐벨포도와 비슷하나 샤인머스켓 만큼 알이 커서 매니아층 많음"},{"c":"포도","v":"머루포도","s":".........................GYYYY......","n":"딱 2달 간만 수확하는 포도로 기다리는 매니아층 많음, 소싱 어려운 편"},{"c":"포도","v":"세레단포도","s":"YYYYYY...........................GYY","n":"겨울철에 재배하는 포도 품종으로 포도를 길게 팔고싶을 때 추천, 상품성은 좀 떨어짐"},{"c":"포도","v":"블랙사파이어포도","s":"YYYYGYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYY","n":"1년 내내 수입가능한 수입산 포도, 겨울철 국산 포도 없는 2~3월에만 팔기 좋음"},{"c":"포도","v":"오톰크리스피(애플청포도)","s":"YYYYGYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYY","n":"1년 내내 수입가능한 수입산 포도, 겨울철 국산 포도 없는 2~3월에만 팔기 좋음"},{"c":"포도","v":"캔디하트포도","s":"YYYYGYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYY","n":"1년 내내 수입가능한 수입산 포도, 겨울철 국산 포도 없는 2~3월에만 팔기 좋음"},{"c":"포도","v":"크림슨포도","s":"YYYYGYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYY","n":"1년 내내 수입가능한 수입산 포도, 겨울철 국산 포도 없는 2~3월에만 팔기 좋음"},{"c":"멜론","v":"파파야멜론","s":"........GYYY........................","n":"가장 빨리 수확하는 국산멜론, 다만 파파야는 참외에 더 가까운 편으로 인기는 보통"},{"c":"멜론","v":"양구멜론(노란멜론)","s":"..............GYY...................","n":"겉은 노랗고 속은 참외처럼 하얀멜론, 국산재배로 인기 많음"},{"c":"멜론","v":"백자멜론","s":"..........GYY.......................","n":"겉과 속이 모두 하얀멜론, 국산재배로 인기 많음 수확시기가 1달로 짧은 편"},{"c":"멜론","v":"설향멜론","s":".............GYY....................","n":"겉과 속이 모두 하얀멜론, 보통 백자멜론에 이어서 판매하는 경우 많음"},{"c":"멜론","v":"골드하미과멜론","s":"............GYYY....................","n":"노란색 하미과 품종으로 5월 1달 수확"},{"c":"멜론","v":"하미과메론(레드메론-주황)","s":"...........GYYYYYY........GYYYYYY...","n":"4~5월 초기에는 고령지역 하미과가 제일 유명, 가을에는 다른 지역도 많음"},{"c":"멜론","v":"머스크멜론","s":"...............GYYYYYYYYYYY.........","n":"가장 대중적인 멜론이나 경쟁강도 높아서 다른품종과 섞어서 네이버 판매 추천"},{"c":"멜론","v":"허니듀멜론","s":".....................GYYYYYYYY......","n":"미국산 수입 멜론으로 국산 멜론이 많지 않은 늦여름 부터 가을에 인기 많은 품종"},{"c":"토마토","v":"대저짭짤이토마토","s":".....GYYYYYYY.......................","n":"2~5월에 나오는 초록빛 토마토로 짭짤한 맛으로 매니아층 많은 품목"},{"c":"토마토","v":"흑토마토 & 흑방울토마토","s":"...............GYYYYYYYYYYY.........","n":"6~9월 수확하는 신품종 검정색 토마토"},{"c":"토마토","v":"에어룸토마토","s":"............GYYYYY..GYYYY...GYYYYY..","n":"에어룸 농법으로 재배하는 토마토로 착색과 품질이 우수해서 인기많음, 소싱 어려운편"},{"c":"무화과","v":"홍무화과","s":"....................GYYYYYYY........","n":"대표적인 무화과 품종으로 메이저 과일이 아님에도 수요가 굉장히 높음"},{"c":"무화과","v":"청무화과","s":".......................GYYYY........","n":"껍질이 초록색인 신품종으로 홍무화과 보다 좀 더 작고 연하나 당도는 더 높아 인기 많음"},{"c":"감","v":"태추단감","s":".........................GYYYY......","n":"신품종 감으로 초록빛일 때 아삭하게 먹는 것이 특징이며 단감류 중에 수확 제일빨라 선점용 추천"},{"c":"감","v":"청도반시","s":"..........................GYYYY.....","n":"둘다 홍시용으로 후숙해 먹는 단감류로 청도반시는 청도에서 나오는 단감으로 수확시기가 빨라 태추단감-청도반시-대봉감 순으로 이어팔면 좋다"},{"c":"감","v":"대봉감","s":"Y...........................GYYYYYYY","n":""},{"c":"감","v":"부유 & 차량단감","s":".............................GYYYYYY","n":"아삭하게 먹는 주황색 단감으로 대중적인 인기, 사과 포도와 더불어 꼭 메인으로 가져가야 함"},{"c":"대추","v":"사과대추","s":"........................GYYYYY......","n":"신품종 대추로 사과처럼 아삭하여 매니아층이 있음, 수확시기가 짧은게 단점"},{"c":"배","v":"원황배","s":"......................GYY...........","n":"여름에 가장 빨리 수확하는 배로 빠르게 진입한다면 이때부터 판매 추천"},{"c":"배","v":"신고배","s":"YYYYYY....................GYYYYYYYYY","n":"가장 대중적이고 저장성이 좋아 길게 팔리는 배 품종, 여름에 진입하지 않았다면 이때도 진입 추천"},{"c":"배","v":"황금배","s":".........................GYYY.......","n":""},{"c":"배","v":"추황배","s":"............................GYY.....","n":"보통은 신고배를 주로 많이 판매하며 추황배는 키워드로만 활용하는 편"},{"c":"배","v":"돌배(산돌배)","s":"............................GYYY....","n":"일반과일 배라기 보다는 약용이나 과실주로 인기많은 작은 배 품종, 소싱 어려운 편"},{"c":"배","v":"그린시스(서양배)","s":".........................GYYYY......","n":"서양 품종의 배로 연두빛을 띈 과일이며 은근 매니아층이 있어 추천, 소싱 어려운 편"},{"c":"키위/참다래","v":"레드키위","s":"YYYYYYYYYYYYYYYYYYYYYYYYYYYGYYYYYYYY","n":"1년 내내 유통되는 수입과일로 유명하지만 국내에서도 제주, 남부지방에서 재배하며 9말10초 부터 겨울까지 수확함 / 판매한다면 수입 때 보다는 국산 수확시기 진입 추천"},{"c":"키위/참다래","v":"골드키위","s":"YYYYYYYYYYYYYYYYYYYYYYYYYYYGYYYYYYYY","n":""},{"c":"키위/참다래","v":"그린키위","s":"YYYYYYYYYYYYYYYYYYYYYYYYYYYGYYYYYYYY","n":""},{"c":"참외","v":"참외","s":"....GYYYYYYYYYYYYYYYYYYY............","n":"대표적인 여름과일이지만 온라인은 2~5월이 판매량 좋음, 5월 부터는 진입 비추천"},{"c":"수박","v":"하우스수박","s":"...........GYYYY....................","n":"하우스수박은 4월 부터 나오므로 수박 팔거라면 이때 시작해 다른 품종 추가하며 6월까지 판매추천"},{"c":"수박","v":"씨없는수박","s":"..................GYYYYY............","n":"수박 중에 늦게 나오는 편이나 일반 수박보다 인기가 많음"},{"c":"수박","v":"애플수박","s":".............GYYYYY.................","n":"사과 크기의 미니수박 품종으로 매니아층 있고 경쟁강도도 일반수박 보다 낮은 편"},{"c":"수박","v":"흑미수박","s":"...............GYYYYY...............","n":"수박 중에 특히 당도가 좋은 품종으로 인기가 많음"},{"c":"수박","v":"망고수박","s":"..............GYYYYYY...............","n":"노란과육의 수박으로 보기에도 귀여워 매니아층 많은 신품종, 하우스는 5월에 수확시작"},{"c":"살구","v":"하우스 살구","s":".............GYY....................","n":""},{"c":"살구","v":"플럼코트 살구","s":"...............GYYY.................","n":"신품종 살구 2종, 매니아층은 분명 있지만 상대적으로 복숭아/자두 비해서는 판매량 약한 편이라 복숭아/자두 하고나서 여유있으면 서브로 판매추천"},{"c":"살구","v":"하코트 살구","s":"................GYY.................","n":""},{"c":"블루베리","v":"블루베리","s":"..........GYYYYYYY..................","n":"원래 5~6월 제철이지만, 제주 및 남부지방은 4월 부터 수확시작하므로 4월 판매추천"},{"c":"매실","v":"청매실","s":".............GYYY...................","n":"매실은 주로 청, 술, 잼 담그기 용으로 많이 구매하고 청매실로 시작해서 청매실이 더 후숙된 황매실 그리고 빨갛게 숙성되는 특징의 홍매실이 있다 / 수확기간이 1달 반 정도로 짧아서 소싱을 5월 초까지는 미리미리 해둬야 판매가 수월하다"},{"c":"매실","v":"홍매실(남고매실)","s":"................GYYY................","n":""},{"c":"매실","v":"황매실","s":"................GYYY................","n":""},{"c":"망고","v":"골드망고","s":"YYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYY","n":"거의 1년 내내 수입되나 명절시즌정도에만 추천하고 상시판매는 비추"},{"c":"망고","v":"무지개망고(마하차녹)","s":"........GYYYYYYYYYY.................","n":"수입망고임에도 1년 중 2달 정도만 먹을 수 있는 품종이라 인기많음"},{"c":"망고","v":"제주/남부지방 애플망고","s":"..........GYYYYYYYYYYYYYYYYY........","n":"4~9월 국산 애플망고 재배 시즌으로 인기많음 그러나 단가 비싸서 소싱 잘 해야함"},{"c":"오렌지","v":"블랙라벨오렌지","s":"......GYYYYYYY......................","n":"국산 귤재배량이 줄어드는 3~4월에는 오렌지 관세가 낮아지므로 봄시즌에 판매 추천"},{"c":"오렌지","v":"카라카라오렌지","s":".GYY.................GYYYYY.........","n":"속이 핑크색 과육인 신품종 오렌지로 매니아층 있는 품목, 귤이 적은 시기에 판매 추천"},{"c":"오렌지","v":"블러드오렌지","s":".YYYYYYYYYGYYYY.....................","n":"4~5월 제주에서 수확되는 신품종 오렌지로 과육이 붉은색, 매니아층 많음 1~4월엔 수입산"},{"c":"체리","v":"빙체리","s":".............GYYYYYYY...............","n":"대표적인 체리 품종으로 국내에선 초여름 부터 나옴, 국내 농가 소싱처 찾기가 어려운 편"},{"c":"체리","v":"레이니어체리","s":"...............GYYYYYYY.............","n":"대표적인 체리 품종으로 국내에선 초여름 부터 나옴, 국내 농가 소싱처 찾기가 어려운 편"},{"c":"체리","v":"워싱턴체리(미국 빙체리)","s":"...............GYYYYYYYY............","n":"수입 빙체리로 미국산이라고 품질이 떨어지진 않으므로 국내 농가 소싱 실패시 판매 추천,"},{"c":"옥수수","v":"초당옥수수","s":".............GYYYYYYY...............","n":"내륙지방은 5월 중순, 제주지역은 6월 부터 수확하며 네이버는 예약판매 필수 상품"},{"c":"옥수수","v":"흑미찰옥수수","s":"..................GYYYYY............","n":"초당에 이어 6말7초에는 다양한 찰옥수수가 수확되므로 이어서 판매 추천"},{"c":"옥수수","v":"미백찰옥수수","s":"..................GYYYYY............","n":""},{"c":"옥수수","v":"대학찰옥수수","s":"..................GYYYYY............","n":""},{"c":"옥수수","v":"홍찰옥수수","s":"..................GYYYYY............","n":""},{"c":"감자","v":"홍감자","s":".............GYYYYY.................","n":"신품종 감자로 껍질이 붉은 빛을 띄고 은은한 단맛이 느껴져 감자계의 핫한 신품종 5월 판매추천"},{"c":"감자","v":"수미감자","s":".......GYYYYYYYYYYY.................","n":"햇감자 수확은 5월 정도이나 저장감자로라도 3월 부터 판매하면 타이밍 선점하기 좋음"},{"c":"감자","v":"두백감자","s":".......GYYYYYYYYYYY.................","n":""},{"c":"감자","v":"설봉감자","s":".............GYYYYY.................","n":""},{"c":"당근","v":"제주 구좌당근","s":"YYYYYYYY.........................GYY","n":"당근 중에 가장 유명한 제주 구좌읍의 겨울 햇당근, 일반당근 판매는 비추하나 이 당근만큼은 추천"},{"c":"건나물","v":"취나물(부지깽이나물)","s":".......GYYYYYY...........GYYYYYY....","n":"1년에 2번 수확하는데 소싱이 매우 어려운편, 소싱만 가능하다면 해볼만한 품목"},{"c":"건나물","v":"토란대","s":"...........................GYYYY....","n":"나물류는 다 경쟁 덜 치열한 좋은상품이나 과일 대비 소싱난이도가 높은편으로 꾸준히 농가 및 농업법인 등 소싱을 추천"},{"c":"건나물","v":"생고사리","s":".........GYYYYYYY...................","n":""},{"c":"건나물","v":"생곤드레나물","s":".............GYYYYYY................","n":""},{"c":"건나물","v":"건시래기(무청시래기)","s":".............GYYYYY........GYYYY....","n":"건시래기는 1년에 2번 수확 및 판매 가능 삶은 시래기는 1년 내내 판매가능하나 수확시기 맞춰 진입 추천"},{"c":"건나물","v":"삶은시래기(무청시래기)","s":".....YYYYYYYYGYYYYYYYYYYYYYYYYYYYYYY","n":""},{"c":"산나물","v":"참두릅(산두릅)","s":"..........GYYYY.....................","n":"두릅나무에서 자라는 순을 참두릅이라고 하며 봄 대표 산나물로 판매 강력추천"},{"c":"산나물","v":"땅두릅(독활)","s":".........GYYYYY.....................","n":"두릅나무과에 속하는 땅에서 자라는 순으로 씁쓸한 맛이 나는 특징이 있음"},{"c":"산나물","v":"개두릅(엄나무순)","s":"..........GYY.......................","n":"엄나무에서 나는 순으로 두릅과 비슷하게 생겨 개두릅이라고 하는 품종이 됨"},{"c":"산나물","v":"눈개승마(삼나물)","s":".......GYYYY........................","n":"산나물 중에 가장 빠르게 수확하는 나물로 산나물 선점하기 좋음, 소싱 어려운 편"},{"c":"산나물","v":"참나물","s":"........GYYYYY......................","n":"하우스 재배 참나물은 3월 부터, 노지는 5~6월에 나오며 매니아층 많음"},{"c":"산나물","v":"방풍나물","s":"........GYYYY.......................","n":"쌈으로 인기많은 별미 나물로 3~4월에 팔기 좋은 품종"},{"c":"산나물","v":"세발나물(갯나물)","s":"YYYYYGYYYYYY..............GYYYYYYYYY","n":"9월 말부터 4월까지 수확가능한 나물로, 수확 직후인 10월과 3월 말 봄에 인기많음"},{"c":"산나물","v":"가죽나물","s":".........GYYYYY.....................","n":"산나물 중에 비교적 늦게 수확하는 품종으로 참죽나무의 순임, 무침이나 장아찌로 수요많음"},{"c":"산나물","v":"어수리","s":"........GYYYYYYYYYYYYYYY............","n":"수확기간이 긴 나물이나 인기는 봄시즌이 가장 높아서 판매희망시 봄에 추천, 소싱난이도 높음"},{"c":"산나물","v":"머위","s":".........GYY........................","n":"머위는 4월, 머위대는 5월 시즌성 높은 상품으로 같이 소싱해서 판매가능한게 BEST"},{"c":"산나물","v":"머위대","s":"............GYY.....................","n":""},{"c":"산나물","v":"호박잎","s":".................GYYYYYY............","n":"하우스는 6월, 노지는 7월부터 나오며 소싱이 어려워 경쟁도는 낮은편, 소싱만 가능하면 판매강추"},{"c":"산나물","v":"명이나물(산마늘)","s":"........GYYYYY......................","n":"울릉도가 가장 유명한 산지이며 3월 말부터 5월 초까지 짧게 수확하는 품종으로 시작초기 판매추천"},{"c":"산나물","v":"곰취나물(곰달비)","s":".........GYYYYYYYYYYY...............","n":"향이 좋고 매니아층 많은 나물로 4월 말에 인기가 가장 높으므로 수확하자마자 판매 추천"},{"c":"미나리","v":"미나리","s":"YYYYYYYYY.......................GYYY","n":"흔히 봄나물로만 알고있으나 11월 말 부터 수확되어 봄까지 인기많으므로 겨울철에 미리진입 추천"},{"c":"고구마","v":"꿀고구마(베니하루카)","s":"YYYYYYYYYYYYYYYYYYYYYYGYYYYYYYYYYYYY","n":"고구마는 1년 내내 유통되고 겨울간식으로 유명하나 실제 수확은 8~9월이 많아 최소 가을에는 판매 추천합니다"},{"c":"고구마","v":"호박고구마","s":"YYYYYYYYYYYYYYYYYYYYYYYYYGYYYYYYYYYY","n":""},{"c":"고구마","v":"밤고구마","s":"YYYYYYYYYYYYYYYYYYYYYYYYGYYYYYYYYYYY","n":""},{"c":"고구마","v":"토울고구마","s":"YYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYGYY","n":"품종은 아니고 유명한 고구마 브랜드, 도매업체 통해 많이 유통되므로 겨울에 인기가 많아추천"},{"c":"단호박/밤호박","v":"남해/해남 단호박 & 밤호박","s":"..................GYYYYY............","n":"단호박/밤호박은 수입산이 있어 1년 내내 유통되지만 국내산은 7~8월에 수확하여 인기가 많음 특히 제주, 남해가 유명하여 6월 부터 예약판매로 팔면 더욱 좋음"},{"c":"단호박/밤호박","v":"제주도 단호박(보우짱)","s":"..................GYYYYY............","n":""},{"c":"단호박/밤호박","v":"땅콩호박","s":".......................GYYYYYYYYY...","n":"땅콩모양 닮은 신품종 호박으로 고소한 맛이 특징, 네이버의 경우 단호박에 이어서 팔면 좋으며 단호박과 마찬가지로 국산 미수확 시기에는 수입산도 유통됨"},{"c":"쪽파","v":"쪽파 & 깐쪽파","s":"...............GYYYYY......GYYYYY...","n":"파와 양파를 배합한 품종으로 1년에 2번 수확하나 11월에 인기가 특히 많음"},{"c":"쪽파","v":"실파","s":"............GYYYYYYYY......GYYYYY...","n":"어린 대파로 1년에 2번 수확을 진행하며 5말 6초에 인기가 가장 높음"},{"c":"양파","v":"양파 & 깐양파","s":"...........GYYYYYYYYY...............","n":"1년 내내 유통이 가능해 강력 추천은 하지 않으나 시즌성 제품 모두 다해봤다면 확장 추천"},{"c":"양파","v":"자색양파(적양파)","s":".............GYYYY..................","n":"6월에 시즌성 가장 높은 보라색 양파 품종, 경쟁 치열한 편이라 서브로 확장시에만 추천"},{"c":"오이","v":"미니오이(스낵오이)","s":"....................................","n":""},{"c":"오이","v":"가시오이","s":".............GYYYY..................","n":""},{"c":"오이","v":"청오이(취청오이)","s":".............GYYYYYYYYY.............","n":""},{"c":"오이","v":"노각오이(조선오이)","s":"................GYYYY...............","n":"늙은 조선오이를 노각오이라고 하며 일반오이보다 2~3배 굵은게 특징, 무침 장아찌에 활용"},{"c":"오이","v":"다다기/다대기오이","s":"..............GYYYYYYYYY............","n":"저장성이 좋아 오이지로 가장 인기많은 품종, 오이를 판다면 가장 대표적으로 추천하는 품종"},{"c":"오이","v":"흑침오이","s":"..............GYYYYYYYYY............","n":"다다기오이 종류이나 오이의 가시 안 점이 검정색이라 흑침오이로 구분하는 품종"},{"c":"마늘","v":"코끼리마늘","s":"................GYY.................","n":"코끼리 처럼 생긴 마늘로 일반마늘 보다 훨씬 큰게 특징, 수확기간 짧아 다른마늘과 함께판매 추천"},{"c":"마늘","v":"홍산마늘(육쪽마늘)","s":".............GYYYY..................","n":"국내개발 신품종 마늘로 마늘 끝이 초록색인게 특징, 일반마늘 보다 틈새시장 좋음"},{"c":"배추","v":"알배추(알배기배추)","s":"........GYYYYYYYYY.......GYYYYYY....","n":"일반배추 보다 작은 배추로 보쌈집에 쌈싸먹을 때 많이 보는 품종, 1년에 2번 시즌성"},{"c":"배추","v":"통배추","s":"............................GYYYYYY.","n":"품종이 아닌 생장에 따라 다 자란배추를 통배추라고 하며 11~12월 김장용 절임배추로 인기많음"},{"c":"배추","v":"얼갈이배추","s":"..........GYYYY.........GYYYYY......","n":"어린배추, 단배추라고도 하며 보통 1단으로 묶어서 판매되는 특징있으며 다자라면 통배추임"},{"c":"배추","v":"청방배추(풋배추)","s":"............................GYYYYYY.","n":"초겨울 김장용으로 최적화된 품종, 통배추가 생장에 따라 부르는 호칭이라면 청방배추는 품종명"},{"c":"절임배추","v":"절임배추(절인배추)","s":"............................GYYYYYY.","n":"말 그대로 김장용으로 사용하는 배추로, 주로 10월 부터 예약을 받아 11~12월에 판매"},{"c":"절임배추","v":"황금배추","s":"............................GYYYYYY.","n":"절임배추로 많이 사용하는 품종"},{"c":"절임배추","v":"고랭지배추","s":"............................GYYYYYY.","n":"평창 태백 삼척 등 600m 이상 고랭지에서 재배하는 배추"},{"c":"무","v":"알타리무","s":"............GYYYY..........GYYYYY...","n":"1년에 2번 수확이 진행되나 11월 총각김치 때 시즌성이 가장 높아지므로 가을에 판매 더 추천"},{"c":"무","v":"초롱무","s":"............GYYYYY.........GYYYYY...","n":"알타리무가 총각김치라면 초롱무는 물김치에 더 적합한 무로 아삭보다는 부드러운 특징"},{"c":"무","v":"수박무(과일무)","s":"............................GYYY....","n":"속이 수박같이 빨간 신품종 무로 샐러드와 피클로 주로 사용되며 수요가 많음"},{"c":"고추","v":"꽈리고추","s":".........GYYYYYYYYYYYYYYYYYYY.......","n":"7월에 노지가 나올 때 가장 인기가 많은 품종"},{"c":"고추","v":"홍고추","s":"...................GYYYYYYYYY.......","n":"더 익기를 기다려 따는 빨간고추로, 여름에 가장 인기가 많은 고추가 바로 홍고추"},{"c":"고추","v":"아삭이고추(풋고추)","s":"................GYY.................","n":"안 매울 때 수확하는 풋고추, 아삭함이 특징"},{"c":"버섯","v":"능이버섯","s":"YYYYYYYYYYYYYYYYYYYYYYYGGYYYYYYYYYYY","n":"버섯은 1년 내내 재배가 되는 카테고리이나 8말 9초에 제철인 경우가 많아 가을 추석 전후에 시즌성이 가장 높아지므로 여름에 판매 시작 추천"},{"c":"버섯","v":"송이버섯","s":"YYYYYYYYYYYYYYYYYYYYYYYGGYYYYYYYYYYY","n":""},{"c":"버섯","v":"새송이버섯","s":"YYYYYYYYYYYYYYYYYYYYYYYGGYYYYYYYYYYY","n":""},{"c":"버섯","v":"느타리버섯","s":"YYYYYYYYYYYYYYYYYYYYYYYGGYYYYYYYYYYY","n":""},{"c":"버섯","v":"목이버섯","s":"YYYYYYYYYYYYYYYYYYYYYYYGGYYYYYYYYYYY","n":""},{"c":"버섯","v":"상황버섯","s":"YYYYYYYYYYYYYYYYYYYYYYYGGYYYYYYYYYYY","n":""},{"c":"버섯","v":"팽이버섯","s":"YYYYYYYYYYYYYYYYYYYYYYYGGYYYYYYYYYYY","n":""},{"c":"버섯","v":"양송이버섯","s":"YYYYYYYYYYYYYYYYYYYYYYYGGYYYYYYYYYYY","n":""},{"c":"버섯","v":"참송이버섯","s":"YYYYYYYYYYYYYYYYYYYYYYYGGYYYYYYYYYYY","n":""},{"c":"버섯","v":"노루궁뎅이버섯","s":"YYYYYYYYYYYYYYYYYYYYYYYGGYYYYYYYYYYY","n":""},{"c":"버섯","v":"송로버섯(트러플 버섯)","s":"YYYYYYYYYYYYYYYYYYYYYYYGGYYYYYYYYYYY","n":""},{"c":"버섯","v":"흰목이버섯(백목이)","s":"YYYYYYYYYYYYYYYYYYYYYYYGGYYYYYYYYYYY","n":""},{"c":"버섯","v":"화고버섯","s":"YYYYYYYYYYYYYYYYYYYYYYYGGYYYYYYYYYYY","n":""},{"c":"버섯","v":"송화버섯","s":"YYYYYYYYYYYYYYYYYYYYYYYGGYYYYYYYYYYY","n":""},{"c":"버섯","v":"꽃송이버섯","s":"YYYYYYYYYYYYYYYYYYYYYYYGGYYYYYYYYYYY","n":""},{"c":"양배추","v":"방울양배추(미니양배추)","s":"YYYYYYYYY........................GYY","n":"제주가 유명한 산지이며 크기가 작은 양배추 품종으로 구좌당근과 마찬가지로 겨울에 수요많음"},{"c":"상추/양상추","v":"양상추(청상추)","s":"YYYYYYYYGYYYYYYYYYYYYYYYYYYYYYYYYYYY","n":"상추 품종들은 1년 내내 하우스 재배가 가능하나 수요는 4~7월에 몰려있어 봄시즌에 판매추천"},{"c":"상추/양상추","v":"꽃상추","s":"YYYYYYYYGYYYYYYYYYYYYYYYYYYYYYYYYYYY","n":""},{"c":"상추/양상추","v":"적상추","s":"YYYYYYYYGYYYYYYYYYYYYYYYYYYYYYYYYYYY","n":""},{"c":"쌈채소","v":"로메인","s":".....YYYGYYYYYYYYYYYYYYYYYYYYYYYYYYY","n":"3~6월에 인기가 많은 쌈채소 품종"},{"c":"쌈채소","v":"유러피안채소","s":".....YYYGYYYYYYYYYYYYYYYYYYYYYYYYYYY","n":"3~4월에 인기가 많은 샐러드 채소 품종"},{"c":"쌈채소","v":"카이피라","s":".....YYYYYYYYYYYYYYYYYYYYYYYYYYYYYYY","n":"해당 키워드들은 모듬샐러드, 쌈채소에 들어가는 품종들로 시즌성이 뚜렷하진 않으나 경쟁강도 1미만인 경우가 많아 노출 기회 잡기 위한 키워드로 활용 추천"},{"c":"쌈채소","v":"적근대","s":".....YYYYYYYYYYYYYYYYYYYYYYYYYYYYYYY","n":""},{"c":"쌈채소","v":"당귀잎","s":".....YYYYYYYYYYYYYYYYYYYYYYYYYYYYYYY","n":""},{"c":"쌈채소","v":"적겨자","s":".....YYYYYYYYYYYYYYYYYYYYYYYYYYYYYYY","n":""},{"c":"쌈채소","v":"쌈추","s":".....YYYYYYYYYYYYYYYYYYYYYYYYYYYYYYY","n":""},{"c":"쌈채소","v":"버터헤드","s":".....YYYYYYYYYYYYYYYYYYYYYYYYYYYYYYY","n":""},{"c":"시금치","v":"포항초 / 시금치 / 섬초","s":"YYYYYYYYY...YYYYYY..........GYYYYYYY","n":"거의 1년 중 재배가 계속되나 10월 부터 3월까지 수확시즌이 가장인기 많음 늦어도 11월 말에는 진입 추천"}],"top20":{"1~2월":{"과일":["사과","귤","귤 10kg","레드향","한라봉","천혜향","딸기","과일선물세트","토마토","청송문경사과","귤 5kg","방울토마토","대저토마토","망고","감귤","한라봉 10kg","오렌지","배","애플망고","참외"],"채소":["당근","고구마","꿀고구마","김의준고구마","단호박","감자","호박고구마","오이","콜라비","청양고추","파프리카","제주당근","양파","해남꿀고구마","대파","옥수수","밤고구마","더덕","표고버섯","구좌당근"]},"3~4월":{"과일":["사과","참외","망고","토마토","대저토마토","오렌지","방울토마토","짭짤이토마토","천혜향","딸기","귤","청송문경사과","블루베리","레몬","한라봉","키위","못난이사과","성주참외","아보카도","애플망고"],"채소":["당근","고구마","감자","두릅","오이","양배추","양파","고구마 2kg","제주당근","엄나무순","단호박","유러피안채소","꿀고구마3kg","구좌당근","청양고추","호박고구마","마늘쫑","옥수수","파프리카","비트"]},"5~6월":{"과일":["사과","참외","복숭아","매실","신비복숭아","망고","방울토마토","블루베리","토마토","수박","레몬","납작복숭아","자두","체리","오렌지","멜론","과일바구니","산딸기","황매실","키위"],"채소":["당근","초당옥수수","감자","고구마","옥수수","오이","양파","마늘쫑","단호박","마늘쫑","양배추","찰옥수수","구좌당근","오이지오이","밤호박","홍감자","유기농당근","죽순","미니밤호박","유러피안채소"]},"7~8월":{"과일":["복숭아","사과","납작복숭아","샤인머스켓","수박","방울토마토","무화과","토마토","자두","참외","딱딱이복숭아","레몬","블루베리","망고","아오리사과","귤","포도","매실","신비복숭아","청귤"],"채소":["옥수수","당근","찰옥수수","단호박","감자","초당옥수수","고구마","오이","밤호박","대학찰옥수수","양파","상추","미니단호박","강원도찰옥수수","괴산대학찰옥수수","홍감자","마늘","미니밤호박","궁채","능이버섯"]},"9~10월":{"과일":["사과","샤인머스켓","토마토","감홍사과","무화과","귤","태추단감","방울토마토","단감","망고","과일선물세트","복숭아","레몬","시나노골드","배","대봉감","홍로사과","포도","청송사과","추석선물세트"],"채소":["고구마","당근","송이버섯","배추","생강","옥수수","단호박","상추","호박고구마","감자","능이버섯","표고버섯","밤고구마","쪽파","오이","김의준고구마","깐마늘","제주다근","꿀고구마","유러피안채소"]},"11~12월":{"과일":["사과","귤","토마토","딸기","방울토마토","귤10kg","청송사과","대봉감","감홍사과","감귤","샤인머스켓","단감","레몬","황금향","레드향","유자","제주감귤","무화과","문경사과","한라봉"],"채소":["고구마","당근","생강","호박고구마","김의준고구마","제주당근","감자","깐마늘","꿀고구마","배추","송이버섯","구좌당근","쪽파","밤고구마","표고버섯","단호박","파프리카","미나리","마늘","주스용당근"]}}};
+
+var MONTHS=["1월","2월","3월","4월","5월","6월","7월","8월","9월","10월","11월","12월"];
+var NOW=25;               // 9월 중순 = (9-1)*3 + 1
+var NOW_M=8;              // 0-indexed 9월
+
+/* ── 판정 기준. 형 장사 기준으로 바꾸는 곳은 여기 한 군데다 ── */
+var RULE={ minVol:5000, maxComp:5.0, goldGood:55, goldSkip:30, volSkip:2000,
+           marginGood:25, marginSkip:15, netGood:15, netSkip:5 };
+
+/* ── 판매 설정 ── */
+var SET={ platform:"naver", orderFee:0.0363, linkFee:0.03, coupangFee:0.1166, ship:0, targetCvr:0.03 };
+function feeRate(){ return SET.platform==="naver" ? SET.orderFee+SET.linkFee : SET.coupangFee; }
+function roasMult(){ return SET.platform==="naver" ? 1.0 : 1.1; }
+function priceMult(){ return SET.platform==="naver" ? 1.58 : 1.57; }
+
+/* 형 시트의 마진 공식 그대로: 마진 = 판매가 − 공급가 − (판매가 × 수수료) − 배송비 */
+function calcMargin(supply, sell){
+  var fee=sell*feeRate();
+  var m=sell-supply-fee-SET.ship;
+  return { fee:fee, margin:m, rate: sell?m/sell:0, minRoas: m>0 ? sell/m*roasMult() : Infinity };
+}
+/* 최소광고효율에서 유도: 손익분기 전환율 = CPC × 배수 ÷ 마진 */
+function beCvr(cpc, margin){ return margin>0 ? cpc*roasMult()/margin : Infinity; }
+
+/* ── 결정적 난수 ── */
+function hash(s){ var h=2166136261; for(var i=0;i<s.length;i++){ h^=s.charCodeAt(i); h=Math.imul(h,16777619);} return h>>>0; }
+function rngFor(s){ var x=(hash(s)%2147483646)+1; return function(){ x=(x*16807)%2147483647; return x/2147483647; }; }
+function fmt(n){ return Math.round(n).toLocaleString("ko-KR"); }
+function el(t,c,x){ var e=document.createElement(t); if(c)e.className=c; if(x!=null)e.textContent=x; return e; }
+
+/* ── 인기도: 2개월 단위 TOP20 실데이터에서 뽑는다 ── */
+var POP={};
+Object.keys(CATALOG.top20).forEach(function(per){
+  ["과일","채소"].forEach(function(g){
+    (CATALOG.top20[per][g]||[]).forEach(function(nm,i){ POP[nm]=(POP[nm]||0)+(20-i); });
+  });
+});
+var POPKEYS=Object.keys(POP);
+function popRaw(it){
+  var best=0, hay=it.v+" "+it.c;
+  POPKEYS.forEach(function(k){
+    if(hay.indexOf(k)>=0 || k.indexOf(it.v)>=0 || k.indexOf(it.c)>=0) best=Math.max(best,POP[k]);
+  });
+  return best;
+}
+var POPMAX=1;
+CATALOG.items.forEach(function(it){ it._pop=popRaw(it); POPMAX=Math.max(POPMAX,it._pop); });
+CATALOG.items.forEach(function(it){ it._pn=it._pop/POPMAX; });
+
+/* ── 시즌: 수확 캘린더에서 직접 읽는다 ── */
+function seasonOf(it){
+  var s=it.s;
+  if(s[NOW]==="G") return "enter";
+  if(s[NOW]==="Y"){
+    var run=0; for(var i=0;i<36 && s[(NOW+i)%36]==="Y";i++) run++;
+    return run<=2 ? "late" : "season";
+  }
+  for(var k=1;k<=3;k++){ var ch=s[(NOW+k)%36]; if(ch==="G"||ch==="Y") return "enter"; }
+  return "off";
+}
+var SEASON_TXT={enter:"진입 구간",season:"공급 중",late:"마감 임박",off:"비시즌"};
+function seasonDetail(it){
+  var st=seasonOf(it), s=it.s;
+  if(st==="enter"){
+    for(var k=0;k<=6;k++){ if(s[(NOW+k)%36]==="Y") return "진입 구간 · 수확 시작까지 "+k+"순"; }
+    return "진입 구간";
+  }
+  if(st==="season"){ var run=0; for(var i=0;i<36 && s[(NOW+i)%36]==="Y";i++) run++; return "공급 중 · 남은 "+run+"순"; }
+  if(st==="late"){ var r2=0; for(var j=0;j<36 && s[(NOW+j)%36]==="Y";j++) r2++; return "마감 임박 · 남은 "+r2+"순"; }
+  for(var m=1;m<36;m++){ if(s[(NOW+m)%36]!==".") return "비시즌 · 다음 시즌까지 "+m+"순"; }
+  return "비시즌";
+}
+/* 월별 검색 지수: 수확 캘린더 파생. 검색은 공급보다 살짝 앞선다 */
+function monthIdx(it){
+  if(it._mi) return it._mi;
+  var raw=new Array(12).fill(0);
+  for(var i=0;i<36;i++){ var m=Math.floor(i/3);
+    if(it.s[i]==="Y") raw[m]+=1; else if(it.s[i]==="G") raw[m]+=0.7; }
+  var out=[];
+  for(var k=0;k<12;k++) out.push(raw[k]+0.35*raw[(k+1)%12]+0.12*raw[(k+2)%12]);
+  var mx=Math.max.apply(null,out)||1;
+  it._mi=out.map(function(v){ return Math.max(4, Math.round(v/mx*100)); });
+  return it._mi;
+}
+
+/* ── 공급가: 시트 실측값이 있으면 그걸 쓴다 ── */
+var REAL=[
+  {k:"홍로", supply:12150, sell:19900, opt:"2kg 중과"},
+  {k:"청무화과", supply:11500, sell:19900, opt:"500g"},
+  {k:"홍무화과", supply:11000, sell:19900, opt:"500g"}
+];
+function supplyOf(it){
+  if(it._sup!=null) return it._sup;
+  for(var i=0;i<REAL.length;i++){ if(it.v.indexOf(REAL[i].k)>=0){ it._sup=REAL[i].supply; it._real=REAL[i]; return it._sup; } }
+  var r=rngFor("sup:"+it.v+it.c);
+  it._sup=Math.round((6000+it._pn*22000+r()*14000)/50)*50;
+  return it._sup;
+}
+
+/* ── 키워드 생성 (샘플 지표) ── */
+var MODS=[
+  {s:"",        v:1.00, b:1.30, d:1.00},
+  {s:" 2kg",    v:0.26, b:0.80, d:0.62},
+  {s:" 5kg",    v:0.17, b:0.76, d:0.55},
+  {s:" 1kg",    v:0.19, b:0.78, d:0.55},
+  {s:" 3kg",    v:0.14, b:0.74, d:0.50},
+  {s:" 10kg",   v:0.10, b:0.72, d:0.45},
+  {s:" 선물세트",v:0.21, b:1.62, d:0.78},
+  {s:" 못난이",  v:0.16, b:0.34, d:0.22},
+  {s:" 가정용",  v:0.13, b:0.44, d:0.28},
+  {s:" 산지직송",v:0.09, b:0.40, d:0.26},
+  {s:" 대과",    v:0.07, b:0.56, d:0.34},
+  {s:" 실속",    v:0.06, b:0.48, d:0.30}
+];
+function keywordsOf(it){
+  if(it._kw) return it._kw;
+  var r=rngFor("kw:"+it.v), head=Math.round(1200+Math.pow(it._pn,1.4)*68000*(0.55+0.9*r()));
+  var n=4+Math.floor(r()*4), pick=[MODS[0]], used={0:1};
+  while(pick.length<n){ var j=1+Math.floor(r()*(MODS.length-1)); if(!used[j]){ used[j]=1; pick.push(MODS[j]); } }
+  it._kw=pick.map(function(m){
+    var rr=rngFor("k:"+it.v+m.s);
+    var tot=Math.max(120, Math.round(head*m.v*(0.65+0.7*rr())));
+    var mo=Math.min(0.94, 0.70+0.20*rr()+(m.b<0.5?0.06:0));
+    var b1=Math.max(70, Math.round((130+it._pn*2300)*m.b*(0.6+0.8*rr())/10)*10);
+    return { kw:it.v+m.s, item:it,
+      pc:Math.round(tot*(1-mo)), mo:Math.round(tot*mo), total:tot, moShare:mo,
+      bid1mo:b1, bid1pc:Math.round(b1*(0.80+0.12*rr())/10)*10,
+      depth:Math.max(1,Math.min(15,Math.round(1+it._pn*13*m.d*(0.6+0.9*rr()))))
+    };
+  });
+  return it._kw;
+}
+
+/* ── 지표 · 점수 · 판정 ── */
+function metrics(k){
+  var bid=[[k.bid1pc,k.bid1mo],
+           [Math.round(k.bid1pc*0.78),Math.round(k.bid1mo*0.78)],
+           [Math.round(k.bid1pc*0.61),Math.round(k.bid1mo*0.61)]];
+  var comp=0.55*(k.depth/15)+0.45*(k.bid1mo/2500);
+  var gold=(Math.log10(k.total+1)-3)/(comp+0.25)*26;
+  if(k.moShare>0.75) gold+=6;
+
+  var it=k.item, sup=supplyOf(it), sell=it._sell||Math.round(sup*priceMult()/100)*100;
+  var mg=calcMargin(sup,sell);
+  var cvr3=beCvr(bid[2][1],mg.margin);
+  // 광고 감당력: 3위 입찰가로 광고할 때 필요한 전환율이 목표 이하인가
+  var afford=isFinite(cvr3)&&cvr3>0 ? Math.max(0,Math.min(1.4, SET.targetCvr/cvr3)) : 0;
+  gold=gold*(0.55+0.45*afford);
+  gold=Math.max(0,Math.min(100,Math.round(gold)));
+
+  return { total:k.total, pc:k.pc, mo:k.mo, moShare:k.moShare, depth:k.depth, bid:bid,
+           comp:Math.min(10,comp*7), gold:gold, sup:sup, sell:sell, mg:mg, cvr3:cvr3, afford:afford };
+}
+function verdict(m, st, it){
+  var pass=[], fail=[];
+  (m.gold>=RULE.goldGood?pass:fail).push("황금점수 "+m.gold);
+  (m.total>=RULE.minVol?pass:fail).push("월 검색 "+fmt(m.total));
+  (m.comp<=RULE.maxComp?pass:fail).push("경쟁강도 "+m.comp.toFixed(1));
+  var adOk=m.cvr3<=SET.targetCvr;
+  (adOk?pass:fail).push("3위 광고 필요 전환율 "+(m.cvr3*100).toFixed(1)+"%");
+
+  var v;
+  if(m.gold<RULE.goldSkip||m.total<RULE.volSkip) v="패스";
+  else if(fail.length===0 && st!=="late" && st!=="off") v="린정";
+  else v="반린정";
+
+  var why, care;
+  if(v==="린정"){
+    why="황금점수 "+m.gold+" · 월 검색 "+fmt(m.total)+" · 경쟁강도 "+m.comp.toFixed(1)
+       +" · 3위 광고 필요 전환율 "+(m.cvr3*100).toFixed(1)+"% 모두 기준 통과"
+       +(st==="enter"?" · 수확 직전 진입 구간":st==="season"?" · 공급 중":"");
+    care=m.moShare>0.8
+      ? "모바일 검색이 "+Math.round(m.moShare*100)+"%다. PC 입찰은 줄이고 모바일에 몰아라."
+      : "1위 입찰가 "+fmt(m.bid[0][1])+"원이면 필요 전환율이 "+(beCvr(m.bid[0][1],m.mg.margin)*100).toFixed(1)+"%다. 3위부터 시험해라.";
+  } else if(v==="반린정"){
+    why="통과 "+(pass.length?pass.join(" · "):"없음")+" / 미달 "+fail.join(" · ")
+       +(st==="late"?" · 마감 임박":st==="off"?" · 비시즌":"");
+    care=!adOk
+      ? "3위 입찰가로도 전환율 "+(m.cvr3*100).toFixed(1)+"%가 나와야 본전이다. 광고 말고 상세페이지·순위로 먹어라."
+      : st==="late" ? "시즌이 끝나는 중이다. 재고를 남기지 마라."
+      : st==="off" ? "아직 시즌이 아니다. "+seasonDetail(it)+"."
+      : m.comp>RULE.maxComp ? "경쟁강도가 기준을 넘는다. 광고 깊이 "+m.depth+"단이면 상위 비용이 빠르게 는다."
+      : "검색량이 얇다. 단독으로 걸지 말고 상위 키워드에 묶어라.";
+  } else {
+    why="황금점수 "+m.gold+" · 월 검색 "+fmt(m.total)+" — 진입 기준 미달";
+    care="지금은 넘어가라. 시즌이 바뀌면 다시 본다.";
+  }
+  return { v:v, why:why, care:care, adOk:adOk };
+}
+
+/* ── 상태 ── */
+var CUR=CATALOG.items[0], CURKW=null, TAB="gold", LIMIT=50;
+var filt={ vol:1000, comp:10, v:{"린정":true,"반린정":true,"패스":false}, scope:"item", q:"" };
+
+function scopeItems(){
+  if(filt.scope==="item") return [CUR];
+  if(filt.scope==="cat") return CATALOG.items.filter(function(i){ return i.c===CUR.c; });
+  return CATALOG.items;
+}
+function rowsFor(){
+  var out=[], its=scopeItems(), q=filt.q.trim();
+  its.forEach(function(it){
+    var st=seasonOf(it);
+    keywordsOf(it).forEach(function(k){
+      if(q && k.kw.indexOf(q)<0 && it.c.indexOf(q)<0) return;
+      var m=metrics(k);
+      out.push({ kw:k.kw, it:it, m:m, vd:verdict(m,st,it), st:st });
+    });
+  });
+  out.sort(function(a,b){ return b.m.gold-a.m.gold; });
+  return out;
+}
+
+/* ── 툴팁 ── */
+var tip=document.getElementById("tip");
+function showTip(e,h){ tip.innerHTML=h; tip.style.opacity="1";
+  var x=e.clientX+14,y=e.clientY+14; if(x+tip.offsetWidth>innerWidth-8) x=e.clientX-tip.offsetWidth-14;
+  if(y+tip.offsetHeight>innerHeight-8) y=e.clientY-tip.offsetHeight-14;
+  tip.style.left=x+"px"; tip.style.top=y+"px"; }
+function hideTip(){ tip.style.opacity="0"; }
+function bindTips(box){ box.querySelectorAll("[data-t]").forEach(function(n){
+  n.addEventListener("mousemove",function(e){ showTip(e,n.dataset.t); });
+  n.addEventListener("mouseleave",hideTip); }); }
+
+/* ── 설정 UI ── */
+function readSet(){
+  SET.orderFee=+document.getElementById("orderFee").value;
+  SET.linkFee=+document.getElementById("linkFee").value;
+  SET.coupangFee=(+document.getElementById("cpFee").value||0)/100;
+  SET.ship=+document.getElementById("shipFee").value||0;
+  SET.targetCvr=(+document.getElementById("tgtCvr").value||0)/100;
+  document.getElementById("feeOut").textContent=
+    (SET.platform==="naver"?"네이버":"쿠팡")+" 수수료 "+(feeRate()*100).toFixed(2)+"% · 최소광고효율 배수 "+roasMult().toFixed(1);
+  document.getElementById("naverFees").hidden=SET.platform!=="naver";
+  document.getElementById("coupangFees").hidden=SET.platform!=="coupang";
+}
+document.getElementById("platSeg").querySelectorAll("button").forEach(function(b){
+  b.onclick=function(){
+    SET.platform=b.dataset.p;
+    document.getElementById("platSeg").querySelectorAll("button").forEach(function(x){ x.setAttribute("aria-pressed", x===b); });
+    CATALOG.items.forEach(function(i){ i._sell=null; });
+    readSet(); renderAll();
+  };
+});
+["orderFee","linkFee","cpFee","shipFee","tgtCvr"].forEach(function(id){
+  document.getElementById(id).addEventListener("input",function(){ readSet(); renderAll(); });
+});
+
+/* ── 레일 ── */
+var catSel=document.getElementById("catSel");
+var CATS=[]; CATALOG.items.forEach(function(i){ if(CATS.indexOf(i.c)<0) CATS.push(i.c); });
+CATS.sort();
+catSel.appendChild(new Option("전체 카테고리 ("+CATS.length+")",""));
+CATS.forEach(function(c){ catSel.appendChild(new Option(c,c)); });
+catSel.value=CUR.c;
+catSel.onchange=function(){ renderRail(); };
+document.getElementById("q").addEventListener("input",function(e){ filt.q=e.target.value; renderRail(); renderTable(); });
+
+function renderRail(){
+  var cat=catSel.value, q=filt.q.trim();
+  var list=CATALOG.items.filter(function(i){
+    if(cat && i.c!==cat) return false;
+    if(q && i.v.indexOf(q)<0 && i.c.indexOf(q)<0) return false;
+    return true;
+  });
+  var order={enter:0,season:1,late:2,off:3};
+  list.sort(function(a,b){ var d=order[seasonOf(a)]-order[seasonOf(b)]; return d||(b._pn-a._pn); });
+  var box=document.getElementById("vlist"); box.innerHTML="";
+  list.slice(0,240).forEach(function(it){
+    var b=el("button","vitem"); b.type="button"; b.setAttribute("aria-pressed", it===CUR);
+    var st=seasonOf(it);
+    b.appendChild(el("span","dot "+st));
+    b.appendChild(el("b",null,it.v));
+    b.appendChild(el("em",null,SEASON_TXT[st]));
+    b.onclick=function(){ CUR=it; CURKW=null; renderRail(); renderAll(); };
+    box.appendChild(b);
+  });
+  if(!list.length) box.appendChild(el("div","empty","일치하는 품종이 없다."));
+  document.getElementById("railNote").textContent=
+    list.length+"품종 표시 / 전체 "+CATALOG.items.length+"품종 · "+CATS.length+"카테고리";
+}
+
+/* ── 탭 ── */
+var PANELS={gold:"panel-gold",detail:"panel-detail",timing:"panel-timing",margin:"panel-margin"};
+document.querySelectorAll(".tab").forEach(function(t){ t.onclick=function(){ setTab(t.dataset.tab); }; });
+function setTab(n){
+  TAB=n;
+  document.querySelectorAll(".tab").forEach(function(t){ t.setAttribute("aria-selected", t.dataset.tab===n); });
+  for(var k in PANELS) document.getElementById(PANELS[k]).hidden=(k!==n);
+  if(n==="detail") renderDetail();
+  if(n==="timing") renderTiming();
+  if(n==="margin") renderMargin();
+}
+
+/* ── 필터 ── */
+var fVol=document.getElementById("fVol"), fComp=document.getElementById("fComp");
+fVol.oninput=function(){ filt.vol=+fVol.value; document.getElementById("fVolV").textContent=fmt(filt.vol); LIMIT=50; renderTable(); };
+fComp.oninput=function(){ filt.comp=+fComp.value; document.getElementById("fCompV").textContent=filt.comp.toFixed(1); LIMIT=50; renderTable(); };
+document.getElementById("fVerdict").querySelectorAll(".chip").forEach(function(c){
+  c.onclick=function(){ var on=c.getAttribute("aria-pressed")!=="true"; c.setAttribute("aria-pressed",on); filt.v[c.dataset.v]=on; LIMIT=50; renderTable(); };
+});
+document.getElementById("fScope").querySelectorAll(".chip").forEach(function(c){
+  c.onclick=function(){
+    filt.scope=c.dataset.s; LIMIT=50;
+    document.getElementById("fScope").querySelectorAll(".chip").forEach(function(x){ x.setAttribute("aria-pressed", x===c); });
+    renderTable();
+  };
+});
+document.getElementById("moreBtn").onclick=function(){ LIMIT+=100; renderTable(); };
+
+/* ── 표 ── */
+function renderTable(){
+  var all=rowsFor();
+  var list=all.filter(function(r){ return r.m.total>=filt.vol && r.m.comp<=filt.comp && filt.v[r.vd.v]; });
+  var body=document.getElementById("kwBody"); body.innerHTML="";
+  document.getElementById("count").innerHTML="<b>"+fmt(list.length)+"</b>개 / 후보 "+fmt(all.length)+"개";
+  var show=list.slice(0,LIMIT);
+  var mb=document.getElementById("moreBtn");
+  mb.style.display=list.length<=LIMIT?"none":"block";
+  mb.textContent="더 보기 (남은 "+fmt(list.length-LIMIT)+"개)";
+
+  if(!show.length){
+    var tr=el("tr"), td=el("td","empty","조건에 맞는 키워드가 없다. 필터를 넓혀봐라."); td.colSpan=13; tr.appendChild(td); body.appendChild(tr); return;
+  }
+  show.forEach(function(r){
+    var m=r.m, tr=el("tr");
+    tr.onclick=function(){ CUR=r.it; CURKW=r.kw; renderRail(); renderHead(); setTab("detail"); };
+    var c1=el("td");
+    c1.appendChild(el("div","kw",r.kw));
+    c1.appendChild(el("div","sub",r.it.c+" · 광고 "+m.depth+"단 · 모바일 "+Math.round(m.moShare*100)+"%"));
+    tr.appendChild(c1);
+    var c2=el("td","num"); c2.appendChild(el("div",null,fmt(m.total)));
+    c2.appendChild(el("div","sub","PC "+fmt(m.pc)+" / MO "+fmt(m.mo))); tr.appendChild(c2);
+    for(var i=0;i<3;i++){
+      tr.appendChild(el("td","num bidcell",fmt(m.bid[i][0])));
+      tr.appendChild(el("td","num",fmt(m.bid[i][1])));
+    }
+    tr.appendChild(el("td","num bidcell dim",String(m.depth)));
+    tr.appendChild(el("td","num",m.comp.toFixed(1)));
+    var cc=el("td","num");
+    cc.innerHTML=isFinite(m.cvr3)
+      ? '<span class="'+(m.vd_ok=m.cvr3<=SET.targetCvr?"cvr-ok":"cvr-no")+'">'+(m.cvr3*100).toFixed(1)+"%</span>"
+      : '<span class="cvr-no">불가</span>';
+    tr.appendChild(cc);
+    var cg=el("td"), w=el("span","score"), bar=el("span","bar"), fill=el("i");
+    fill.style.width=m.gold+"%"; bar.appendChild(fill); w.appendChild(bar); w.appendChild(el("span","num",String(m.gold)));
+    cg.appendChild(w); tr.appendChild(cg);
+    var cv=el("td"); cv.appendChild(el("span","pill "+(r.vd.v==="린정"?"good":r.vd.v==="반린정"?"warn":"skip"),r.vd.v));
+    tr.appendChild(cv);
+    body.appendChild(tr);
+  });
+  document.getElementById("formulaBox").innerHTML=
+    "황금점수 = (log10(월검색수) − 3) ÷ (경쟁 + 0.25) × 26 × (0.55 + 0.45 × 광고감당력)<br>"+
+    "경쟁 = 광고깊이/15 × 0.55 + 1위입찰가/2500 × 0.45 · 모바일 비중 75% 초과 시 +6<br>"+
+    "손익분기 전환율 = 3위 입찰가 × "+roasMult().toFixed(1)+" ÷ 마진 · 광고감당력 = 목표 전환율 ÷ 손익분기 전환율<br>"+
+    "린정 = 점수 "+RULE.goldGood+"↑ · 검색 "+fmt(RULE.minVol)+"↑ · 경쟁 "+RULE.maxComp.toFixed(1)+"↓ · 손익분기 전환율 "+(SET.targetCvr*100).toFixed(1)+"%↓ 전부 충족 (마감 임박·비시즌 제외)";
+}
+/* ── 헤더 ── */
+function renderHead(){
+  document.getElementById("itemCat").textContent=CUR.c;
+  document.getElementById("itemName").textContent=CUR.v;
+  var st=seasonOf(CUR), sb=document.getElementById("seasonBadge");
+  sb.className="season "+st; sb.textContent=seasonDetail(CUR);
+  var nb=document.getElementById("itemNote");
+  if(CUR.n){ nb.hidden=false; nb.textContent=CUR.n; } else nb.hidden=true;
+  document.getElementById("scale").textContent=CATALOG.items.length+"품종 · "+CATS.length+"카테고리 관제";
+}
+
+/* ── 상세 ── */
+function renderDetail(){
+  var list=keywordsOf(CUR).map(function(k){ var m=metrics(k); return {kw:k.kw,m:m,vd:verdict(m,seasonOf(CUR),CUR)}; })
+            .sort(function(a,b){ return b.m.gold-a.m.gold; });
+  var r=list.filter(function(x){ return x.kw===CURKW; })[0]||list[0];
+  CURKW=r.kw;
+  var m=r.m, vd=r.vd, st=seasonOf(CUR);
+  var cls=vd.v==="린정"?"good":vd.v==="반린정"?"warn":"skip";
+  document.getElementById("vCard").innerHTML=
+   '<div class="v-top"><h3>'+r.kw+'</h3><span class="pill '+cls+'" style="font-size:13px;padding:4px 13px">'+vd.v+'</span></div>'
+  +'<div class="v-body">'
+  +cell("월 검색수",fmt(m.total),"PC "+fmt(m.pc)+" · 모바일 "+fmt(m.mo))
+  +cell("1위 입찰가",fmt(m.bid[0][1])+"원","모바일 · PC "+fmt(m.bid[0][0])+"원")
+  +cell("경쟁강도",m.comp.toFixed(1),"광고 "+m.depth+"단 · 광고 기반 추정")
+  +cell("손익분기 전환율",(m.cvr3*100).toFixed(1)+"%","3위 입찰가 기준 · 목표 "+(SET.targetCvr*100).toFixed(1)+"%")
+  +cell("마진",fmt(m.mg.margin)+"원",(m.mg.rate*100).toFixed(1)+"% · 최소광고효율 "+(isFinite(m.mg.minRoas)?m.mg.minRoas.toFixed(2):"—"))
+  +cell("시즌",SEASON_TXT[st],seasonDetail(CUR))
+  +'</div>'
+  +'<div class="why"><div class="why-k why-'+(vd.v==="린정"?"good":"warn")+'">왜 '+vd.v+'</div><p>'+vd.why+'</p></div>'
+  +'<div class="why"><div class="why-k why-warn">주의</div><p>'+vd.care+'</p></div>';
+  drawTrend(r); drawAge(r); drawDevice(r); drawCvr(r);
+}
+function cell(k,v,s){ return '<div class="v-cell"><div class="v-k">'+k+'</div><div class="v-v num">'+v+'</div>'+(s?'<div class="v-s">'+s+'</div>':'')+'</div>'; }
+
+function series(it, base, seed){
+  var sh=monthIdx(it), r=rngFor(seed), out=[];
+  for(var i=0;i<36;i++){
+    var mo=(NOW_M-35+i+1200)%12;
+    out.push(Math.max(1, Math.round(base*(sh[mo]/100)*(0.86+0.28*(i/35))*(0.9+0.2*r()))));
+  }
+  return out;
+}
+function drawTrend(r){
+  var pc=series(CUR,r.m.pc,"t"+r.kw), mo=series(CUR,r.m.mo,"t2"+r.kw);
+  var W=760,H=230,L=54,R=14,T=14,B=30, iw=W-L-R, ih=H-T-B;
+  var max=Math.max.apply(null,pc.concat(mo))*1.1, step=iw/35;
+  function X(i){ return L+i*step; } function Y(v){ return T+ih-(v/max)*ih; }
+  function path(a){ return a.map(function(v,i){ return (i?"L":"M")+X(i).toFixed(1)+" "+Y(v).toFixed(1); }).join(" "); }
+  var s=[0,max/2,max].map(function(v){
+    return '<line class="gl" x1="'+L+'" y1="'+Y(v)+'" x2="'+(W-R)+'" y2="'+Y(v)+'"/>'
+      +'<text class="ax" x="'+(L-8)+'" y="'+(Y(v)+3.5)+'" text-anchor="end">'+fmt(v)+'</text>'; }).join("");
+  for(var i=0;i<36;i+=6) s+='<text class="ax" x="'+X(i)+'" y="'+(H-10)+'" text-anchor="middle">'+MONTHS[(NOW_M-35+i+1200)%12]+'</text>';
+  s+='<text class="ax" x="'+X(35)+'" y="'+(H-10)+'" text-anchor="end">이번달</text>';
+  var hot=""; for(var j=0;j<36;j++)
+    hot+='<rect x="'+(X(j)-step/2)+'" y="'+T+'" width="'+step+'" height="'+ih+'" fill="transparent" data-i="'+j+'" data-pc="'+pc[j]+'" data-mo="'+mo[j]+'"/>';
+  document.getElementById("trendChart").innerHTML=
+    '<svg viewBox="0 0 '+W+' '+H+'" role="img" aria-label="'+r.kw+' 36개월 검색 추세">'+s
+    +'<path d="'+path(pc)+'" fill="none" stroke="var(--s1)" stroke-width="2" stroke-linejoin="round"/>'
+    +'<path d="'+path(mo)+'" fill="none" stroke="var(--s2)" stroke-width="2" stroke-linejoin="round"/>'
+    +'<circle cx="'+X(35)+'" cy="'+Y(pc[35])+'" r="4" fill="var(--s1)" stroke="var(--surface)" stroke-width="2"/>'
+    +'<circle cx="'+X(35)+'" cy="'+Y(mo[35])+'" r="4" fill="var(--s2)" stroke="var(--surface)" stroke-width="2"/>'
+    +'<line id="cross" x1="0" y1="'+T+'" x2="0" y2="'+(T+ih)+'" stroke="var(--line-strong)" stroke-width="1" opacity="0"/>'+hot+'</svg>';
+  var box=document.getElementById("trendChart"), cross=box.querySelector("#cross");
+  box.querySelectorAll("rect[data-i]").forEach(function(rc){
+    rc.addEventListener("mousemove",function(e){
+      var i=+rc.dataset.i;
+      cross.setAttribute("x1",X(i)); cross.setAttribute("x2",X(i)); cross.setAttribute("opacity","1");
+      showTip(e,"<b>"+MONTHS[(NOW_M-35+i+1200)%12]+"</b>"+(i===35?" (이번달)":"")+"<br>PC "+fmt(+rc.dataset.pc)+"<br>모바일 "+fmt(+rc.dataset.mo));
+    });
+    rc.addEventListener("mouseleave",function(){ cross.setAttribute("opacity","0"); hideTip(); });
+  });
+}
+function drawAge(r){
+  var LB=["10대","20대","30대","40대","50대","60대+"], rr=rngFor("age:"+CUR.v);
+  var raw=[3+rr()*7, 10+rr()*14, 20+rr()*12, 22+rr()*10, 16+rr()*12, 6+rr()*12];
+  var sum=raw.reduce(function(a,b){return a+b;},0), pct=raw.map(function(v){ return v/sum*100; });
+  var mShare=0.30+rngFor("g:"+CUR.v)()*0.22;
+  var W=440,H=210,L=42,R=10,T=10,B=26, iw=W-L-R, ih=H-T-B;
+  var max=Math.max.apply(null,pct)*1.15, gw=iw/6, bw=(gw-10)/2, g="";
+  for(var i=0;i<6;i++){
+    var x0=L+i*gw+5;
+    [[pct[i]*mShare,"var(--s1)",0,"남성"],[pct[i]*(1-mShare),"var(--s2)",bw+2,"여성"]].forEach(function(d){
+      var h=(d[0]/max)*ih;
+      g+='<rect x="'+(x0+d[2])+'" y="'+(T+ih-h)+'" width="'+bw+'" height="'+Math.max(2,h)+'" rx="3" fill="'+d[1]+'" data-t="'+LB[i]+' '+d[3]+' '+d[0].toFixed(1)+'%"/>';
+    });
+    g+='<text class="ax" x="'+(L+i*gw+gw/2)+'" y="'+(H-9)+'" text-anchor="middle">'+LB[i]+'</text>';
+  }
+  var tk=[0,max/2,max].map(function(v){ var y=T+ih-(v/max)*ih;
+    return '<line class="gl" x1="'+L+'" y1="'+y+'" x2="'+(W-R)+'" y2="'+y+'"/><text class="ax" x="'+(L-7)+'" y="'+(y+3.5)+'" text-anchor="end">'+v.toFixed(0)+'%</text>'; }).join("");
+  var box=document.getElementById("ageChart");
+  box.innerHTML='<svg viewBox="0 0 '+W+' '+H+'" role="img" aria-label="연령대별 성별 클릭 구성">'+tk+g+'</svg>';
+  bindTips(box);
+}
+function drawDevice(r){
+  var m=r.m, W=440,H=210, moP=m.moShare*100, pcP=100-moP, L=10, iw=W-20, pw=iw*pcP/100;
+  var s='<svg viewBox="0 0 '+W+' '+H+'" role="img" aria-label="기기 비중과 입찰가">'
+   +'<text class="vlabel" x="'+L+'" y="12">기기 비중</text>'
+   +'<rect x="'+L+'" y="18" width="'+pw+'" height="30" rx="4" fill="var(--s1)" data-t="PC '+pcP.toFixed(1)+'%"/>'
+   +'<rect x="'+(L+pw+2)+'" y="18" width="'+(iw-pw-2)+'" height="30" rx="4" fill="var(--s2)" data-t="모바일 '+moP.toFixed(1)+'%"/>'
+   +'<text class="ax" x="'+(L+6)+'" y="37" fill="#fff" style="font-weight:600">PC '+pcP.toFixed(0)+'%</text>'
+   +'<text class="ax" x="'+(W-L-6)+'" y="37" fill="#fff" text-anchor="end" style="font-weight:600">모바일 '+moP.toFixed(0)+'%</text>'
+   +'<text class="vlabel" x="'+L+'" y="70">순위별 입찰가 (원)</text>';
+  var maxB=m.bid[0][1]*1.12, rw=iw-108;
+  for(var i=0;i<3;i++){
+    var y=78+i*36;
+    s+='<text class="ax" x="'+L+'" y="'+(y+18)+'">'+(i+1)+'위</text>';
+    [[m.bid[i][0],"var(--s1)",0,"PC"],[m.bid[i][1],"var(--s2)",13,"모바일"]].forEach(function(d){
+      s+='<rect x="34" y="'+(y+d[2])+'" width="'+Math.max(2,(d[0]/maxB)*rw)+'" height="11" rx="3" fill="'+d[1]+'" data-t="'+(i+1)+'위 '+d[3]+' '+fmt(d[0])+'원"/>';
+    });
+    s+='<text class="ax" x="'+(W-L)+'" y="'+(y+13)+'" text-anchor="end">'+fmt(m.bid[i][0])+' / '+fmt(m.bid[i][1])+'</text>';
+  }
+  var box=document.getElementById("devChart"); box.innerHTML=s+'</svg>'; bindTips(box);
+}
+function drawCvr(r){
+  var m=r.m, tgt=SET.targetCvr;
+  document.getElementById("cvrNote").innerHTML=
+    "각 순위 입찰가로 광고할 때 본전을 맞추려면 필요한 전환율. 마진 "+fmt(m.mg.margin)+"원 기준 · 목표 전환율 "
+    +(tgt*100).toFixed(1)+"% 아래여야 광고로 남는다.";
+  var W=760,H=148,L=44,R=76,T=14, iw=W-L-R;
+  var vals=[0,1,2].map(function(i){ return beCvr(m.bid[i][1],m.mg.margin); });
+  var max=Math.max(tgt*2, Math.max.apply(null,vals.filter(isFinite))||tgt*2)*1.15;
+  var s='<svg viewBox="0 0 '+W+' '+H+'" role="img" aria-label="순위별 손익분기 전환율">';
+  var tx=L+(tgt/max)*iw;
+  s+='<rect x="'+L+'" y="8" width="'+(tx-L)+'" height="'+(H-34)+'" fill="var(--good)" opacity="0.07"/>'
+   + '<line x1="'+tx+'" y1="6" x2="'+tx+'" y2="'+(H-26)+'" stroke="var(--good)" stroke-width="1.5" stroke-dasharray="4 3"/>'
+   + '<text class="ax" x="'+(tx+5)+'" y="'+(H-11)+'" style="font-weight:700;fill:var(--good)">목표 '+(tgt*100).toFixed(1)+'%</text>';
+  vals.forEach(function(v,i){
+    var y=T+i*34, ok=v<=tgt, w=isFinite(v)?Math.min(iw,(v/max)*iw):iw;
+    s+='<text class="ax" x="'+(L-8)+'" y="'+(y+15)+'" text-anchor="end">'+(i+1)+'위</text>'
+     + '<rect x="'+L+'" y="'+y+'" width="'+Math.max(2,w)+'" height="21" rx="4" fill="'+(ok?"var(--good)":"var(--s2)")+'" '
+     + 'data-t="'+(i+1)+'위 · CPC '+fmt(m.bid[i][1])+'원 · 필요 전환율 '+(isFinite(v)?(v*100).toFixed(1)+"%":"불가")+'"/>'
+     + '<text class="vlabel" x="'+(L+w+7)+'" y="'+(y+15)+'">'+(isFinite(v)?(v*100).toFixed(1)+"%":"불가")+(ok?" 가능":" 손해")+'</text>';
+  });
+  var box=document.getElementById("cvrChart"); box.innerHTML=s+'</svg>'; bindTips(box);
+}
+
+/* ── 이번달 TOP 10 ── */
+function itemScore(it){
+  if(it._sc!=null && it._scKey===SET.platform+SET.targetCvr+feeRate()) return it._sc;
+  var st=seasonOf(it), best=0, tot=0;
+  keywordsOf(it).forEach(function(k){ var m=metrics(k); best=Math.max(best,m.gold); tot+=m.total; });
+  var bonus=st==="enter"?1.25:st==="season"?1.0:st==="late"?0.5:0.2;
+  it._sc=best*bonus+Math.log10(tot+1)*2;
+  it._scKey=SET.platform+SET.targetCvr+feeRate();
+  return it._sc;
+}
+function renderTiming(){
+  var pool=CATALOG.items.filter(function(i){ var s=seasonOf(i); return s==="enter"||s==="season"; });
+  pool.sort(function(a,b){ return itemScore(b)-itemScore(a); });
+  var top=pool.slice(0,10);
+  document.getElementById("topNote").textContent=
+    "9월 중순 기준 · 진입 구간이거나 공급 중인 "+pool.length+"품종에서 황금점수와 검색 규모로 추린 10개";
+  var box=document.getElementById("nowList"); box.innerHTML="";
+  top.forEach(function(it,i){
+    var st=seasonOf(it), kws=keywordsOf(it).map(metrics).sort(function(a,b){ return b.gold-a.gold; });
+    var d=el("div","toprow");
+    d.onclick=function(){ CUR=it; CURKW=null; catSel.value=it.c; renderRail(); renderAll(); setTab("gold"); };
+    d.innerHTML='<span class="rank">'+(i+1)+'</span><span class="dot '+st+'"></span>'
+      +'<b>'+it.v+'</b>'
+      +'<span class="season '+st+'" style="font-size:11.5px;padding:3px 9px">'+SEASON_TXT[st]+'</span>'
+      +'<span class="sub">'+it.c+' · '+seasonDetail(it)+'</span>'
+      +'<span class="num sub">최고 황금점수 '+kws[0].gold+' · 대표 검색 '+fmt(kws[0].total)+'</span>';
+    box.appendChild(d);
+  });
+  var h='<table><thead><tr><th></th>';
+  MONTHS.forEach(function(m,i){ h+='<th'+(i===NOW_M?' style="color:var(--ink);font-weight:800"':'')+'>'+m.replace("월","")+'</th>'; });
+  h+='</tr></thead><tbody>';
+  top.forEach(function(it){
+    var mi=monthIdx(it);
+    h+='<tr><td>'+it.v+'</td>';
+    mi.forEach(function(v,i){
+      var st=v>=90?7:v>=72?6:v>=54?5:v>=38?4:v>=24?3:v>=14?2:1;
+      h+='<td><div class="cell'+(i===NOW_M?" now":"")+'" style="background:var(--seq'+st+');color:'+(st<=3?"var(--ink-2)":"#fff")+'" data-t="'+it.v+' '+MONTHS[i]+' · 지수 '+v+'">'+v+'</div></td>';
+    });
+    h+='</tr>';
+  });
+  var hm=document.getElementById("heat"); hm.innerHTML=h+'</tbody></table>'; bindTips(hm);
+}
+
+/* ── 마진 · 광고효율 ── */
+function renderMargin(){
+  var sup=+document.getElementById("supPrice").value||0;
+  var sell=+document.getElementById("sellPrice").value||0;
+  CUR._sup=sup; CUR._sell=sell;
+  var mg=calcMargin(sup,sell);
+  document.getElementById("marginScope").innerHTML=
+    (CUR._real? '<b>'+CUR.v+'</b> · 시트 실측 공급가 ('+CUR._real.opt+')' : '<b>'+CUR.v+'</b> · 공급가는 샘플');
+  document.getElementById("marginBox").innerHTML=
+    '<div><div class="v-k">수수료</div><div class="v-v num">'+fmt(mg.fee)+'원</div><div class="v-s">'+(feeRate()*100).toFixed(2)+'%</div></div>'
+   +'<div><div class="v-k">마진</div><div class="v-v num">'+fmt(mg.margin)+'원</div><div class="v-s">광고비 제외 전</div></div>'
+   +'<div><div class="v-k">마진율</div><div class="v-v num">'+(mg.rate*100).toFixed(1)+'%</div><div class="v-s">기준 '+RULE.marginGood+'%</div></div>'
+   +'<div><div class="v-k">최소광고효율</div><div class="v-v num">'+(isFinite(mg.minRoas)?mg.minRoas.toFixed(2):"—")+'</div><div class="v-s">ROAS '+(isFinite(mg.minRoas)?(mg.minRoas*100).toFixed(0):"—")+'% 이상</div></div>'
+   +'<div><div class="v-k">감당 CPC 상한</div><div class="v-v num">'+fmt(Math.max(0,mg.margin*SET.targetCvr/roasMult()))+'원</div><div class="v-s">목표 전환율 기준</div></div>';
+
+  var body=document.getElementById("marBody"); body.innerHTML="";
+  var list=keywordsOf(CUR).map(function(k){ return {kw:k.kw,m:metrics(k)}; }).sort(function(a,b){ return b.m.gold-a.m.gold; });
+  list.forEach(function(r){
+    var cpc=r.m.bid[2][1], need=beCvr(cpc,mg.margin);
+    var adCost=SET.targetCvr>0 ? cpc/SET.targetCvr : Infinity;
+    var net=mg.margin-adCost, netRate=sell?net/sell:0;
+    var v=netRate*100>=RULE.netGood?"린정":netRate*100>=RULE.netSkip?"반린정":"패스";
+    var tr=el("tr");
+    tr.onclick=function(){ CURKW=r.kw; setTab("detail"); };
+    tr.appendChild(el("td","kw",r.kw));
+    tr.appendChild(el("td","num",fmt(r.m.total)));
+    tr.appendChild(el("td","num",fmt(cpc)+"원"));
+    var c=el("td","num"); c.innerHTML='<span class="'+(need<=SET.targetCvr?"cvr-ok":"cvr-no")+'">'+(isFinite(need)?(need*100).toFixed(1)+"%":"불가")+'</span>'; tr.appendChild(c);
+    var c2=el("td","num"); var ratio=isFinite(need)&&need>0?SET.targetCvr/need:0;
+    c2.innerHTML='<span class="'+(ratio>=1?"cvr-ok":"cvr-no")+'">'+(ratio*100).toFixed(0)+'%</span>'; tr.appendChild(c2);
+    tr.appendChild(el("td","num",isFinite(adCost)?fmt(adCost)+"원":"—"));
+    tr.appendChild(el("td","num",fmt(net)+"원"));
+    tr.appendChild(el("td","num",(netRate*100).toFixed(1)+"%"));
+    var cv=el("td"); cv.appendChild(el("span","pill "+(v==="린정"?"good":v==="반린정"?"warn":"skip"),v)); tr.appendChild(cv);
+    body.appendChild(tr);
+  });
+
+  var top=list[0];
+  var cpc=top?top.m.bid[2][1]:0, adCost=SET.targetCvr>0?cpc/SET.targetCvr:0;
+  var parts=[["공급가",sup,"var(--s1)"],["수수료",mg.fee,"var(--s2)"],["광고비",Math.min(adCost,Math.max(0,mg.margin)),"var(--warn)"],
+             ["실마진",Math.max(0,mg.margin-adCost),"var(--good)"]];
+  var W=760,H=112, L=10, iw=W-20, tot=sell||1, x=L, s='<svg viewBox="0 0 '+W+' '+H+'" role="img" aria-label="마진 구성">';
+  parts.forEach(function(p){
+    var w=Math.max(0,(p[1]/tot)*iw);
+    s+='<rect x="'+x+'" y="20" width="'+Math.max(0,w-2)+'" height="34" rx="4" fill="'+p[2]+'" data-t="'+p[0]+' '+fmt(p[1])+'원 · '+(p[1]/tot*100).toFixed(1)+'%"/>';
+    if(w>62) s+='<text class="ax" x="'+(x+7)+'" y="41" fill="#fff" style="font-weight:600">'+p[0]+'</text>';
+    x+=w;
+  });
+  s+='<text class="vlabel" x="'+L+'" y="13">판매가 '+fmt(sell)+'원 = 100%</text>';
+  parts.forEach(function(p,i){ s+='<text class="ax" x="'+(L+i*168)+'" y="76">'+p[0]+'</text>'
+    +'<text class="vlabel" x="'+(L+i*168)+'" y="94">'+fmt(p[1])+'원 · '+(p[1]/tot*100).toFixed(1)+'%</text>'; });
+  var box=document.getElementById("breakChart"); box.innerHTML=s+'</svg>'; bindTips(box);
+  document.getElementById("breakNote").textContent=
+    top? "가장 점수 높은 키워드 「"+top.kw+"」의 3위 입찰가 "+fmt(cpc)+"원, 목표 전환율 "+(SET.targetCvr*100).toFixed(1)+"% 기준 광고비를 반영했다." : "";
+  document.getElementById("marFormula").innerHTML=
+    "마진 = 판매가 − 공급가 − (판매가 × 수수료) − 배송비<br>"+
+    "최소광고효율 = 판매가 ÷ 마진 × "+roasMult().toFixed(1)+" · 손익분기 전환율 = CPC × "+roasMult().toFixed(1)+" ÷ 마진<br>"+
+    "1회 판매 광고비 = CPC ÷ 목표 전환율 · 실마진 = 마진 − 1회 판매 광고비<br>"+
+    "네이버 수수료 = 주문관리 + 매출연동 · 쿠팡 수수료는 카테고리별로 다르니 직접 입력한다";
+}
+document.getElementById("supPrice").addEventListener("input",renderMargin);
+document.getElementById("sellPrice").addEventListener("input",renderMargin);
+document.getElementById("autoPrice").onclick=function(){
+  var sup=+document.getElementById("supPrice").value||0;
+  document.getElementById("sellPrice").value=Math.round(sup*priceMult()/100)*100;
+  renderMargin();
+};
+
+/* ── 렌더 ── */
+function renderAll(){
+  renderHead();
+  document.getElementById("supPrice").value=supplyOf(CUR);
+  document.getElementById("sellPrice").value=CUR._sell||Math.round(supplyOf(CUR)*priceMult()/100)*100;
+  document.getElementById("autoPrice").textContent="판매가 자동 (공급가 ×"+priceMult().toFixed(2)+")";
+  LIMIT=50; renderTable();
+  if(TAB==="detail") renderDetail();
+  if(TAB==="timing") renderTiming();
+  if(TAB==="margin") renderMargin();
+}
+(function(){
+  var pool=CATALOG.items.filter(function(i){ var st=seasonOf(i); return st==="enter"||st==="season"; });
+  if(pool.length){ pool.sort(function(a,b){ return itemScore(b)-itemScore(a); }); CUR=pool[0]; }
+  catSel.value=CUR.c;
+})();
+readSet();
+document.getElementById("fVolV").textContent=fmt(filt.vol);
+document.getElementById("fCompV").textContent=filt.comp.toFixed(1);
+renderRail(); renderAll();
+})();
+</script>

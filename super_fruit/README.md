@@ -25,7 +25,10 @@ C:/Users/kluck/Downloads/3. 판매상품/상세페이지_참고/saengsaeng-agri-
 | `docs/03-action-guide.md` | **1·2순위 실행 절차 + 로컬 세션 지시문** |
 | `docs/04-itemscout-pandarank.md` | 아이템스카우트+판다랭크 결합 검토 · 크롤링 판례 |
 | `docs/05-weapon-spec.md` | **무기 설계서 — 판정 엔진 · 화면 · 로드맵** |
-| `prototype/golden-keyword.html` | **동작하는 프로토타입** — 황금키워드 · 상세 · 월별 타이밍 · 공급가 |
+| `docs/06-live-data-plan.md` | **실데이터 연동 사양 · 하루 2회 스케줄** |
+| `prototype/keyword-lab.html` | **동작하는 프로토타입 v2** — 202품종 범용 |
+| `prototype/golden-keyword.html` | 프로토타입 v1 (6품목 고정, 참고용) |
+| `prototype/supply-calendar.json` | 수확 캘린더 202품종 · 인기 TOP20 (시트 추출) |
 
 ## 현재 상태 요약 (2026-09-10 기준)
 
@@ -40,8 +43,15 @@ C:/Users/kluck/Downloads/3. 판매상품/상세페이지_참고/saengsaeng-agri-
 
 ## 프로토타입
 
-`prototype/golden-keyword.html` — 단일 HTML. 브라우저로 바로 열린다.
-판정 엔진과 황금점수 계산은 실제로 동작하며, 표시되는 수치는 전부 샘플이다.
+`prototype/keyword-lab.html` — 단일 HTML. 빌드 없이 브라우저로 열린다.
+
+- **수확 캘린더 202품종 45카테고리** — 업로드 시트에서 추출한 실데이터.
+  초록 칸 = 수확 직전 진입 구간, 노랑 칸 = 공급 시기. 시즌 판정이 여기서 나온다.
+- **마진 공식** — 업로드 시트 그대로. 네이버/쿠팡 전환, 주문관리·매출연동 수수료 구간 선택.
+  홍로사과 12,150 → 19,900 검증: 마진 6,431원 · 마진율 32.3% · 최소광고효율 3.09 (시트와 일치)
+- **손익분기 전환율 = CPC × 배수 ÷ 마진** — 최소광고효율에서 유도. 입찰가와 마진을 한 줄에서 묶는다.
+- NAVER 지표(검색수·입찰가·광고깊이·연령·성별)는 **샘플**. 연동 사양은 `docs/06-live-data-plan.md`.
+
 기준값은 스크립트 상단 `RULE` 객체 한 곳에서 바꾼다.
 
 ```js
