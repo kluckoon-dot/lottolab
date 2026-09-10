@@ -11,6 +11,8 @@ C:/Users/kluck/Downloads/3. 판매상품/상세페이지_참고/saengsaeng-agri-
 ```
 
 이 폴더는 그 프로젝트의 **기획 원본, 외부 조건 조사, 구현 가능/불가 판정**을 쌓아두는 곳이다.
+
+**용도 확정: 본인 전용 비공개 도구.** 판매·공개하지 않는다. 크롤링하지 않는다.
 코드를 옮겨오게 되면 그때 `app/` 이하를 추가한다.
 
 ## 문서
@@ -22,6 +24,7 @@ C:/Users/kluck/Downloads/3. 판매상품/상세페이지_참고/saengsaeng-agri-
 | `docs/02-data-sources.md` | 데이터 소스별 생존 여부·약관·대체안 |
 | `docs/03-action-guide.md` | **1·2순위 실행 절차 + 로컬 세션 지시문** |
 | `docs/04-itemscout-pandarank.md` | 아이템스카우트+판다랭크 결합 검토 · 크롤링 판례 |
+| `docs/05-weapon-spec.md` | **무기 설계서 — 판정 엔진 · 화면 · 로드맵** |
 
 ## 현재 상태 요약 (2026-09-10 기준)
 
