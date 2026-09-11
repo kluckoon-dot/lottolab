@@ -58,9 +58,19 @@ const HOSTS = [
    그래서 이번에는 경로를 여러 개 때려본다. 404 가 아닌 게 하나라도 나오면 그게 답이다. */
 /* 인증 헤더 후보. 이관 안내는 X-Naver-Client-* 를 쓴다고 되어 있으나
    NCP 게이트웨이 방식(X-NCP-APIGW-*)일 가능성도 같이 확인한다. */
+import crypto from "node:crypto";
 const AUTHS = [
   { name: "X-Naver-Client-*", h: () => ({ "X-Naver-Client-Id": ID, "X-Naver-Client-Secret": SECRET }) },
-  { name: "X-NCP-APIGW-*",    h: () => ({ "X-NCP-APIGW-API-KEY-ID": ID, "X-NCP-APIGW-API-KEY": SECRET }) }
+  { name: "X-NCP-APIGW-*",    h: () => ({ "X-NCP-APIGW-API-KEY-ID": ID, "X-NCP-APIGW-API-KEY": SECRET }) },
+  { name: "NCP 서명 v2",       sign: true,
+    h: (method, uri) => {
+      const ts = Date.now().toString();
+      const msg = `${method} ${uri}\n${ts}\n${ID}`;
+      const sig = crypto.createHmac("sha256", SECRET).update(msg).digest("base64");
+      return { "x-ncp-apigw-timestamp": ts, "x-ncp-iam-access-key": ID, "x-ncp-apigw-signature-v2": sig };
+    } },
+  { name: "둘 다 같이",         h: () => ({ "X-Naver-Client-Id": ID, "X-Naver-Client-Secret": SECRET,
+                                           "X-NCP-APIGW-API-KEY-ID": ID, "X-NCP-APIGW-API-KEY": SECRET }) }
 ];
 const TREND_PATH = "/v1/datalab/search";
 const TREND_PATHS = [
@@ -109,12 +119,15 @@ async function tryCall(host, auth, body, p) {
   try {
     const res = await fetch(host + (p || TREND_PATH), {
       method: "POST",
-      headers: { ...auth.h(), "Content-Type": "application/json" },
+      headers: { ...auth.h("POST", p || TREND_PATH), "Content-Type": "application/json" },
       body: JSON.stringify(body)
     });
     const text = await res.text();
     let json = null; try { json = JSON.parse(text); } catch {}
-    return { status: res.status, ok: res.ok, text, json };
+    /* openapi.naver.com 은 없는 경로에도 200 + 에러 본문을 돌려준다.
+       ("Partner does not exists" 등) 그래서 본문까지 봐야 진짜 성공인지 안다. */
+    const errBody = !!(json && (json.errorCode || json.error_code || json.errorMessage || json.message));
+    return { status: res.status, ok: res.ok && !errBody, raw: res.status, errBody, text, json };
   } catch (e) { return { status: "연결실패", ok: false, text: String(e.message || e), json: null }; }
 }
 const sleep = ms => new Promise(r => setTimeout(r, ms));
@@ -133,10 +146,13 @@ async function probe() {
     for (const p of TREND_PATHS) {
       for (const auth of AUTHS) {
         const r = await tryCall(host, auth, body, p);
-        const interesting = r.ok || (r.status !== 404 && r.status !== "연결실패");
-        if (interesting || r.ok) {
-          console.log(`  ${r.ok ? "OK  " : "    "}${String(r.status).padEnd(5)} ${host}${p}  [${auth.name}]`);
-          notable.push({ host, p, auth: auth.name, status: r.status, text: r.text });
+        const real = r.ok;
+        const authish = r.raw === 401 || r.raw === 403 || r.raw === 405;
+        if (real || authish) {
+          const mark = real ? "OK  " : authish ? "경로○" : "    ";
+          console.log(`  ${mark} ${String(r.raw).padEnd(5)} ${host}${p}  [${auth.name}]`
+            + (r.errBody ? "  ← 200 인데 본문은 에러" : ""));
+          notable.push({ host, p, auth: auth.name, status: r.raw, authish, text: r.text });
         }
         if (r.ok && !hit) hit = { host, auth: auth.name, path: p, sample: r.text };
         await sleep(200);
@@ -144,6 +160,8 @@ async function probe() {
     }
   }
   if (!notable.length) console.log("  전부 404 또는 연결실패였다.");
+  console.log("\n  OK    = 진짜 성공");
+  console.log("  경로○ = 경로는 맞다. 401·403 이면 인증 문제, 405 면 메서드 문제");
   console.log("");
 
   if (hit) {
@@ -164,7 +182,7 @@ async function probe() {
       try {
         const res = await fetch(hit.host + p, {
           method,
-          headers: { ...AUTHS.find(a => a.name === hit.auth).h(), "Content-Type": "application/json" },
+          headers: { ...AUTHS.find(a => a.name === hit.auth).h(method, p), "Content-Type": "application/json" },
           body: body ? JSON.stringify(body) : undefined
         });
         st = res.status; txt = safe(await res.text()).replace(/\s+/g, " ").slice(0, 200);
@@ -177,7 +195,18 @@ async function probe() {
     return;
   }
 
-  console.log("통하는 조합이 없었다. 404 가 아니었던 것들의 응답이다.\n");
+  const auth401 = notable.filter(n => n.status === 401);
+  if (auth401.length) {
+    console.log("*** 경로는 찾았다. 인증만 막혀 있다 ***");
+    const seen = new Set();
+    for (const n of auth401) { const k = n.host + n.p; if (seen.has(k)) continue; seen.add(k);
+      console.log(`    ${n.host}${n.p}`); }
+    console.log("\n    → Client ID / Client Secret 값을 다시 확인해야 한다.");
+    console.log("      콘솔 [인증 정보] 팝업의 두 값을 그대로 복사했는지,");
+    console.log("      다른 칸(Application 이름 등)을 잘못 넣지 않았는지 확인해라.\n");
+  } else {
+    console.log("통하는 조합이 없었다. 404 가 아니었던 것들의 응답이다.\n");
+  }
   for (const n of notable.slice(0, 6)) {
     console.log(`── ${n.status}  ${n.host}${n.p}  [${n.auth}]`);
     console.log("   " + safe(n.text).replace(/\s+/g, " ").slice(0, 260) + "\n");
