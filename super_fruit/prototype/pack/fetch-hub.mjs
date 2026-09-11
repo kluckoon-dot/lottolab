@@ -60,6 +60,25 @@ const AUTHS = [
 ];
 const TREND_PATH = "/v1/datalab/search";
 
+/* 씨앗을 네이버한테 받아올 수 있는 통로가 있는지 확인할 후보들.
+   404 면 없는 것, 400 이면 있는데 요청 형식만 틀린 것이다. */
+const RAW_PATHS = [
+  ["카테고리 목록",              "GET",  "/v1/datalab/shopping/categories", null],
+  ["카테고리 목록(다른 이름)",    "GET",  "/v1/datalab/shopping/category", null],
+  ["카테고리별 인기 키워드",      "POST", "/v1/datalab/shopping/category/keywords",
+    { startDate: "2026-08-01", endDate: "2026-08-31", timeUnit: "month", category: "50000006",
+      keyword: [{ name: "전체", param: ["전체"] }] }],
+  ["카테고리 클릭 추세",          "POST", "/v1/datalab/shopping/categories",
+    { startDate: "2026-08-01", endDate: "2026-08-31", timeUnit: "month",
+      category: [{ name: "식품", param: ["50000006"] }] }],
+  ["키워드별 기기",              "POST", "/v1/datalab/shopping/category/keyword/device",
+    { startDate: "2026-08-01", endDate: "2026-08-31", timeUnit: "month", category: "50000006", keyword: "사과" }],
+  ["키워드별 성별",              "POST", "/v1/datalab/shopping/category/keyword/gender",
+    { startDate: "2026-08-01", endDate: "2026-08-31", timeUnit: "month", category: "50000006", keyword: "사과" }],
+  ["키워드별 연령",              "POST", "/v1/datalab/shopping/category/keyword/age",
+    { startDate: "2026-08-01", endDate: "2026-08-31", timeUnit: "month", category: "50000006", keyword: "사과" }]
+];
+
 function ymd(d) { return d.toISOString().slice(0, 10); }
 function threeYears() {
   const end = new Date(); const start = new Date(end); start.setFullYear(start.getFullYear() - 3);
@@ -70,7 +89,7 @@ function trendBody(keywords) {
   return { startDate, endDate, timeUnit: "week",
            keywordGroups: keywords.map(k => ({ groupName: k, keywords: [k] })) };
 }
-function safe(t) { let s = String(t ?? ""); for (const v of [ID, SECRET]) if (v) s = s.split(v).join("<가림>"); return s; }
+function safe(t) { let s = String(t ?? ""); for (const v of [ID, SECRET]) if (v && String(v).length >= 6) s = s.split(v).join("<가림>"); return s; }
 
 async function tryCall(host, auth, body) {
   try {
@@ -117,7 +136,25 @@ async function probe() {
     await fs.mkdir(OUTDIR, { recursive: true });
     await fs.writeFile(path.join(OUTDIR, "hub-endpoint.json"),
       JSON.stringify({ host: hit.host, auth: hit.auth, path: TREND_PATH, foundAt: new Date().toISOString() }, null, 1), "utf8");
-    console.log(`\n주소를 ${OUTDIR}/hub-endpoint.json 에 저장했다. 다음부터는 이걸 쓴다.`);
+    console.log(`\n주소를 ${OUTDIR}/hub-endpoint.json 에 저장했다.\n`);
+
+    console.log("── 씨앗을 네이버한테 받아올 수 있는지 확인한다");
+    console.log("   200 된다 · 400 통로는 있다(형식만 맞추면 됨) · 404 없다\n");
+    for (const [name, method, p, body] of RAW_PATHS) {
+      let st = "??", txt = "";
+      try {
+        const res = await fetch(hit.host + p, {
+          method,
+          headers: { ...AUTHS.find(a => a.name === hit.auth).h(), "Content-Type": "application/json" },
+          body: body ? JSON.stringify(body) : undefined
+        });
+        st = res.status; txt = safe(await res.text()).replace(/\s+/g, " ").slice(0, 200);
+      } catch (e) { st = "연결실패"; txt = String(e.message || e); }
+      console.log(`  ${String(st).padEnd(6)} ${name.padEnd(22)} ${p}`);
+      if (txt) console.log(`         ${txt}`);
+      await sleep(280);
+    }
+    console.log("\n이 출력을 보내주면 씨앗을 어디서 받을지 확정한다.");
     return;
   }
 

@@ -77,7 +77,7 @@ async function call(method, urlPath, { query, body } = {}) {
   } catch (e) { return { ok: false, status: "연결실패", json: null, text: String(e.message || e) }; }
 }
 const sleep = ms => new Promise(r => setTimeout(r, ms));
-function safe(t) { let s = String(t ?? ""); for (const v of [KEY, SECRET, CUSTOMER]) if (v) s = s.split(v).join("<가림>"); return s; }
+function safe(t) { let s = String(t ?? ""); for (const v of [KEY, SECRET, CUSTOMER]) if (v && String(v).length >= 6) s = s.split(v).join("<가림>"); return s; }
 function explain(status, body) {
   const b = String(body || "");
   if (status === 403 && /not in allowlist/i.test(b)) return "네트워크 차단.";
@@ -227,6 +227,37 @@ async function main() {
     process.exit(1);
   }
   console.error(`키 확인 완료. 고객ID ${String(CUSTOMER).slice(0, 3)}***`);
+
+  /* 씨앗 없이 목록을 통째로 받을 수 있는지 확인한다.
+     404 면 그런 통로가 없는 것이고, 400 이면 통로는 있는데 요청이 틀린 것이다.
+     이 둘을 가르는 게 이 모드의 목적이다. */
+  if (has("--raw")) {
+    console.log("=== 씨앗 없이 받을 수 있는 통로가 있는지 확인한다 ===\n");
+    console.log("읽는 법");
+    console.log("  200  된다");
+    console.log("  400  통로는 있다. 요청 형식만 맞추면 된다   ← 이게 나오면 좋은 신호");
+    console.log("  404  그런 통로가 없다");
+    console.log("  403  권한이 없다\n");
+    const tries = [
+      ["힌트 없이 전체 요청",        "GET", "/keywordstool", { showDetail: "1" }],
+      ["업종(biztpId)으로 조회",     "GET", "/keywordstool", { biztpId: "1", showDetail: "1" }],
+      ["사이트(siteId)로 조회",      "GET", "/keywordstool", { siteId: "1", showDetail: "1" }],
+      ["시즌이슈(event)로 조회",     "GET", "/keywordstool", { event: "1", showDetail: "1" }],
+      ["업종 목록",                  "GET", "/ncc/bizmoney", null],
+      ["관리 키워드 목록",           "GET", "/ncc/keywords", null],
+      ["광고그룹 목록",              "GET", "/ncc/adgroups", null],
+      ["캠페인 목록",                "GET", "/ncc/campaigns", null]
+    ];
+    for (const [name, method, p, q] of tries) {
+      const r = await call(method, p, q ? { query: q } : {});
+      console.log(`  ${String(r.status).padEnd(6)} ${name.padEnd(24)} ${p}`);
+      const body = safe(r.text).replace(/\s+/g, " ").slice(0, 220);
+      if (body) console.log(`         ${body}`);
+      await sleep(300);
+    }
+    console.log("\n이 출력을 보내주면 씨앗 없이 갈 수 있는지 확정한다.");
+    return;
+  }
 
   if (has("--probe")) {
     shapeReport();
