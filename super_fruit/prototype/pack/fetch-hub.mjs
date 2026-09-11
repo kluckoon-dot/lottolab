@@ -47,11 +47,15 @@ const SECRET = process.env.NAVER_HUB_SECRET || K.SECRET;
    이관하면서 주소가 바뀌었는데 문서를 직접 확인하지 못했다.
    추측으로 못 박지 않고, 실제로 때려보고 되는 것을 찾는다. ── */
 const HOSTS = [
-  "https://openapi.naver.com",
   "https://naveropenapi.apigw.ntruss.com",
-  "https://apihub.naver.com",
-  "https://api-hub.naver.com"
+  "https://openapi.naver.com",
+  "https://apigw.ntruss.com",
+  "https://naver-api-hub.apigw.ntruss.com"
 ];
+/* 1차 진단에서 얻은 것
+     openapi.naver.com          401 NID AUTH  → 호스트와 헤더는 맞고 값이 거부됨
+     naveropenapi.apigw.ntruss  404           → 호스트는 살아있고 경로가 다름
+   그래서 이번에는 경로를 여러 개 때려본다. 404 가 아닌 게 하나라도 나오면 그게 답이다. */
 /* 인증 헤더 후보. 이관 안내는 X-Naver-Client-* 를 쓴다고 되어 있으나
    NCP 게이트웨이 방식(X-NCP-APIGW-*)일 가능성도 같이 확인한다. */
 const AUTHS = [
@@ -59,6 +63,16 @@ const AUTHS = [
   { name: "X-NCP-APIGW-*",    h: () => ({ "X-NCP-APIGW-API-KEY-ID": ID, "X-NCP-APIGW-API-KEY": SECRET }) }
 ];
 const TREND_PATH = "/v1/datalab/search";
+const TREND_PATHS = [
+  "/v1/datalab/search",
+  "/datalab/v1/search",
+  "/api-hub/v1/datalab/search",
+  "/naver-api-hub/v1/datalab/search",
+  "/apihub/v1/datalab/search",
+  "/nhub/v1/datalab/search",
+  "/v1/search/datalab",
+  "/datalab/search"
+];
 
 /* 씨앗을 네이버한테 받아올 수 있는 통로가 있는지 확인할 후보들.
    404 면 없는 것, 400 이면 있는데 요청 형식만 틀린 것이다. */
@@ -91,9 +105,9 @@ function trendBody(keywords) {
 }
 function safe(t) { let s = String(t ?? ""); for (const v of [ID, SECRET]) if (v && String(v).length >= 6) s = s.split(v).join("<가림>"); return s; }
 
-async function tryCall(host, auth, body) {
+async function tryCall(host, auth, body, p) {
   try {
-    const res = await fetch(host + TREND_PATH, {
+    const res = await fetch(host + (p || TREND_PATH), {
       method: "POST",
       headers: { ...auth.h(), "Content-Type": "application/json" },
       body: JSON.stringify(body)
@@ -114,28 +128,33 @@ async function probe() {
   const { startDate, endDate } = threeYears();
   console.log(`── 3년 주간 추세 요청으로 시험한다  ${startDate} ~ ${endDate}\n`);
 
-  let hit = null, first = null;
+  let hit = null, notable = [];
   for (const host of HOSTS) {
-    for (const auth of AUTHS) {
-      const r = await tryCall(host, auth, body);
-      const mark = r.ok ? "OK  " : "실패";
-      console.log(`  ${mark}  ${host.padEnd(42)} ${auth.name.padEnd(18)} → ${r.status}`);
-      if (r.ok && !hit) hit = { host, auth: auth.name, sample: r.text };
-      if (!first && r.status !== "연결실패") first = { host, auth: auth.name, text: r.text };
-      await sleep(250);
+    for (const p of TREND_PATHS) {
+      for (const auth of AUTHS) {
+        const r = await tryCall(host, auth, body, p);
+        const interesting = r.ok || (r.status !== 404 && r.status !== "연결실패");
+        if (interesting || r.ok) {
+          console.log(`  ${r.ok ? "OK  " : "    "}${String(r.status).padEnd(5)} ${host}${p}  [${auth.name}]`);
+          notable.push({ host, p, auth: auth.name, status: r.status, text: r.text });
+        }
+        if (r.ok && !hit) hit = { host, auth: auth.name, path: p, sample: r.text };
+        await sleep(200);
+      }
     }
   }
+  if (!notable.length) console.log("  전부 404 또는 연결실패였다.");
   console.log("");
 
   if (hit) {
     console.log("*** 통하는 조합을 찾았다 ***");
-    console.log(`    주소   ${hit.host}${TREND_PATH}`);
+    console.log(`    주소   ${hit.host}${hit.path}`);
     console.log(`    인증   ${hit.auth}\n`);
     console.log("── 응답 원본 (앞부분)");
     console.log(safe(hit.sample).slice(0, 1200));
     await fs.mkdir(OUTDIR, { recursive: true });
     await fs.writeFile(path.join(OUTDIR, "hub-endpoint.json"),
-      JSON.stringify({ host: hit.host, auth: hit.auth, path: TREND_PATH, foundAt: new Date().toISOString() }, null, 1), "utf8");
+      JSON.stringify({ host: hit.host, auth: hit.auth, path: hit.path, foundAt: new Date().toISOString() }, null, 1), "utf8");
     console.log(`\n주소를 ${OUTDIR}/hub-endpoint.json 에 저장했다.\n`);
 
     console.log("── 씨앗을 네이버한테 받아올 수 있는지 확인한다");
@@ -158,12 +177,14 @@ async function probe() {
     return;
   }
 
-  console.log("통하는 조합이 없었다. 아래 응답을 그대로 보내주면 맞춰서 고친다.\n");
-  if (first) {
-    console.log(`── ${first.host} / ${first.auth} 의 응답`);
-    console.log(safe(first.text).slice(0, 900));
+  console.log("통하는 조합이 없었다. 404 가 아니었던 것들의 응답이다.\n");
+  for (const n of notable.slice(0, 6)) {
+    console.log(`── ${n.status}  ${n.host}${n.p}  [${n.auth}]`);
+    console.log("   " + safe(n.text).replace(/\s+/g, " ").slice(0, 260) + "\n");
   }
   console.log("\n확인할 것");
+  console.log("  0. Client ID 10자 / Secret 40자 조합이 맞는지 다시 확인");
+  console.log("     콘솔 [인증 정보] 팝업에 나오는 두 값을 그대로 넣어야 한다");
   console.log("  1. 콘솔에서 Application 을 등록했는가");
   console.log("  2. 그 Application 에 '검색어트렌드' API 가 추가되어 있는가");
   console.log("     (API HUB 는 Application 마다 쓸 API 를 골라서 붙인다)");
