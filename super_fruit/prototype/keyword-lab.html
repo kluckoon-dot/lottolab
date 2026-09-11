@@ -255,6 +255,87 @@ svg{display:block; width:100%; height:auto; overflow:visible}
 tbody tr.sel{background:var(--brand-soft)}
 .slider-row{display:flex; align-items:center; gap:9px}
 .tick{font-size:10.5px; color:var(--ink-3); font-family:"IBM Plex Mono",monospace}
+
+/* ── 맨 위 정확 키워드 블록 ── */
+.hero-search{background:var(--surface);border:1px solid var(--line);border-radius:14px;
+  padding:18px 18px 16px;box-shadow:var(--shadow);margin-bottom:14px;border-top:3px solid var(--brand)}
+.hs-label{display:block;font-size:13px;font-weight:700;color:var(--ink);margin-bottom:9px}
+.hs-row{display:flex;gap:8px;align-items:stretch;flex-wrap:wrap}
+.hs-btns{flex:none;display:flex;gap:8px}
+.hs-box{flex:1 1 260px;min-width:0;display:flex;align-items:center;gap:9px;
+  background:var(--surface-2);border:2px solid var(--line-strong);border-radius:11px;padding:0 12px}
+.hs-box:focus-within{border-color:var(--brand)}
+.hs-box>svg{flex:none;width:17px;height:17px;opacity:.5}   /* 차트용 svg{width:100%} 가 아이콘까지 먹는다 */
+.hs-box input{flex:1;min-width:0;border:0;background:transparent;color:var(--ink);
+  font-size:19px;font-weight:700;padding:13px 0;outline:none;font-family:inherit}
+.hs-x{flex:none;height:100%;border:1px solid var(--line);background:var(--surface);color:var(--ink-2);
+  border-radius:9px;width:42px;font-size:17px;cursor:pointer}
+.hs-go{flex:none;border:0;background:var(--brand-ink);color:#fff;border-radius:10px;
+  padding:0 26px;font-size:15px;font-weight:700;cursor:pointer;font-family:inherit}
+.hs-note{margin:9px 0 0;font-size:12px;color:var(--ink-3);line-height:1.55}
+.hs-note b{color:var(--warn)}
+.hs-jump{display:flex;gap:14px;align-items:flex-start;margin-top:14px;padding-top:13px;border-top:1px solid var(--line)}
+.hs-jump-k{flex:none;font-size:12px;font-weight:700;color:var(--ink-2);padding-top:5px;line-height:1.5}
+.hs-jump-k small{display:block;font-weight:400;color:var(--ink-3);font-size:11px}
+.wrapchips{display:flex;flex-wrap:wrap;gap:7px;min-width:0}
+.hchip{border:1px solid var(--line-strong);background:var(--surface);color:var(--ink);
+  border-radius:999px;padding:7px 13px;font-size:13px;font-weight:600;cursor:pointer;
+  display:inline-flex;align-items:center;gap:6px;font-family:inherit}
+.hchip .n{font-size:11px;font-weight:600;color:var(--ink-3);font-variant-numeric:tabular-nums}
+.hchip[aria-pressed="true"]{background:var(--brand-ink);border-color:var(--brand-ink);color:#fff}
+.hchip[aria-pressed="true"] .n{color:rgba(255,255,255,.72)}
+.hchip.more{border-style:dashed;color:var(--ink-2)}
+
+/* ── 히어로 카드 ── */
+.hero{background:linear-gradient(101deg,var(--brand-ink),var(--brand));border-radius:14px;
+  padding:20px 22px;display:flex;gap:16px;align-items:center;flex-wrap:wrap;margin-bottom:12px}
+.hero-em{flex:none;width:64px;height:64px;border-radius:15px;background:rgba(255,255,255,.13);
+  display:grid;place-items:center;font-size:33px}
+.hero-mid{flex:1 1 200px;min-width:0}
+.hero-eyebrow{font-size:10.5px;font-weight:700;letter-spacing:.14em;color:rgba(255,255,255,.62)}
+.hero-kw{font-size:31px;font-weight:800;color:#fff;line-height:1.15;margin:2px 0 3px;word-break:break-all}
+.hero-sub{font-size:12.5px;color:rgba(255,255,255,.78)}
+.hero-right{flex:none;display:flex;flex-direction:column;gap:8px;align-items:flex-end}
+.hero-tags{display:flex;gap:6px;flex-wrap:wrap;justify-content:flex-end}
+.htag{font-size:11px;font-weight:700;border-radius:999px;padding:4px 11px;background:rgba(255,255,255,.16);color:#fff}
+.htag.good{background:#d8f0e2;color:#11532f}
+.htag.warn{background:#f9e3c4;color:#6d3c02}
+.htag.skip{background:rgba(255,255,255,.2);color:#fff}
+.hero-btns{display:flex;gap:7px;flex-wrap:wrap;justify-content:flex-end}
+.hbtn{border:0;border-radius:9px;padding:9px 15px;font-size:12.5px;font-weight:700;cursor:pointer;font-family:inherit;
+  background:#fff;color:var(--brand-ink)}
+.hbtn.alt{background:rgba(255,255,255,.16);color:#fff}
+
+/* ── 지표 카드 6개 ── */
+.hcards{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:11px;margin-bottom:16px}
+@media (max-width:980px){.hcards{grid-template-columns:repeat(2,minmax(0,1fr))}}
+@media (max-width:560px){.hcards{grid-template-columns:1fr}}
+.hcards>*{min-width:0}
+.hc{background:var(--surface);border:1px solid var(--line);border-top:3px solid var(--brand);
+  border-radius:12px;padding:14px 15px;box-shadow:var(--shadow)}
+.hc-top{display:flex;justify-content:space-between;align-items:flex-start;gap:8px}
+.hc-k{font-size:12.5px;font-weight:700;color:var(--ink-2)}
+.hc-src{flex:none;font-size:10px;font-weight:700;border-radius:6px;padding:3px 7px;
+  background:var(--brand-soft);color:var(--brand-ink)}
+.hc-src.none{background:var(--skip-bg);color:var(--skip)}
+.hc-v{font-size:27px;font-weight:800;color:var(--ink);margin:7px 0 9px;line-height:1.15;
+  font-variant-numeric:tabular-nums;word-break:keep-all;overflow-wrap:anywhere}
+.hc-v.sm{font-size:19px}
+.hc-v .sm2{font-size:19px;display:inline-block}
+.hc-v.na{font-size:15px;color:var(--ink-3);font-weight:700;border:1px dashed var(--line-strong);
+  border-radius:9px;padding:13px 10px;text-align:center}
+.hc-split{display:grid;grid-template-columns:repeat(auto-fit,minmax(0,1fr));gap:6px}
+.hc-split>div{background:var(--surface-2);border-radius:8px;padding:6px 4px;text-align:center;min-width:0}
+.hc-sk{display:block;font-size:10px;color:var(--ink-3);font-weight:600}
+.hc-sv{display:block;font-size:12.5px;font-weight:700;color:var(--ink);font-variant-numeric:tabular-nums}
+.hc-foot{margin:9px 0 0;font-size:11px;color:var(--ink-3);line-height:1.5}
+@media (max-width:640px){
+  .hero-kw{font-size:25px}
+  .hero-right{flex:1 1 100%;align-items:flex-start}
+  .hero-tags,.hero-btns{justify-content:flex-start}
+  .hs-jump{flex-direction:column;gap:8px}
+  .hs-go{padding:12px 20px}
+}
 </style>
 <header class="top">
   <div class="top-in">
@@ -310,6 +391,28 @@ tbody tr.sel{background:var(--brand-soft)}
 
 <div class="wrap">
   <main>
+    <section class="hero-search">
+      <label class="hs-label" for="exact">정확 키워드 검색</label>
+      <div class="hs-row">
+        <div class="hs-box">
+          <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.6-3.6"/></svg>
+          <input id="exact" type="search" placeholder="예: 샤인머스캣" autocomplete="off" spellcheck="false">
+        </div>
+        <div class="hs-btns">
+          <button class="hs-x" id="exactClear" type="button" aria-label="지우기">&times;</button>
+          <button class="hs-go" id="exactGo" type="button">검색</button>
+        </div>
+      </div>
+      <p class="hs-note" id="exactNote"></p>
+      <div class="hs-jump">
+        <div class="hs-jump-k">품목 바로가기<small>월 검색수 큰 순서</small></div>
+        <div class="wrapchips" id="hintChips"></div>
+      </div>
+    </section>
+
+    <section class="hero" id="hero"></section>
+    <div class="hcards" id="hcards"></div>
+
     <div id="marginAlert"></div>
 
     <div class="kpi" id="kpi"></div>
@@ -509,7 +612,7 @@ function recalc(){
 
 /* 필터 상태 */
 var F={ intent:{0:true,1:false,2:false,3:false}, v:{"린정":true,"반린정":true,"패스":false},
-        vol:100, comp:10, q:"" };
+        vol:100, comp:10, q:"", hint:"" };
 var LIMIT=100, CUR=0;
 
 function passes(i){
@@ -519,6 +622,7 @@ function passes(i){
   if(s.tot<F.vol) return false;
   if(s.compScore>F.comp) return false;
   if(F.q && a[K.KW].indexOf(F.q)<0) return false;
+  if(F.hint && a[K.HINT]!==F.hint) return false;
   return true;
 }
 function filtered(){
@@ -612,7 +716,7 @@ function renderTable(){
   shown.forEach(function(i){
     var a=R[i], s=STATIC[i], c=CALC[i], tr=el("tr");
     if(i===CUR) tr.className="sel";
-    tr.onclick=function(){ CUR=i; setTab("detail"); };
+    tr.onclick=function(){ CUR=i; renderHero(); setTab("detail"); window.scrollTo({top:0,behavior:"smooth"}); };
     var c1=el("td");
     var top=el("div"); top.appendChild(el("span","kw",a[K.KW]));
     top.appendChild(document.createTextNode(" "));
@@ -890,8 +994,162 @@ function row(k,v,s){
     +'<span class="sub" style="flex:1">'+s+'</span></div>';
 }
 
+
+/* ── 맨 위 정확 키워드 블록 ──
+   키워드는 합치지도 버리지도 않는다. 그래서 검색도 '정확히 같은 것' 만 찾는다.
+   샤인머스캣과 샤인머스켓은 다른 시장이므로 서로를 대신 보여주지 않는다. */
+var BYKW={}; for(var bi=0;bi<R.length;bi++) if(!(R[bi][K.KW] in BYKW)) BYKW[R[bi][K.KW]]=bi;
+
+var EMOJI=[["사과","🍎"],["배","🍐"],["감귤","🍊"],["귤","🍊"],["한라봉","🍊"],["천혜향","🍊"],["레드향","🍊"],
+ ["포도","🍇"],["샤인","🍇"],["거봉","🍇"],["복숭아","🍑"],["자두","🍑"],["체리","🍒"],["딸기","🍓"],
+ ["수박","🍉"],["멜론","🍈"],["참외","🍈"],["망고","🥭"],["바나나","🍌"],["파인애플","🍍"],["키위","🥝"],
+ ["레몬","🍋"],["블루베리","🫐"],["무화과","🟣"],["감","🟠"],["대추","🟤"],["밤","🌰"],["호두","🌰"],
+ ["토마토","🍅"],["당근","🥕"],["고구마","🍠"],["감자","🥔"],["옥수수","🌽"],["고추","🌶️"],["오이","🥒"],
+ ["가지","🍆"],["브로콜리","🥦"],["배추","🥬"],["상추","🥬"],["양파","🧅"],["마늘","🧄"],["버섯","🍄"],
+ ["파","🌿"],["부추","🌿"],["나물","🌿"],["쌀","🍚"],["선물세트","🎁"]];
+function emojiFor(kw,hint){
+  /* 키워드가 먼저다. 멜론인데 힌트가 감홍사과라고 사과를 띄우면 안 된다. */
+  for(var i=0;i<EMOJI.length;i++) if((kw||"").indexOf(EMOJI[i][0])>=0) return EMOJI[i][1];
+  for(var j=0;j<EMOJI.length;j++) if((hint||"").indexOf(EMOJI[j][0])>=0) return EMOJI[j][1];
+  return "🌱";
+}
+
+/* 품목(= 이 키워드를 데려온 씨앗)별 집계 */
+var HINTS=(function(){
+  var m={};
+  for(var i=0;i<R.length;i++){
+    var h=R[i][K.HINT]||"기타";
+    var o=m[h]||(m[h]={name:h,all:0,vol:0,top:i,topVol:-1});
+    o.all++; o.vol+=STATIC[i].tot;
+    if(STATIC[i].tot>o.topVol){ o.topVol=STATIC[i].tot; o.top=i; }
+  }
+  var list=[]; for(var k in m) list.push(m[k]);
+  list.sort(function(a,b){ return b.vol-a.vol; });
+  return list;
+})();
+var HIDX={};
+for(var hj=0;hj<R.length;hj++){ var hn=R[hj][K.HINT]||"기타"; (HIDX[hn]||(HIDX[hn]=[])).push(hj); }
+var HINT_OPEN=false;
+
+function renderHintChips(){
+  var box=document.getElementById("hintChips"); box.innerHTML="";
+  var show=HINT_OPEN?HINTS.length:Math.min(12,HINTS.length);
+  for(var i=0;i<show;i++){
+    (function(h){
+      /* 통과 수는 지금 판정 기준으로 매번 다시 센다. 마진·목표 전환율을 바꾸면 같이 움직인다.
+         슬라이더를 움직일 때마다 도니까 전체를 훑지 않고 품목별 색인만 본다. */
+      var idx=HIDX[h.name], ok=0;
+      for(var j=0;j<idx.length;j++) if(CALC[idx[j]].v!=="패스") ok++;
+      var b=el("button","hchip");
+      b.type="button";
+      b.setAttribute("aria-pressed", F.hint===h.name ? "true":"false");
+      b.innerHTML=emojiFor(h.name,h.name)+' <span>'+h.name+'</span> <span class="n">'+ok+'/'+h.all+'</span>';
+      b.onclick=function(){
+        F.hint = (F.hint===h.name) ? "" : h.name;
+        if(F.hint) CUR=h.top;
+        CURPAGE(); refresh();
+      };
+      box.appendChild(b);
+    })(HINTS[i]);
+  }
+  if(HINTS.length>12){
+    var m=el("button","hchip more", HINT_OPEN ? "접기" : "+"+(HINTS.length-12)+"개");
+    m.type="button"; m.onclick=function(){ HINT_OPEN=!HINT_OPEN; renderHintChips(); };
+    box.appendChild(m);
+  }
+}
+function CURPAGE(){ LIMIT=100; }
+
+function hcard(k,src,v,split,foot,na){
+  return '<div class="hc"><div class="hc-top"><span class="hc-k">'+k+'</span>'
+   +'<span class="hc-src'+(na?" none":"")+'">'+src+'</span></div>'
+   +'<div class="hc-v'+(na?" na":"")+'">'+v+'</div>'
+   +(split?'<div class="hc-split">'+split+'</div>':'')
+   +(foot?'<p class="hc-foot">'+foot+'</p>':'')+'</div>';
+}
+function sp(k,v){ return '<div><span class="hc-sk">'+k+'</span><span class="hc-sv">'+v+'</span></div>'; }
+
+function renderHero(){
+  var a=R[CUR], st=STATIC[CUR], c=CALC[CUR], mg=marginOf();
+  var cls=c.v==="린정"?"good":c.v==="반린정"?"warn":"skip";
+  document.getElementById("hero").innerHTML=
+    '<div class="hero-em">'+emojiFor(a[K.KW],a[K.HINT])+'</div>'
+   +'<div class="hero-mid"><div class="hero-eyebrow">EXACT KEYWORD INTELLIGENCE</div>'
+   +'<div class="hero-kw">'+a[K.KW]+'</div>'
+   +'<div class="hero-sub">'+(a[K.HINT]||"—")+'에서 따라온 키워드 · 의도 '+INTENT[a[K.INT]]+'</div></div>'
+   +'<div class="hero-right"><div class="hero-tags">'
+   +'<span class="htag '+cls+'">'+c.v+'</span>'
+   +'<span class="htag">황금점수 '+c.gold.toFixed(2)+'</span>'
+   +(a[K.MASK]?'<span class="htag">일부 가림값</span>':'')
+   +'</div><div class="hero-btns">'
+   +'<button class="hbtn" type="button" data-go="detail">키워드 상세 →</button>'
+   +'<button class="hbtn alt" type="button" data-go="margin">마진 · 광고효율 →</button>'
+   +'</div></div>';
+  document.getElementById("hero").querySelectorAll("[data-go]").forEach(function(b){
+    b.onclick=function(){ setTab(b.dataset.go); };
+  });
+
+  var moP=Math.round(st.moShare*100);
+  var clicks=(a[K.CPC_]||0)+(a[K.CMO]||0);
+  var minCpc3=Math.min(a[K.BP3]||Infinity, a[K.BM3]||Infinity);
+  var cap=Math.max(0, mg.margin*SET.tgtCvr/roasMult());
+
+  document.getElementById("hcards").innerHTML=
+   hcard("한 달 검색수","NAVER 검색광고", fmt(st.tot)+"회",
+     sp("PC",fmt(a[K.PC])+"회")+sp("모바일",fmt(a[K.MO])+"회"),
+     "모바일 비중 "+moP+"% · "+(DATA.fetchedAt||"").slice(0,10)+" 수집")
+  +hcard("상품수","원본 없음","쇼핑검색 API 종료", "",
+     "2026-07-31 종료로 상품수 원본이 없다. 아래 광고 깊이로 대신 잰다.", true)
+  +hcard("경쟁강도","광고 기반 추정", st.compScore.toFixed(2),
+     sp("광고 깊이",a[K.DEPTH]+"단")+sp("네이버 경쟁정도",NCOMP[a[K.COMP]]||"—"),
+     "상품수가 없어 광고 깊이와 1위 입찰가로 대신 잰다. 광고를 안 도는 시장은 실제보다 낮게 잡힌다.")
+  +hcard("월평균 클릭수","NAVER 검색광고", clicks.toFixed(1)+"회",
+     sp("PC",(a[K.CPC_]||0).toFixed(1))+sp("모바일",(a[K.CMO]||0).toFixed(1)),
+     "기기별 원값을 그대로 더한 값이다.")
+  +hcard("광고 클릭률","NAVER 검색광고", '<span class="sm2">PC '+(a[K.TPC]||0)+"% · MO "+(a[K.TMO]||0)+"%</span>",
+     sp("PC",(a[K.TPC]||0)+"%")+sp("모바일",(a[K.TMO]||0)+"%"),
+     "클릭률은 노출 대비 클릭이다. 손익분기에 들어가는 전환율과 다른 지표다.")
+  +hcard("평균 입찰가 · 모바일","목표 순위 추정", fmt(a[K.BM1]||0)+"원",
+     sp("1위",fmt(a[K.BM1]||0))+sp("2위",fmt(a[K.BM2]||0))+sp("3위",fmt(a[K.BM3]||0)),
+     "감당 CPC 상한 "+fmt(cap)+"원 · 3위 최저 "+(isFinite(minCpc3)?fmt(minCpc3)+"원":"—")
+     +(isFinite(minCpc3)&&minCpc3>cap?' <b>— 상한을 넘는다</b>':''));
+
+  var ipt=document.getElementById("exact");
+  if(document.activeElement!==ipt) ipt.value=a[K.KW];
+  renderHintChips();
+}
+
+/* 정확 일치만 찾는다. 없으면 비슷한 것을 보여주되 대신 골라주지는 않는다. */
+function exactFind(){
+  var v=document.getElementById("exact").value.trim();
+  var note=document.getElementById("exactNote");
+  if(!v){ note.textContent="키워드를 정확히 입력해라. 철자가 다르면 다른 시장으로 본다."; return; }
+  if(v in BYKW){
+    CUR=BYKW[v]; F.q=""; document.getElementById("q").value="";
+    note.innerHTML=v+' NAVER 정확 원본을 확인했다.';
+    CURPAGE(); refresh(); return;
+  }
+  var near=[];
+  for(var i=0;i<R.length && near.length<8;i++) if(R[i][K.KW].indexOf(v)>=0) near.push(R[i][K.KW]);
+  note.innerHTML = near.length
+    ? '<b>'+v+'</b> 는 수집된 키워드에 없다. 포함하는 것은 있다 — '
+      + near.map(function(k){ return '<a href="#" data-k="'+k+'" style="color:var(--brand);font-weight:700">'+k+'</a>'; }).join(" · ")
+    : '<b>'+v+'</b> 는 수집된 '+fmt(R.length)+'개 안에 없다. 아직 안 받아온 키워드일 수 있다.';
+  note.querySelectorAll("[data-k]").forEach(function(n){
+    n.onclick=function(e){ e.preventDefault(); document.getElementById("exact").value=n.dataset.k; exactFind(); };
+  });
+}
+document.getElementById("exactGo").onclick=exactFind;
+document.getElementById("exact").addEventListener("keydown",function(e){ if(e.key==="Enter") exactFind(); });
+document.getElementById("exactNote").textContent="정확히 같은 키워드만 찾는다. 샤인머스캣과 샤인머스켓은 다른 시장이라 서로 대신 보여주지 않는다.";
+document.getElementById("exactClear").onclick=function(){
+  document.getElementById("exact").value="";
+  document.getElementById("exactNote").textContent="";
+  document.getElementById("exact").focus();
+};
+
 /* ── 갱신 ── */
-function refresh(){ readSet(); recalc(); renderKpi(); renderTable();
+function refresh(){ readSet(); recalc(); renderHero(); renderKpi(); renderTable();
   if(TAB==="detail") renderDetail(); if(TAB==="margin") renderMargin(); if(TAB==="status") renderStatus(); }
 
 document.getElementById("scale").textContent=fmt(R.length)+"개 키워드 · 검색광고 실데이터";
