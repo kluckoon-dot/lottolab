@@ -46,13 +46,13 @@ const SECRET = process.env.NAVER_HUB_SECRET || K.SECRET;
 /* ── 호출 주소 후보.
    이관하면서 주소가 바뀌었는데 문서를 직접 확인하지 못했다.
    추측으로 못 박지 않고, 실제로 때려보고 되는 것을 찾는다. ── */
-/* 2026-09-11 확정.
-   공식 예제와 실제 응답이 일치한다.
-     주소   POST https://naveropenapi.apigw.ntruss.com/datalab/v1/search
+/* 2026-09-11 실호출로 확정.
+     주소   POST https://naverapihub.apigw.ntruss.com/search-trend/v1/search
      헤더   X-NCP-APIGW-API-KEY-ID : Client ID
             X-NCP-APIGW-API-KEY    : Client Secret
-   이 조합이 210 "A subscription to the API is required" 를 돌려줬다.
-   210 은 게이트웨이가 요청을 인식했다는 뜻이다. 남은 것은 키 값과 구독뿐이다. */
+   200 과 156주치 실데이터를 받았다.
+   앞서 naveropenapi.apigw.ntruss.com 은 구 AI·NAVER API 게이트웨이였고
+   거기서 나온 210 은 "이 게이트웨이에 그런 경로가 있긴 하다" 그 이상이 아니었다. */
 const HUB = process.env.NAVER_HUB_HOST || "https://naverapihub.apigw.ntruss.com";
 /* 2026-09-11 이관 가이드로 확정.
      호출 도메인   openapi.naver.com     →  naverapihub.apigw.ntruss.com
@@ -85,20 +85,22 @@ const AUTHS = [
                                            "X-NCP-APIGW-API-KEY-ID": ID, "X-NCP-APIGW-API-KEY": SECRET }) }
 ];
 const TREND_PATH = "/v1/datalab/search";
-const TREND_PATHS = ["/datalab/v1/search", "/v1/datalab/search"];
+const HUB_TREND = "/search-trend/v1/search";   // 2026-09-11 실호출로 확정. 200 + 156주 데이터 확인
+const TREND_PATHS = [HUB_TREND];
 /* 대조군. 존재할 리 없는 경로다.
    이게 404 면 "404 = 없는 경로, 210 = 있는데 구독 안 됨" 으로 읽어도 된다.
    이것마저 210 이면 210 은 아무 의미가 없다는 뜻이므로 다르게 접근해야 한다. */
 const CONTROL_PATH = "/zzz-definitely-not-an-api/v1/nothing";
-const HUB_TREND = "/datalab/v1/search";
-/* 같은 규칙을 쇼핑인사이트에 적용한 경로.  /v1/datalab/... → /datalab/v1/... */
+/* 경로 규칙은 legacy 에서 유도되는 게 아니라 제품 이름을 그대로 쓴다.
+     검색어트렌드 → /search-trend/v1/search   (확정)
+     쇼핑인사이트 → /shopping-insight/v1/...  (추정 · --find 로 확인한다) */
 /* 쇼핑인사이트는 같은 게이트웨이의 이웃 경로로 추정한다. 실호출로 확정한다. → 확인 필요 */
 const SHOP_PATHS = {
-  categories: "/datalab/v1/shopping/categories",
-  keywords:   "/datalab/v1/shopping/category/keywords",
-  device:     "/datalab/v1/shopping/category/keyword/device",
-  gender:     "/datalab/v1/shopping/category/keyword/gender",
-  age:        "/datalab/v1/shopping/category/keyword/age"
+  categories: "/shopping-insight/v1/categories",
+  keywords:   "/shopping-insight/v1/category/keywords",
+  device:     "/shopping-insight/v1/category/keyword/device",
+  gender:     "/shopping-insight/v1/category/keyword/gender",
+  age:        "/shopping-insight/v1/category/keyword/age"
 };
 
 /* 씨앗을 네이버한테 받아올 수 있는 통로가 있는지 확인할 후보들.
@@ -304,6 +306,9 @@ async function collectTrend(args) {
   console.error(`3년 주간 추세 — 대상 ${targets.length.toLocaleString()}개 · 남은 ${todo.length.toLocaleString()}개`);
   if (!todo.length) { console.error("이미 다 받았다."); return; }
 
+  let TREND = HUB_TREND;
+  try { const e = JSON.parse(await fs.readFile(path.join(OUTDIR,"hub-endpoint.json"),"utf8"));
+        if (e.path) { TREND = e.path; console.error(`저장된 주소를 쓴다: ${e.host||HUB}${TREND}`); } } catch {}
   const { startDate, endDate } = threeYears();
   const GROUP = 5;
   let calls = 0, failed = [];
@@ -313,7 +318,7 @@ async function collectTrend(args) {
 
   for (let i = 0; i < todo.length; i += GROUP) {
     const batch = todo.slice(i, i + GROUP);
-    const r = await call("POST", HUB_TREND, { body: {
+    const r = await call("POST", TREND, { body: {
       startDate, endDate, timeUnit: "week",
       keywordGroups: batch.map(k => ({ groupName: k, keywords: [k] })) } });
     calls++;
@@ -386,6 +391,7 @@ async function findPath() {
     await fs.writeFile(path.join(OUTDIR, "hub-endpoint.json"),
       JSON.stringify({ host: HUB, path: ok[0].p, auth: "X-NCP-APIGW-*", foundAt: new Date().toISOString() }, null, 1), "utf8");
     console.log(`\n주소를 ${OUTDIR}/hub-endpoint.json 에 저장했다.`);
+    await findShopping();
     return;
   }
   if (found.length) {
@@ -397,6 +403,64 @@ async function findPath() {
   } else {
     console.log("전부 404 였다. 서비스 이름이 후보에 없다.");
     console.log("콘솔 [개발 가이드] → 검색어트렌드 → search 페이지의 주소 한 줄이 필요하다.");
+  }
+  console.log("");
+}
+
+/* 쇼핑인사이트 경로도 같은 방식으로 찾는다.
+   여기서 카테고리 목록이 잡히면 카테고리 ID 문제까지 한 번에 풀린다. */
+async function findShopping() {
+  console.log("\n\n── 이어서 쇼핑인사이트 경로를 찾는다\n");
+  const SVC = ["shopping-insight","shoppinginsight","shopping","insight","datalab-shopping"];
+  /* 레거시 쇼핑인사이트 경로
+       /v1/datalab/shopping/categories
+       /v1/datalab/shopping/category/keywords
+       /v1/datalab/shopping/category/device|gender|age            (카테고리 단위)
+       /v1/datalab/shopping/category/keyword/device|gender|age    (키워드 단위)
+     검색어트렌드가 /v1/datalab/search → /search-trend/v1/search 로 갔으니
+     꼬리를 어디서 자르는지는 확정이 아니다. 두 가지를 다 때려본다.
+     서비스 이름이 맞는데 꼬리만 틀려서 404 로 지나쳐버리면 안 되니까 넓게 본다. */
+  const CAT  = { startDate:"2026-08-01", endDate:"2026-08-31", timeUnit:"month", category:"50000006" };
+  const KW   = { ...CAT, keyword:"사과" };
+  const RES = [
+    ["카테고리 목록",      "/categories",                      { startDate:"2026-08-01", endDate:"2026-08-31", timeUnit:"month", category:[{name:"식품",param:["50000006"]}] }],
+    ["카테고리 목록2",     "/shopping/categories",             { startDate:"2026-08-01", endDate:"2026-08-31", timeUnit:"month", category:[{name:"식품",param:["50000006"]}] }],
+    ["카테고리별 키워드",  "/category/keywords",               { ...CAT, keyword:[{name:"사과",param:["사과"]}] }],
+    ["카테고리별 키워드2", "/shopping/category/keywords",      { ...CAT, keyword:[{name:"사과",param:["사과"]}] }],
+    ["카테고리 기기",      "/category/device",                 CAT],
+    ["카테고리 성별",      "/category/gender",                 CAT],
+    ["카테고리 연령",      "/category/age",                    CAT],
+    ["키워드별 기기",      "/category/keyword/device",         KW],
+    ["키워드별 성별",      "/category/keyword/gender",         KW],
+    ["키워드별 연령",      "/category/keyword/age",            KW],
+    ["키워드별 기기2",     "/shopping/category/keyword/device", KW]
+  ];
+  const hits = {};
+  for (const s of SVC) {
+    let alive = false;
+    for (const [name, res, body] of RES) {
+      const p = `/${s}/v1${res}`;
+      const r = await tryCall(HUB, AUTHS[1], body, p);
+      const code = (r.json && r.json.error && r.json.error.errorCode) || "";
+      if (String(r.raw) === "404") { await sleep(120); continue; }
+      alive = true;
+      const tag = r.ok ? "OK  " : "    ";
+      console.log(`  ${tag} ${String(r.raw).padEnd(5)} ${code ? "("+code+") " : ""}${name.padEnd(16)} ${p}`);
+      if (!r.ok) console.log(`         ${safe(r.text).replace(/\s+/g," ").slice(0,180)}`);
+      if (r.ok) { hits[name] = p; console.log(`         ${safe(r.text).replace(/\s+/g," ").slice(0,220)}`); }
+      await sleep(150);
+    }
+    if (alive) break;            // 살아있는 서비스 이름을 찾으면 거기서 멈춘다
+  }
+  console.log("");
+  if (Object.keys(hits).length) {
+    console.log("*** 쇼핑인사이트 경로 ***");
+    for (const [k,v] of Object.entries(hits)) console.log(`    ${k.padEnd(16)} ${v}`);
+    await fs.writeFile(path.join(OUTDIR, "hub-shopping.json"), JSON.stringify(hits, null, 1), "utf8");
+    console.log(`\n  ${OUTDIR}/hub-shopping.json 에 저장했다.`);
+    if (hits["카테고리 목록"]) console.log("\n  카테고리 목록이 잡혔다. 카테고리 ID 문제도 여기서 풀린다.");
+  } else {
+    console.log("쇼핑인사이트 쪽은 아직 못 찾았다. 위 응답을 보내주면 맞춘다.");
   }
   console.log("");
 }
