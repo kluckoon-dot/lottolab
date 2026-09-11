@@ -48,14 +48,39 @@ const packed = rows.map(r => [
   num(r.bp1), num(r.bp2), num(r.bp3), num(r.bm1), num(r.bm2), num(r.bm3),
   r.masked ? 1 : 0, num(r.intent), r.hint || ""
 ]);
-const kwJs = "window.KWDATA=" + JSON.stringify({
-  fetchedAt: kj.fetchedAt || "", calls: kj.calls || 0, failed: (kj.failed || []).length,
-  cols: "kw,pc,mo,depth,comp,clickPc,clickMo,ctrPc,ctrMo,bp1,bp2,bp3,bm1,bm2,bm3,masked,intent,hint",
-  rows: packed
-}) + ";";
-fs.writeFileSync(path.join(DST, "kw.js"), kwJs, "utf8");
-meta.keywords = rows.length; total += Buffer.byteLength(kwJs);
-console.log(`  → pack/kw.js  ${MB(Buffer.byteLength(kwJs))}`);
+/* 12 MB 씩 나눠 담는다. 한 파일이 16 MB 를 넘으면 아티팩트가 안 받는다.
+   처음엔 추세만 나누고 키워드는 한 파일로 뒀는데, 419,049개가 나오니
+   kw.js 가 27 MB 가 됐다. 키워드도 똑같이 나눈다. */
+const CAP = 10 * 1048576;   // 실측 103 bytes/키워드. 16 MB 한도에 여유를 둔다
+const head = { fetchedAt: kj.fetchedAt || "", calls: kj.calls || 0, failed: (kj.failed || []).length,
+  cols: "kw,pc,mo,depth,comp,clickPc,clickMo,ctrPc,ctrMo,bp1,bp2,bp3,bm1,bm2,bm3,masked,intent,hint" };
+fs.writeFileSync(path.join(DST, "kw-head.js"), "window.KWHEAD=" + JSON.stringify(head) + ";", "utf8");
+total += Buffer.byteLength("window.KWHEAD=" + JSON.stringify(head) + ";");
+
+const kwFiles = [];
+let buf = [], bytes = 0, kn = 0;
+const flushKw = () => {
+  if (!buf.length) return;
+  const nm = `kw-${String(kn).padStart(3,"0")}.js`;
+  /* push(...arr) 은 인자가 13만 개면 스택이 터진다. concat 으로 붙인다. */
+  const js = `window.KWROWS=(window.KWROWS||[]).concat(${JSON.stringify(buf)});`;
+  fs.writeFileSync(path.join(DST, nm), js, "utf8");
+  kwFiles.push(nm); total += Buffer.byteLength(js);
+  console.log(`  → pack/${nm}  ${MB(Buffer.byteLength(js))}  (${buf.length.toLocaleString()}개)`);
+  buf = []; bytes = 0; kn++;
+};
+for (const row of packed) {
+  buf.push(row); bytes += 90;
+  if (bytes > CAP) flushKw();
+}
+flushKw();
+meta.kwFiles = kwFiles;
+
+/* 검색량이 어떻게 퍼져 있는지 알아야 어디를 자를지 정할 수 있다 */
+const vols = packed.map(r => r[1] + r[2]).sort((a,b) => a-b);
+const cut = v => vols.length - vols.findIndex(x => x >= v);
+meta.volume = { total: vols.length, ge10: cut(10), ge100: cut(100), ge500: cut(500), ge1000: cut(1000), ge5000: cut(5000) };
+console.log(`  검색량 분포  월 10↑ ${cut(10).toLocaleString()} · 100↑ ${cut(100).toLocaleString()} · 500↑ ${cut(500).toLocaleString()} · 1,000↑ ${cut(1000).toLocaleString()} · 5,000↑ ${cut(5000).toLocaleString()}`);
 
 /* ── 2. 구매층 ── */
 const sj = read("shop.json");
@@ -84,9 +109,7 @@ if (tj) {
   const keys = Object.keys(src);
   console.log(`3년 추세 ${keys.length.toLocaleString()}개  (원본 ${MB(size("trend.json"))})`);
   const enc1 = arr => (arr || []).map(p => enc(Array.isArray(p) ? p[1] : p.ratio)).join("");
-  /* 12 MB 씩 나눠 담는다. 한 파일이 16 MB 를 넘으면 안 된다. */
-  const CAP = 12 * 1048576;
-  let shard = {}, bytes = 0, n = 0, files = [];
+  let shard = {}, tbytes = 0, n = 0, files = [];
   const flush = () => {
     if (!Object.keys(shard).length) return;
     const nm = `trend-${String(n).padStart(3,"0")}.js`;
@@ -94,13 +117,13 @@ if (tj) {
     fs.writeFileSync(path.join(DST, nm), js, "utf8");
     files.push(nm); total += Buffer.byteLength(js);
     console.log(`  → pack/${nm}  ${MB(Buffer.byteLength(js))}`);
-    shard = {}; bytes = 0; n++;
+    shard = {}; tbytes = 0; n++;
   };
   for (const k of keys) {
     const v = enc1(src[k]);
     if (!v) continue;
-    shard[k] = v; bytes += k.length + v.length + 6;
-    if (bytes > CAP) flush();
+    shard[k] = v; tbytes += k.length + v.length + 6;
+    if (tbytes > CAP) flush();
   }
   flush();
   meta.trend = keys.length; meta.trendFiles = files;
