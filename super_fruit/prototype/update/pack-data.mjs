@@ -66,7 +66,8 @@ if (SEC) {
           if (multi[si].has(kw.slice(i, i + L))) { hit = true; break; }
       if (!hit)
         for (const c of one[si])
-          if (kw === c || kw.slice(-1) === c || (kw.slice(0, 1) === c && kw.length <= 4)) { hit = true; break; }
+          if (kw === c || kw.slice(-1) === c
+              || (kw.slice(0, 1) === c && (kw.length <= 4 || /[0-9A-Za-z]/.test(kw[1])))) { hit = true; break; }
       if (hit) m |= (1 << si);
     }
     return m;
