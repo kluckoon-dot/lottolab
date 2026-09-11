@@ -426,37 +426,105 @@ async function collectShop(args) {
 
 /* ── 카테고리 ID 확인 ──
    /categories 는 목록을 주지 않는다. 내가 넣은 ID 를 그대로 돌려줄 뿐이다.
-   그래서 목록을 받아오는 대신, 후보 ID 가 살아있는지 하나씩 때려서 확인한다.
-   기준점(식품 50000006)을 같이 넣고 비율이 나오는지 본다. */
+   그래서 후보 ID 를 하나씩 때려서 살아있는지 본다. 대조군(59999999)이 '없음'으로
+   나왔으므로 이 검사는 유효하다. data 가 비면 그런 카테고리가 없다는 뜻이다.
+
+   단, '살아있다'는 것과 '그게 과일이다'는 다른 이야기다.
+   응답의 title 은 내가 적어 보낸 이름을 되돌려주는 것뿐이라 이름 확인이 안 된다.
+   그래서 --name 으로 정체를 따로 확인한다.
+   그 카테고리 안에 그 키워드가 실제로 있는지를 물어보는 방식이다.
+   사과가 되고 립스틱이 안 되면 그건 과일 쪽이다. */
+const CAT_KNOWN = [
+  ["패션의류",       "50000000"], ["패션잡화",     "50000001"],
+  ["화장품/미용",     "50000002"], ["디지털/가전",   "50000003"],
+  ["가구/인테리어",   "50000004"], ["출산/육아",     "50000005"],
+  ["식품",          "50000006"], ["스포츠/레저",   "50000007"],
+  ["생활/건강",      "50000008"], ["여가/생활편의", "50000009"],
+  ["여가/생활편의?",  "50000010"],
+  ["없는번호(대조군)", "59999999"]
+];
+/* 정체를 물어볼 키워드. 서로 다른 분야에서 하나씩 골랐다. */
+const CAT_PROBE = [
+  ["과일",       "사과"],   ["채소",      "상추"],
+  ["곡물",       "쌀"],     ["축산",      "삼겹살"],
+  ["수산",       "고등어"],  ["가공식품",   "라면"],
+  ["화장품",     "립스틱"],  ["패션",      "티셔츠"],
+  ["생활용품",   "세탁세제"], ["디지털",     "노트북"]
+];
+
+async function catLive(id, name, startDate, endDate) {
+  const r = await call("POST", SHOP_PATHS.categories, { body: {
+    startDate, endDate, timeUnit: "month", category: [{ name: name || id, param: [id] }] } });
+  const data = r.json?.results?.[0]?.data || [];
+  return { live: r.ok && data.length > 0, raw: r.raw, text: r.text, n: data.length };
+}
+
 async function checkCat(args) {
   const val = f => { const i = args.indexOf(f); return i >= 0 ? args[i + 1] : null; };
-  const list = (val("--ids") || "").split(",").map(x => x.trim()).filter(Boolean);
-  const CANDS = list.length ? list.map(x => [x, x]) : [
-    ["식품",           "50000006"], ["농산물",   "50000145"],
-    ["과일",           "50000146"], ["채소",     "50000147"],
-    ["생활/건강",       "50000008"], ["여가/생활편의", "50000010"],
-    ["패션의류",        "50000000"], ["화장품/미용", "50000002"],
-    ["없는번호(대조군)", "59999999"]
-  ];
   const end = new Date(); end.setDate(1); end.setDate(0);
   const start = new Date(end); start.setMonth(start.getMonth() - 2); start.setDate(1);
-  console.log(`── 카테고리 ID 확인  (${ymd(start)} ~ ${ymd(end)})\n`);
-  const good = {};
-  for (const [name, id] of CANDS) {
-    const r = await call("POST", SHOP_PATHS.categories, { body: {
-      startDate: ymd(start), endDate: ymd(end), timeUnit: "month",
-      category: [{ name, param: [id] }] } });
-    const data = r.json?.results?.[0]?.data || [];
-    const live = r.ok && data.length > 0;
-    console.log(`  ${live ? "살아있음" : "없음    "}  ${id}  ${name}` +
-                (live ? "" : `   ${String(r.raw)} ${safe(r.text).replace(/\s+/g, " ").slice(0, 110)}`));
-    if (live) good[name] = id;
-    await sleep(150);
-  }
+  const startDate = ymd(start), endDate = ymd(end);
   await fs.mkdir(OUTDIR, { recursive: true });
+
+  /* 어떤 ID 를 볼지 정한다 */
+  let cands;
+  const ids = val("--ids"), scan = val("--scan");
+  if (ids) cands = ids.split(",").map(x => x.trim()).filter(Boolean).map(x => [x, x]);
+  else if (scan) {
+    const m = /^(\d+)\s*-\s*(\d+)$/.exec(scan.trim());
+    if (!m) { console.error("--scan 은 50000140-50000200 형태로 써라."); process.exit(1); }
+    const [a, b] = [+m[1], +m[2]];
+    if (b - a > 400) { console.error(`${b - a + 1}개는 너무 많다. 400개 이하로 끊어라.`); process.exit(1); }
+    cands = []; for (let n = a; n <= b; n++) cands.push([String(n), String(n)]);
+  } else cands = CAT_KNOWN;
+
+  console.log(`── 카테고리 ID 확인  (${startDate} ~ ${endDate}) · ${cands.length}개\n`);
+  const good = {};
+  for (const [name, id] of cands) {
+    const r = await catLive(id, name, startDate, endDate);
+    if (scan) { if (r.live) { good[id] = id; console.log(`  살아있음  ${id}`); } }
+    else {
+      console.log(`  ${r.live ? "살아있음" : "없음    "}  ${id}  ${name}` +
+                  (r.live ? "" : `   ${String(r.raw)} ${safe(r.text).replace(/\s+/g, " ").slice(0, 90)}`));
+      if (r.live) good[name] = id;
+    }
+    await sleep(130);
+  }
+  console.log(`\n  살아있는 것 ${Object.keys(good).length}개.`);
+
+  /* 정체 확인 */
+  if (args.includes("--name")) {
+    console.log("\n── 정체 확인  (그 카테고리 안에 이 키워드가 있는지 물어본다)\n");
+    let liveIds = [...new Set(Object.values(good))];
+    /* 한 ID 당 키워드 10회다. 스캔 결과가 크면 호출이 순식간에 불어난다. */
+    const cap = parseInt(val("--name-limit") || "40", 10);
+    if (liveIds.length > cap) {
+      console.log(`  살아있는 ID 가 ${liveIds.length}개다. 전부 하면 ${(liveIds.length * CAT_PROBE.length).toLocaleString()}회가 된다.`);
+      console.log(`  앞에서 ${cap}개만 본다. 더 보려면 --name-limit 숫자 를 붙여라.\n`);
+      liveIds = liveIds.slice(0, cap);
+    }
+    console.log(`  호출 ${(liveIds.length * CAT_PROBE.length).toLocaleString()}회 예정.\n`);
+    console.log("  " + "ID".padEnd(11) + CAT_PROBE.map(([t]) => t.padEnd(7)).join(""));
+    const named = {};
+    for (const id of liveIds) {
+      const hit = [];
+      for (const [, kw] of CAT_PROBE) {
+        const r = await call("POST", SHOP_PATHS.device, { body: {
+          startDate, endDate, timeUnit: "month", category: id, keyword: kw } });
+        hit.push(r.ok && (r.json?.results?.[0]?.data || []).length > 0);
+        await sleep(110);
+      }
+      named[id] = CAT_PROBE.filter((_, k) => hit[k]).map(([t]) => t);
+      console.log("  " + id.padEnd(11) + hit.map(h => (h ? "  O    " : "  .    ")).join(""));
+    }
+    await fs.writeFile(path.join(OUTDIR, "hub-cat-identity.json"), JSON.stringify(named, null, 1), "utf8");
+    console.log("\n  O 가 붙은 것이 그 카테고리에 실제로 있는 키워드다.");
+    console.log("  한 줄이 전부 O 면 그 ID 는 상위 카테고리이거나, 이 검사가 카테고리를 안 가린다는 뜻이다.");
+    console.log(`  → ${OUTDIR}/hub-cat-identity.json`);
+  }
+
   await fs.writeFile(path.join(OUTDIR, "hub-categories.json"), JSON.stringify(good, null, 1), "utf8");
-  console.log(`\n  살아있는 것만 ${OUTDIR}/hub-categories.json 에 저장했다.`);
-  console.log("  대조군(59999999)까지 '살아있음' 이면 이 검사는 의미가 없다는 뜻이다. 알려줘라.\n");
+  console.log(`\n  → ${OUTDIR}/hub-categories.json\n`);
 }
 
 /* ── 경로 찾기 ──
