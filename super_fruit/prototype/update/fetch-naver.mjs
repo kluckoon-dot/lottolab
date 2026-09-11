@@ -306,7 +306,20 @@ async function main() {
   if (limit > 0) { let n = limit; plan = plan.map(t => { const take = Math.max(0, Math.min(n, t.seeds.length)); n -= take; return { ...t, seeds: t.seeds.slice(0, take) }; }).filter(t => t.seeds.length); }
   const maxCalls = parseInt(val("--max-calls") || "0", 10);
   if (val("--batch-size")) BATCH_SIZE = Math.max(1, parseInt(val("--batch-size"), 10));
-  const hints = plan.flatMap(t => t.seeds);
+  let hints = plan.flatMap(t => t.seeds);
+  /* 입찰가만 채우는 모드. 키워드 수집은 건너뛴다.
+     419,049개 중 228,217개가 입찰가가 없다. 전부 채우려면 9시간이다.
+     화면에 담긴 것만 먼저 채우려고 --only 로 명단을 받는다. */
+  const bidsOnly = has("--bids-only");
+  let onlySet = null;
+  if (val("--only")) {
+    try {
+      const txt = await fs.readFile(val("--only"), "utf8");
+      onlySet = new Set(txt.split(/\r?\n/).map(x => x.trim()).filter(Boolean));
+      console.error(`명단 ${onlySet.size.toLocaleString()}개만 대상으로 한다. (${val("--only")})`);
+    } catch { console.error(`${val("--only")} 을 읽지 못했다.`); process.exit(1); }
+  }
+  if (bidsOnly) { hints = []; console.error("입찰가만 채운다. 키워드 수집은 건너뛴다."); }
 
   /* 이어하기 */
   await fs.mkdir(OUTDIR, { recursive: true });
@@ -429,8 +442,8 @@ async function main() {
 
   /* 2단계 — 입찰가. 검색량과 무관하게 전부 받는다 */
   if (!stop && !budget && !has("--no-bids")) {
-    const need = [...byKw.values()].filter(k => !k.bid)
-      .sort((a, b) => (a.tier ?? 99) - (b.tier ?? 99) || b.total - a.total)
+    const need = [...byKw.values()].filter(k => !k.bid && (!onlySet || onlySet.has(k.kw)))
+      .sort((a, b) => (onlySet ? 0 : (a.tier ?? 99) - (b.tier ?? 99)) || b.total - a.total)
       .map(k => k.kw);
     if (need.length) {
       console.error(`\n2단계  입찰가 수집 — 남은 ${need.length.toLocaleString()}개`);
