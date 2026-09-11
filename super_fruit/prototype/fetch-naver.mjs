@@ -90,7 +90,18 @@ function explain(status, body) {
 
 /* ── 엔드포인트 (2026-09-11 실응답으로 확정) ── */
 const BID_PATH = "/estimate/average-position-bid/keyword";
+/* 힌트 정제.
+   실측 결과 공백·&·/ 가 든 힌트는 400 으로 떨어졌다.
+   "흑토마토 & 흑방울토마토" 같은 건 둘로 쪼개고, 공백은 없앤다. */
+function cleanHints(raw) {
+  return String(raw)
+    .split(/[&/,·]|\s+및\s+/)
+    .map(x => x.replace(/\([^)]*\)/g, "").replace(/\s+/g, "").trim())
+    .filter(x => x && x.length <= 20);
+}
 const keywordTool = hint => call("GET", "/keywordstool", { query: { hintKeywords: hint, showDetail: "1" } });
+/* 업종(biztpId)으로 조회 — 씨앗을 네이버한테 받는 통로. 1차 진단에서 200 확인됨 */
+const keywordByBiztp = id => call("GET", "/keywordstool", { query: { biztpId: String(id), showDetail: "1" } });
 
 function num(v) {
   if (typeof v === "number") return v;
@@ -332,14 +343,18 @@ async function main() {
   let stop = false, budget = false;
 
   /* 힌트 하나를 넣고 연관 키워드를 거둔다. 반환값은 계속 진행해도 되는지 여부 */
-  async function runHint(hint, tier, label) {
+  async function runHint(rawHint, tier, label) {
     if (maxCalls && calls >= maxCalls) { budget = true; return false; }
+    const parts = cleanHints(rawHint);
+    if (!parts.length) { doneHints.add(rawHint); return true; }
+    const hint = parts[0];
+    if (parts.length > 1) for (const extra of parts.slice(1)) if (!doneHints.has(extra)) pendingSplit.push({ h: extra, tier });
     const r = await keywordTool(hint); calls++;
     if (!r.ok) {
       failed.push({ phase: "keywords", tier, hint, status: r.status, note: explain(r.status, r.text) });
       console.error(`  ${label} ${hint} → 실패 ${r.status} ${explain(r.status, r.text)}`);
       if (r.status === 429) { stop = true; return false; }
-      doneHints.add(hint);
+      doneHints.add(hint); doneHints.add(rawHint);
       return true;
     }
     for (const row of (r.json?.keywordList || [])) {
@@ -352,9 +367,10 @@ async function main() {
         if (prev.total !== m.total) (prev.seenAlso ||= []).push({ hint, total: m.total, at: m.fetchedAt });
       }
     }
-    doneHints.add(hint);
+    doneHints.add(hint); doneHints.add(rawHint);
     return true;
   }
+  const pendingSplit = [];
 
   for (const t of plan) {
     const todo = t.seeds.filter(h => !doneHints.has(h));
@@ -369,13 +385,27 @@ async function main() {
       }
       await save("keywords");
     } else console.error(`\n${t.tier}단계 ${t.name} — 시드는 이미 끝남`);
+    while (pendingSplit.length && !stop && !budget) {
+      const { h, tier } = pendingSplit.shift();
+      if (doneHints.has(h)) continue;
+      await runHint(h, tier, "[쪼갬]"); await sleep(350);
+    }
+    await save("keywords");
     if (stop || budget) break;
 
     /* 눈덩이 확장 — 찾아낸 키워드를 다시 힌트로 넣는다.
        시드 목록을 손으로 완벽하게 적는 건 불가능하다. 빠진 가지는 이걸로 메운다. */
     for (let round = 1; round <= snowRounds; round++) {
+      /* 드리프트 방지.
+         실데이터를 보니 연관 키워드에 "미세먼지 · 스케쳐스 · 대전가볼만한곳" 같은 게 섞여 들어온다.
+         그런 걸 다시 힌트로 넣으면 엉뚱한 분야가 통째로 빨려 들어온다.
+         그래서 눈덩이 힌트로는 시드와 글자가 겹치는 것만 쓴다.
+         겹치지 않는 키워드도 데이터에는 그대로 남는다. 버리는 게 아니라 힌트로만 안 쓴다. */
+      const seedWords = new Set();
+      for (const sd of t.seeds) for (const c of cleanHints(sd)) { seedWords.add(c); for (let i = 0; i + 2 <= c.length; i++) seedWords.add(c.slice(i, i + 2)); }
+      const related = kw => { for (let i = 0; i + 2 <= kw.length; i++) if (seedWords.has(kw.slice(i, i + 2))) return true; return false; };
       const pool = [...byKw.values()]
-        .filter(k => k.tier === t.tier && !doneHints.has(k.kw))
+        .filter(k => k.tier === t.tier && !doneHints.has(k.kw) && related(k.kw))
         .sort((a, b) => b.total - a.total)
         .slice(0, snowTop)
         .map(k => k.kw);
