@@ -369,26 +369,40 @@ async function collectShop(args) {
      밥솥·탈모샴푸·싸이벡스제로나T 같은 눈덩이 확장 부산물이다.
      --seed-first 를 붙이면 씨앗과 두 글자 이상 겹치는 키워드를 앞으로 보낸다.
      키워드를 버리는 게 아니다. 순서만 바꾼다. */
-  let seedSet = null, seedMax = 0;
+  let seedSet = null, seedMax = 0, seedOne = [];
   if (args.includes("--seed-first")) {
     /* 씨앗을 두 글자로 잘라 쓰면 가짜가 걸린다.
-       실제로 '타이벡감귤' 의 조각 '이벡' 때문에 '싸이벡스제로나T' 가 과일로 분류됐다.
-       그래서 조각이 아니라 씨앗 통째로 들어있는지만 본다. 한 글자 씨앗(배·무·파)은
-       배송·무료 같은 데 걸리므로 뺀다. */
+       '타이벡감귤' 의 조각 '이벡' 때문에 '싸이벡스제로나T' 가 과일로 붙었다.
+       그래서 두 글자 이상 씨앗은 통째로 들어있는지만 본다.
+
+       한 글자 씨앗(배·무·귤·감·밤·마·쑥·딜)은 따로 다룬다. 빼버리면
+       배·나주배·햇배·금귤·풋귤·공주밤·햇밤 같은 진짜 품목이 통째로 뒤로 밀린다.
+       실측으로 확인했다. 그래서 자리를 본다.
+         그 자체        배, 귤, 밤
+         끝에 올 때      나주배, 공주밤, 옥광밤, 풋귤
+         앞이면서 4자 이하  배가격, 귤청, 마효능, 배도매
+       길이를 안 걸면 마스카포네치즈·감기에좋은음식·마피아게임까지 딸려온다.
+
+       그래도 포포나무·장마·마가린 같은 가짜가 100개쯤 남는다. 그냥 둔다.
+       순서를 매기는 일일 뿐이고, 가짜는 식품에서 빈 응답으로 나온 뒤
+       --shop-fix 가 제 카테고리를 찾아준다. 버려지지 않는다. */
     const want = (val("--tiers") || "1").split(",").map(x => parseInt(x.trim(), 10)).filter(Boolean);
     try {
       const here = path.dirname(new URL(import.meta.url).pathname.replace(/^\/([A-Za-z]:)/, "$1"));
       const sj = JSON.parse(await fs.readFile(path.join(here, "seeds.json"), "utf8"));
       seedSet = new Set();
+      const ones = new Set();
       for (const t of (sj.tiers || [])) {
         if (!want.includes(t.tier)) continue;
         for (const n of (t.seeds || [])) {
           const w = String(n).replace(/\s+/g, "");
-          if (w.length >= 2) { seedSet.add(w); if (w.length > seedMax) seedMax = w.length; }
+          if (w.length === 1) ones.add(w);
+          else if (w.length >= 2) { seedSet.add(w); if (w.length > seedMax) seedMax = w.length; }
         }
       }
+      seedOne = [...ones];
       const names = (sj.tiers || []).filter(t => want.includes(t.tier)).map(t => `${t.tier}.${t.name}`);
-      console.error(`씨앗 우선: ${names.join(" · ")} — ${seedSet.size.toLocaleString()}개`);
+      console.error(`씨앗 우선: ${names.join(" · ")} — 두 글자 이상 ${seedSet.size.toLocaleString()}개 · 한 글자 ${seedOne.length}개(${seedOne.join("")})`);
     } catch (e) { seedSet = null; console.error(`seeds.json 을 읽지 못했다. 검색량 순 그대로 간다. (${e.message})`); }
   }
   const related = kw => {
@@ -396,6 +410,8 @@ async function collectShop(args) {
     for (let i = 0; i < kw.length; i++)
       for (let L = 2; L <= Math.min(seedMax, kw.length - i); L++)
         if (seedSet.has(kw.slice(i, i + L))) return true;
+    for (const c of seedOne)
+      if (kw === c || kw.endsWith(c) || (kw.startsWith(c) && kw.length <= 4)) return true;
     return false;
   };
 
