@@ -1,0 +1,1 @@
+window.TRENDMETA={"alphabet":"0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz!#$%&()*+,-./:;<=>?@[]^_{|}~","trendWeeks":{"unit":"week"}};
