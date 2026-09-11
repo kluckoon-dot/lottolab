@@ -1,14 +1,14 @@
 @echo off
 chcp 65001 >nul
 cd /d "%~dp0"
-title Naver keyword collector - STEP 2 collect 40
+title STEP 2 - collect 40 items
 where node >nul 2>nul
 if errorlevel 1 goto nonode
 echo.
-echo  STEP 2 / collecting 40 items  -  about 30 seconds
+echo  STEP 2 / 40 items   -  about 3 minutes
+echo  Do NOT close this window until it says done.
 echo.
-node fetch-naver.mjs --from supply-calendar.json --limit 40 > log.txt 2>&1
-type log.txt
+node fetch-naver.mjs --from supply-calendar.json --limit 40 --bid-min 1000
 echo.
 echo  ----------------------------------------------
 echo   Result:  naver-out\keywords.json
@@ -18,7 +18,6 @@ echo.
 pause
 exit /b
 :nonode
-echo.
-echo  [!] Node.js is not installed. Install from https://nodejs.org
+echo  [!] Node.js is not installed. https://nodejs.org
 start https://nodejs.org/ko
 pause

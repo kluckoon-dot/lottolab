@@ -28,7 +28,7 @@ import crypto from "node:crypto";
 import fs from "node:fs/promises";
 import path from "node:path";
 
-const HOST = "https://api.searchad.naver.com";
+const HOST = process.env.NAVER_AD_HOST || "https://api.searchad.naver.com";
 
 /* 키 읽기.
    1) 환경변수가 있으면 그걸 쓴다
@@ -124,15 +124,22 @@ async function keywordTool(hint) {
 /* ── 2. 순위별 입찰가 ────────────────────────────────────────
    경로와 본문 스키마는 계정 권한에 따라 다를 수 있어 확정 전이다.
    --probe 로 실제 응답을 먼저 확인하고 맞는 것 하나만 남겨라. */
-const BID_SHAPES = [
-  { name: "average-position-bid",
-    method: "POST", path: "/estimate/average-position-bid/keyword",
-    body: (kw, device) => ({ device, keywordplus: false, key: kw,
-      items: [1, 2, 3].map(p => ({ key: kw, position: p })) }) },
-  { name: "exposure-minimum-bid",
-    method: "POST", path: "/estimate/exposure-minimum-bid/keyword",
-    body: (kw, device) => ({ device, period: "MONTH", items: [{ key: kw }] }) }
-];
+/* 실응답으로 확정한 형태. 2026-09-11 검증.
+   요청  { device, keywordplus, key, items:[{key, position}] }
+   응답  { device, estimate:[{ bid, keyword, position }] }
+   exposure-minimum-bid 는 400 이었다. 쓰지 않는다. */
+const BID_PATH = "/estimate/average-position-bid/keyword";
+function bidBody(kw, device) {
+  return { device, keywordplus: false, key: kw,
+           items: [1, 2, 3].map(p => ({ key: kw, position: p })) };
+}
+async function bidsFor(kw, device) {
+  const r = await call("POST", BID_PATH, { body: bidBody(kw, device) });
+  if (!r.ok) return { ok: false, status: r.status };
+  const out = {};
+  for (const e of (r.json?.estimate || [])) out[e.position] = e.bid;
+  return { ok: true, 1: out[1] ?? null, 2: out[2] ?? null, 3: out[3] ?? null };
+}
 
 /* 값을 노출하지 않고 모양만 본다. 대부분의 인증 실패는 여기서 잡힌다. */
 function shapeReport() {
@@ -225,13 +232,11 @@ function authChecklist() {
 }
 
 async function probeBids(kw) {
-  for (const shape of BID_SHAPES) {
-    for (const device of ["PC", "MOBILE"]) {
-      const r = await call(shape.method, shape.path, { body: shape.body(kw, device) });
-      console.log(`\n── ${shape.name} / ${device} → HTTP ${r.status} ${explain(r.status, r.text)}`);
-      console.log(safe(r.text).slice(0, 900));
-      await sleep(300);
-    }
+  for (const device of ["PC", "MOBILE"]) {
+    const r = await call("POST", BID_PATH, { body: bidBody(kw, device) });
+    console.log(`\n── 순위별 입찰가 / ${device} → HTTP ${r.status} ${explain(r.status, r.text)}`);
+    console.log(safe(r.text).slice(0, 900));
+    await sleep(300);
   }
 }
 
@@ -303,44 +308,89 @@ async function main() {
 
   let hints = [];
   if (val("--keywords-file")) {
-    // 윈도우 콘솔에서 한글 인자가 깨지는 문제를 피한다. UTF-8 파일에 한 줄에 하나씩.
     const raw = await fs.readFile(val("--keywords-file"), "utf8");
-    hints = raw.split(/\r?\n/).map(s => s.trim()).filter(Boolean);
+    hints = raw.split(/\r?\n/).map(x => x.trim()).filter(Boolean);
   }
-  else if (val("--keywords")) hints = val("--keywords").split(",").map(s => s.trim());
+  else if (val("--keywords")) hints = val("--keywords").split(",").map(x => x.trim());
   else if (val("--from")) {
     const cat = JSON.parse(await fs.readFile(val("--from"), "utf8"));
     hints = cat.items.map(i => i.v);
-  } else {
-    console.error("--keywords-file / --keywords / --from 중 하나가 필요하다");
-    process.exit(1);
-  }
+  } else { console.error("--keywords-file / --keywords / --from 중 하나가 필요하다"); process.exit(1); }
+
   const limit = parseInt(val("--limit") || "0", 10);
   if (limit > 0) hints = hints.slice(0, limit);
-
-  const out = {}, failed = [];
-  let calls = 0;
-  for (const hint of hints) {
-    const r = await keywordTool(hint);
-    calls++;
-    if (!r.ok) {
-      failed.push({ hint, status: r.status, note: explain(r.status, r.text), body: safe(r.text).slice(0, 200) });
-      console.error(`${hint} → 실패 HTTP ${r.status} ${explain(r.status, r.text)}`);
-      // 429 / 한도 초과는 여기서 멈춘다. 이전 값으로 덮어쓰지 않는다.
-      if (r.status === 429) { console.error("한도 도달. 남은 작업은 다음 회차로 넘긴다."); break; }
-    } else {
-      out[hint] = (r.json?.keywordList || []).map(normalize);
-      console.error(`${hint} → ${out[hint].length}개`);
-    }
-    await sleep(350);           // 초당 3회 이하로 유지
-  }
+  const bidMin = parseInt(val("--bid-min") || "1000", 10);   // 이 검색량 이상만 입찰가를 받는다
+  const noBids = has("--no-bids");
 
   await fs.mkdir("naver-out", { recursive: true });
-  await fs.writeFile(path.join("naver-out", "keywords.json"),
-    JSON.stringify({ fetchedAt: new Date().toISOString(), calls, hints: hints.length,
-                     ok: Object.keys(out).length, failed, data: out }, null, 2), "utf8");
-  console.error(`\n호출 ${calls}회 · 성공 ${Object.keys(out).length} · 실패 ${failed.length}`);
-  console.error("→ naver-out/keywords.json");
-  if (failed.length) console.error("실패는 실패로 남겼다. 성공처럼 보이게 덮지 않았다.");
+  const OUT = path.join("naver-out", "keywords.json");
+  const started = new Date().toISOString();
+  const byKw = new Map();
+  const failed = [];
+  let calls = 0, stop = false;
+
+  const save = async (phase) => {
+    const rows = [...byKw.values()].sort((a, b) => b.total - a.total);
+    await fs.writeFile(OUT, JSON.stringify({
+      startedAt: started, savedAt: new Date().toISOString(), phase,
+      hints: hints.length, calls, keywords: rows.length, failed, rows
+    }, null, 1), "utf8");
+  };
+
+  /* 1단계 — 품종명을 힌트로 넣고 연관 키워드까지 받아온다 */
+  console.error(`1단계  품종 ${hints.length}개로 연관 키워드 수집`);
+  for (let i = 0; i < hints.length; i++) {
+    const hint = hints[i];
+    const r = await keywordTool(hint); calls++;
+    if (!r.ok) {
+      failed.push({ phase: "keywords", hint, status: r.status, note: explain(r.status, r.text) });
+      console.error(`  [${i + 1}/${hints.length}] ${hint} → 실패 ${r.status} ${explain(r.status, r.text)}`);
+      if (r.status === 429) { console.error("  한도 도달. 여기까지 저장하고 멈춘다."); stop = true; break; }
+    } else {
+      let added = 0;
+      for (const row of (r.json?.keywordList || [])) {
+        const m = normalize(row);
+        if (!m.kw) continue;
+        const prev = byKw.get(m.kw);
+        if (!prev || m.total > prev.total) { m.hints = [...new Set([...(prev?.hints || []), hint])]; byKw.set(m.kw, m); added++; }
+        else if (!prev.hints.includes(hint)) prev.hints.push(hint);
+      }
+      console.error(`  [${i + 1}/${hints.length}] ${hint} → 연관 ${r.json?.keywordList?.length || 0}개 (누적 ${byKw.size})`);
+    }
+    if ((i + 1) % 20 === 0) await save("keywords");
+    await sleep(350);
+  }
+  await save("keywords");
+  console.error(`1단계 끝. 고유 키워드 ${byKw.size}개\n`);
+
+  /* 2단계 — 검색량이 받쳐주는 키워드만 1~3위 입찰가를 PC·모바일로 받는다 */
+  if (!noBids && !stop) {
+    const targets = [...byKw.values()].filter(k => k.total >= bidMin).sort((a, b) => b.total - a.total);
+    const est = Math.round(targets.length * 2 * 0.4 / 60);
+    console.error(`2단계  입찰가 수집 — 검색량 ${bidMin.toLocaleString()} 이상 ${targets.length}개 · 약 ${est}분`);
+    for (let i = 0; i < targets.length; i++) {
+      const k = targets[i];
+      const pc = await bidsFor(k.kw, "PC"); calls++;
+      await sleep(350);
+      const mo = await bidsFor(k.kw, "MOBILE"); calls++;
+      if (pc.ok && mo.ok) {
+        k.bid = { pc: [pc[1], pc[2], pc[3]], mo: [mo[1], mo[2], mo[3]] };
+      } else {
+        const bad = !pc.ok ? pc.status : mo.status;
+        failed.push({ phase: "bids", kw: k.kw, status: bad });
+        if (bad === 429) { console.error("  한도 도달. 여기까지 저장하고 멈춘다."); await save("bids"); stop = true; break; }
+      }
+      if ((i + 1) % 25 === 0) { await save("bids"); console.error(`  [${i + 1}/${targets.length}] ${k.kw}`); }
+      await sleep(350);
+    }
+    await save("bids");
+  }
+
+  await save("done");
+  const withBid = [...byKw.values()].filter(k => k.bid).length;
+  console.error(`\n완료  호출 ${calls}회 · 키워드 ${byKw.size}개 · 입찰가 있는 것 ${withBid}개 · 실패 ${failed.length}건`);
+  console.error(`→ ${OUT}`);
+  if (failed.length) console.error("실패는 실패로 남겼다. 이전 값으로 덮지 않았다.");
+  if (stop) console.error("한도로 중단됐다. 내일 다시 돌리면 이어서 채운다.");
 }
 main().catch(e => { console.error(e); process.exit(1); });
