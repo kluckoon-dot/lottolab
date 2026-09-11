@@ -26,6 +26,7 @@ C:/Users/kluck/Downloads/3. 판매상품/상세페이지_참고/saengsaeng-agri-
 | `docs/04-itemscout-pandarank.md` | 아이템스카우트+판다랭크 결합 검토 · 크롤링 판례 |
 | `docs/05-weapon-spec.md` | **무기 설계서 — 판정 엔진 · 화면 · 로드맵** |
 | `docs/06-live-data-plan.md` | **실데이터 연동 사양 · 하루 2회 스케줄** |
+| `docs/07-apihub-budget.md` | **API HUB 호출 예산 · 갱신 주기 설계** |
 | `prototype/keyword-lab.html` | **동작하는 프로토타입 v2** — 202품종 범용 |
 | `prototype/golden-keyword.html` | 프로토타입 v1 (6품목 고정, 참고용) |
 | `prototype/supply-calendar.json` | 수확 캘린더 202품종 · 인기 TOP20 (시트 추출) |
