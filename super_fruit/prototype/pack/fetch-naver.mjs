@@ -101,9 +101,12 @@ function safe(text) {
   for (const v of [KEY, SECRET, CUSTOMER]) if (v) t = t.split(v).join("<가림>");
   return t;
 }
-function explain(status) {
-  if (status === 401) return "인증 실패. API 키 / 비밀키 / CUSTOMER_ID 를 다시 확인해라.";
-  if (status === 403) return "권한 또는 네트워크 차단. 'Host not in allowlist' 이면 네트워크, 아니면 계정 권한이다.";
+function explain(status, body) {
+  const b = String(body || "");
+  if (status === 403 && /not in allowlist/i.test(b)) return "네트워크 차단. 이 PC 에서 api.searchad.naver.com 에 못 나간다.";
+  if (status === 403 && /auth-failed|Auth Failed/i.test(b)) return "네이버가 키를 거부했다. 네트워크는 뚫렸다.";
+  if (status === 401) return "인증 실패. 키 세 값을 다시 확인해라.";
+  if (status === 403) return "권한 없음. API 사용 신청 상태를 확인해라.";
   if (status === 404) return "경로가 다르다. 이 엔드포인트는 후보에서 빼면 된다.";
   if (status === 429) return "호출 한도 초과.";
   return "";
@@ -131,11 +134,101 @@ const BID_SHAPES = [
     body: (kw, device) => ({ device, period: "MONTH", items: [{ key: kw }] }) }
 ];
 
+/* 값을 노출하지 않고 모양만 본다. 대부분의 인증 실패는 여기서 잡힌다. */
+function shapeReport() {
+  const shape = v => {
+    const t = String(v ?? "");
+    const cls = /^\d+$/.test(t) ? "숫자만"
+      : /^[A-Za-z0-9+/=]+$/.test(t) ? "영문+숫자(+/=)"
+      : /\s/.test(t) ? "공백·줄바꿈 섞임 ← 의심"
+      : "기타 문자 포함";
+    return { len: t.length, head: t.slice(0, 4), cls, tail: t.slice(-1) };
+  };
+  const k = shape(KEY), s2 = shape(SECRET), c = shape(CUSTOMER);
+  console.log("── 키 모양 점검 (값은 보여주지 않는다)");
+  console.log(`  액세스라이선스  길이 ${k.len}  앞 4글자 ${k.head}  ${k.cls}`);
+  console.log(`  비밀키          길이 ${s2.len}  ${s2.cls}${s2.tail === "=" ? "  끝이 = 로 끝남" : ""}`);
+  console.log(`  고객ID          길이 ${c.len}  ${c.cls}`);
+
+  const warn = [];
+  if (!/^\d+$/.test(String(CUSTOMER))) warn.push("고객ID 가 숫자가 아니다. 네이버 아이디나 사업자번호를 넣은 게 아닌지 확인해라.");
+  if (String(CUSTOMER).length < 5 || String(CUSTOMER).length > 12) warn.push("고객ID 자릿수가 보통과 다르다.");
+  if (KEY === SECRET) warn.push("액세스라이선스와 비밀키가 같은 값이다.");
+  if (/\s/.test(String(KEY)) || /\s/.test(String(SECRET))) warn.push("키 안에 공백이나 줄바꿈이 섞여 있다. 붙여넣기를 다시 해라.");
+  if (k.len && s2.len && k.len > s2.len) warn.push("보통 비밀키가 액세스라이선스보다 길다. 두 값이 서로 바뀌었을 수 있다.");
+  if (warn.length) { console.log("\n  의심되는 점"); warn.forEach(w => console.log("   · " + w)); }
+  console.log("");
+}
+
+/* 인증 실패의 원인을 갈라낸다.
+   키를 잘못 넣은 것인지, 내 서명 구현이 틀린 것인지는 밖에서 구분되지 않는다.
+   그래서 조합을 전부 시도해보고 200 이 나오는 게 있는지 본다. 6번이면 끝난다. */
+async function diagnose(kw) {
+  const P = "/keywordstool";
+  const QS = "?hintKeywords=" + encodeURIComponent(kw) + "&showDetail=1";
+  const variants = [
+    { name: "표준 (시각.METHOD.경로)",  msg: ts => `${ts}.GET.${P}` },
+    { name: "경로에 쿼리까지 포함",      msg: ts => `${ts}.GET.${P}${QS}` },
+    { name: "메서드 소문자",             msg: ts => `${ts}.get.${P}` }
+  ];
+  const creds = [
+    { name: "입력한 그대로", api: KEY,    sec: SECRET },
+    { name: "두 값 맞바꿈",  api: SECRET, sec: KEY }
+  ];
+  console.log("  조합을 하나씩 시도한다. 200 이 하나라도 나오면 거기서 답이 갈린다.\n");
+  let hit = null;
+  for (const c of creds) {
+    for (const v of variants) {
+      const ts = Date.now().toString();
+      const sig = crypto.createHmac("sha256", c.sec).update(v.msg(ts)).digest("base64");
+      let status = "??";
+      try {
+        const res = await fetch(HOST + P + QS, {
+          headers: { "X-Timestamp": ts, "X-API-KEY": c.api, "X-Customer": String(CUSTOMER),
+                     "X-Signature": sig, "Content-Type": "application/json; charset=UTF-8" }
+        });
+        status = res.status;
+        if (res.ok && !hit) hit = { cred: c.name, variant: v.name };
+      } catch (e) { status = "연결실패"; }
+      console.log(`   ${status === 200 ? "OK  " : "실패"}  ${c.name} / ${v.name}  → ${status}`);
+      await sleep(250);
+    }
+  }
+  console.log("");
+  if (hit) {
+    console.log("*** 통하는 조합을 찾았다 ***");
+    console.log(`    자격증명: ${hit.cred}`);
+    console.log(`    서명방식: ${hit.variant}`);
+    if (hit.cred === "두 값 맞바꿈")
+      console.log("\n    → key.txt 에서 액세스라이선스와 비밀키의 위치를 맞바꾸고 저장한 뒤 다시 실행해라.");
+    if (hit.variant !== "표준 (시각.METHOD.경로)")
+      console.log("\n    → 서명 방식 문제다. 이 결과를 보내주면 코드를 고쳐서 다시 보낸다.");
+    return true;
+  }
+  console.log("여섯 조합이 전부 실패했다.");
+  console.log("서명 방식 문제가 아니다. 키 값 자체가 이 계정에서 안 통한다는 뜻이다.\n");
+  return false;
+}
+
+function authChecklist() {
+  console.log("── 인증 실패 점검표 (위에서부터 흔한 순서)");
+  console.log("  1. 고객ID  검색광고 화면 우측 상단 [내 정보] 옆 숫자다.");
+  console.log("     네이버 아이디도, 사업자등록번호도, 광고그룹 번호도 아니다.");
+  console.log("  2. 키 쌍   액세스라이선스와 비밀키는 같이 발급된 한 쌍이어야 한다.");
+  console.log("     예전에 발급한 것과 새로 발급한 것을 섞어 넣지 않았는지 본다.");
+  console.log("  3. 재발급  비밀키는 발급 때 한 번만 보인다. 못 봤으면 못 쓴다.");
+  console.log("     [도구] → [API 사용 관리] 에서 다시 발급받고 그 자리에서 둘 다 복사한다.");
+  console.log("  4. 계정    로그인한 계정에 검색광고 광고주 계정이 있어야 한다.");
+  console.log("     여러 계정을 쓰고 있으면 키를 발급한 그 계정의 고객ID 여야 한다.");
+  console.log("  5. 붙여넣기  key.txt 에서 = 뒤에 값만 있어야 한다.");
+  console.log("     따옴표는 떼주지만 중간에 줄바꿈이 들어가면 못 고친다.\n");
+}
+
 async function probeBids(kw) {
   for (const shape of BID_SHAPES) {
     for (const device of ["PC", "MOBILE"]) {
       const r = await call(shape.method, shape.path, { body: shape.body(kw, device) });
-      console.log(`\n── ${shape.name} / ${device} → HTTP ${r.status} ${explain(r.status)}`);
+      console.log(`\n── ${shape.name} / ${device} → HTTP ${r.status} ${explain(r.status, r.text)}`);
       console.log(safe(r.text).slice(0, 900));
       await sleep(300);
     }
@@ -186,10 +279,22 @@ async function main() {
 
   if (has("--probe")) {
     const kw = args[args.indexOf("--probe") + 1] || "샤인머스캣";
+    shapeReport();
     console.log(`=== /keywordstool 원본 · "${kw}" ===`);
     const r = await keywordTool(kw);
-    console.log("HTTP", r.status, explain(r.status));
+    console.log("HTTP", r.status, explain(r.status, r.text));
     console.log(safe(r.text).slice(0, 2000));
+
+    if (r.status === 403 && /auth-failed|Auth Failed/i.test(r.text)) {
+      console.log("\n=== 인증 실패 자동 진단 ===");
+      console.log("  네트워크는 뚫렸다. 이건 네이버 서버가 직접 준 응답이다.");
+      console.log("  남은 가능성은 두 가지다. 키 값이 안 맞거나, 서명 방식이 안 맞거나.\n");
+      const fixed = await diagnose(kw);
+      if (!fixed) authChecklist();
+      console.log("입찰가 탐침은 건너뛴다. 인증이 풀린 뒤에 다시 돌리면 된다.");
+      return;
+    }
+
     console.log("\n=== 입찰가 엔드포인트 탐침 ===");
     await probeBids(kw);
     console.log("\n이 출력을 그대로 붙여주면 파서를 확정한다.");
@@ -219,8 +324,8 @@ async function main() {
     const r = await keywordTool(hint);
     calls++;
     if (!r.ok) {
-      failed.push({ hint, status: r.status, note: explain(r.status), body: safe(r.text).slice(0, 200) });
-      console.error(`${hint} → 실패 HTTP ${r.status} ${explain(r.status)}`);
+      failed.push({ hint, status: r.status, note: explain(r.status, r.text), body: safe(r.text).slice(0, 200) });
+      console.error(`${hint} → 실패 HTTP ${r.status} ${explain(r.status, r.text)}`);
       // 429 / 한도 초과는 여기서 멈춘다. 이전 값으로 덮어쓰지 않는다.
       if (r.status === 429) { console.error("한도 도달. 남은 작업은 다음 회차로 넘긴다."); break; }
     } else {
