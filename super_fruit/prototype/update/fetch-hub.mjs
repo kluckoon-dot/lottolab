@@ -364,8 +364,48 @@ async function collectShop(args) {
   const limit  = parseInt(val("--limit")  || "3000", 10);   // 3,000개 = 9,000회
   const budget = parseInt(val("--budget") || "27000", 10);  // 월 30,000 중 여유 3,000 남긴다
 
-  let targets = rows.filter(r => (r.total || 0) >= minVol)
-                    .sort((a, b) => b.total - a.total).map(r => r.kw);
+  /* 검색량 순으로만 자르면 과일·채소가 아닌 게 잔뜩 들어온다.
+     실제로 상위 3,000개 중 1,703개가 식품 카테고리에서 빈 응답이었다.
+     밥솥·탈모샴푸·싸이벡스제로나T 같은 눈덩이 확장 부산물이다.
+     --seed-first 를 붙이면 씨앗과 두 글자 이상 겹치는 키워드를 앞으로 보낸다.
+     키워드를 버리는 게 아니다. 순서만 바꾼다. */
+  let seedSet = null, seedMax = 0;
+  if (args.includes("--seed-first")) {
+    /* 씨앗을 두 글자로 잘라 쓰면 가짜가 걸린다.
+       실제로 '타이벡감귤' 의 조각 '이벡' 때문에 '싸이벡스제로나T' 가 과일로 분류됐다.
+       그래서 조각이 아니라 씨앗 통째로 들어있는지만 본다. 한 글자 씨앗(배·무·파)은
+       배송·무료 같은 데 걸리므로 뺀다. */
+    const want = (val("--tiers") || "1").split(",").map(x => parseInt(x.trim(), 10)).filter(Boolean);
+    try {
+      const here = path.dirname(new URL(import.meta.url).pathname.replace(/^\/([A-Za-z]:)/, "$1"));
+      const sj = JSON.parse(await fs.readFile(path.join(here, "seeds.json"), "utf8"));
+      seedSet = new Set();
+      for (const t of (sj.tiers || [])) {
+        if (!want.includes(t.tier)) continue;
+        for (const n of (t.seeds || [])) {
+          const w = String(n).replace(/\s+/g, "");
+          if (w.length >= 2) { seedSet.add(w); if (w.length > seedMax) seedMax = w.length; }
+        }
+      }
+      const names = (sj.tiers || []).filter(t => want.includes(t.tier)).map(t => `${t.tier}.${t.name}`);
+      console.error(`씨앗 우선: ${names.join(" · ")} — ${seedSet.size.toLocaleString()}개`);
+    } catch (e) { seedSet = null; console.error(`seeds.json 을 읽지 못했다. 검색량 순 그대로 간다. (${e.message})`); }
+  }
+  const related = kw => {
+    if (!seedSet) return false;
+    for (let i = 0; i < kw.length; i++)
+      for (let L = 2; L <= Math.min(seedMax, kw.length - i); L++)
+        if (seedSet.has(kw.slice(i, i + L))) return true;
+    return false;
+  };
+
+  let pool = rows.filter(r => (r.total || 0) >= minVol).sort((a, b) => b.total - a.total);
+  if (seedSet) {
+    const near = pool.filter(r => related(r.kw)), far = pool.filter(r => !related(r.kw));
+    console.error(`씨앗과 겹치는 것 ${near.length.toLocaleString()}개를 앞으로, 나머지 ${far.length.toLocaleString()}개를 뒤로 보냈다.`);
+    pool = [...near, ...far];
+  }
+  let targets = pool.map(r => r.kw);
   if (limit > 0) targets = targets.slice(0, limit);
 
   const OUT = path.join(OUTDIR, "shop.json");
@@ -441,6 +481,97 @@ async function collectShop(args) {
   const stillPart = targets.filter(k => done[k] && !full(k)).length;
   console.error(`\n완료  호출 ${calls.toLocaleString()}회 · 키워드 ${Object.keys(done).length.toLocaleString()}개 · 실패 ${failed.length}건 · 빈 응답 ${emptyN.toLocaleString()}개`);
   console.error(`      아직 덜 받은 키워드 ${stillPart.toLocaleString()}개. 실패 건수보다 많으면 알려줘라.`);
+  console.error(`→ ${OUT}`);
+}
+
+/* ── 빈 응답 키워드의 제 카테고리 찾기 ──
+   식품(50000006)으로만 물었더니 상위 3,000개 중 1,703개가 빈 응답이었다.
+   밥솥·탈모샴푸·싸이벡스제로나T 처럼 식품이 아닌 키워드이기 때문이다.
+   그 키워드를 버리지 않는다. 어느 카테고리 소속인지 찾아서 거기서 다시 받는다.
+
+   찾는 방법은 --cat --name 과 같다. 카테고리를 바꿔가며 물어보고
+   데이터가 나오는 첫 카테고리를 그 키워드의 자리로 본다.
+   기기(device)로 찔러보므로, 맞는 순간 기기 데이터는 이미 손에 들어온다.
+   그래서 한 키워드당 '탐색 N회 + 성별·연령 2회' 다.
+   어디에도 없으면 쇼핑 키워드가 아니라는 뜻이다(맛집·지명 등). 표시해두고 다시 묻지 않는다. */
+const FIX_CATS = [
+  ["생활/건강",    "50000008"], ["출산/육아",   "50000005"],
+  ["디지털/가전",   "50000003"], ["가구/인테리어", "50000004"],
+  ["화장품/미용",   "50000002"], ["패션의류",    "50000000"],
+  ["스포츠/레저",   "50000007"], ["여가/생활편의", "50000009"]
+];
+
+async function shopFix(args) {
+  const val = f => { const i = args.indexOf(f); return i >= 0 ? args[i + 1] : null; };
+  const OUT = path.join(OUTDIR, "shop.json");
+  let j; try { j = JSON.parse(await fs.readFile(OUT, "utf8")); }
+  catch { console.error(`${OUT} 을 읽지 못했다. 11단계를 먼저 돌려라.`); process.exit(1); }
+  const done = j.data || {};
+  const { startDate, endDate } = j;
+
+  /* 세 항목 다 있는데 내용이 전부 빈 것만 고른다. 아직 못 받은 건 11단계 몫이다. */
+  const allEmpty = k => {
+    const v = done[k]; if (!v) return false;
+    if (v.noCat || v.cat) return false;                       // 이미 처리했다
+    return ["device", "gender", "age"].every(d => v[d] && !Object.keys(v[d]).length);
+  };
+  let list = Object.keys(done).filter(allEmpty);
+
+  /* 검색량 순으로 본다 */
+  const src = val("--from") || path.join(OUTDIR, "keywords.json");
+  try {
+    const rows = JSON.parse(await fs.readFile(src, "utf8")).rows;
+    const vol = new Map(rows.map(r => [r.kw, r.total || 0]));
+    list.sort((a, b) => (vol.get(b) || 0) - (vol.get(a) || 0));
+  } catch { console.error("keywords.json 을 못 읽어 검색량 순 정렬은 건너뛴다."); }
+
+  const budget = parseInt(val("--budget") || "9000", 10);
+  const limit  = parseInt(val("--limit")  || "0", 10);
+  if (limit > 0) list = list.slice(0, limit);
+  console.error(`빈 응답 키워드 ${list.length.toLocaleString()}개의 제 카테고리를 찾는다.`);
+  console.error(`후보 카테고리 ${FIX_CATS.length}개 · 한 키워드당 최대 ${FIX_CATS.length + 2}회 · 한도 ${budget.toLocaleString()}회\n`);
+  if (!list.length) { console.error("찾을 게 없다."); return; }
+
+  let calls = 0, found = 0, none = 0;
+  const save = async () => fs.writeFile(OUT, JSON.stringify({ ...j, savedAt: new Date().toISOString(), data: done }, null, 1), "utf8");
+
+  outer:
+  for (let i = 0; i < list.length; i++) {
+    const kw = list[i], slot = done[kw];
+    let hit = null;
+    for (const [name, cid] of FIX_CATS) {
+      if (calls >= budget) { console.error(`\n한도 ${budget.toLocaleString()}회 도달. 저장하고 멈춘다.`); break outer; }
+      const r = await call("POST", SHOP_PATHS.device, { body: {
+        startDate, endDate, timeUnit: "month", category: cid, keyword: kw } });
+      calls++;
+      await sleep(110);
+      const rows2 = (r.json?.results?.[0]?.data) || [];
+      if (r.ok && rows2.length) { hit = { name, cid, rows: rows2 }; break; }
+    }
+    if (!hit) { slot.noCat = true; none++; }
+    else {
+      slot.cat = hit.cid; slot.catName = hit.name;
+      const fold = data => {
+        const out = {}; for (const d of data) (out[d.group] ||= []).push(d.ratio);
+        return Object.fromEntries(Object.entries(out).map(([g, a]) => [g, +(a.reduce((x, y) => x + y, 0) / a.length).toFixed(2)]));
+      };
+      slot.device = fold(hit.rows);
+      for (const [dim, pth] of [["gender", SHOP_PATHS.gender], ["age", SHOP_PATHS.age]]) {
+        if (calls >= budget) break;
+        const r = await call("POST", pth, { body: {
+          startDate, endDate, timeUnit: "month", category: hit.cid, keyword: kw } });
+        calls++;
+        if (r.ok) slot[dim] = fold((r.json?.results?.[0]?.data) || []);
+        await sleep(110);
+      }
+      found++;
+    }
+    if (i % 20 === 0) await save();
+    if (i % 100 === 0) console.error(`  ${i + 1}/${list.length} · 호출 ${calls.toLocaleString()}회 · 찾음 ${found.toLocaleString()} · 없음 ${none.toLocaleString()}`);
+  }
+  await save();
+  console.error(`\n완료  호출 ${calls.toLocaleString()}회 · 제자리 찾음 ${found.toLocaleString()}개 · 어디에도 없음 ${none.toLocaleString()}개`);
+  console.error("어디에도 없는 건 쇼핑 키워드가 아니라는 뜻이다. 맛집·지명 같은 것들이다. 다시 묻지 않는다.");
   console.error(`→ ${OUT}`);
 }
 
@@ -790,6 +921,7 @@ async function main() {
   if (args.includes("--find")) return findPath();
   if (args.includes("--trend")) return collectTrend(args);
   if (args.includes("--shop-stat")) return shopStat(args);
+  if (args.includes("--shop-fix")) return shopFix(args);
   if (args.includes("--shop")) return collectShop(args);
   if (args.includes("--cat")) return checkCat(args);
   if (args.includes("--probe") || args.length === 0) return probe();
