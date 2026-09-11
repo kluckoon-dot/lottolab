@@ -298,8 +298,8 @@ tbody tr.sel{background:var(--brand-soft)}
       <label class="set-k" for="tgtCvr">목표 전환율</label>
       <div class="slider-row" style="flex:1">
         <span class="tick">1%</span>
-        <input type="range" id="tgtCvr" min="1" max="5" step="0.1" value="1" style="flex:1;min-width:90px">
-        <span class="tick">5%</span>
+        <input type="range" id="tgtCvr" min="1" max="10" step="0.5" value="1" style="flex:1;min-width:90px">
+        <span class="tick">10%</span>
         <span class="f-val num" id="tgtCvrV" style="min-width:38px">1.0%</span>
       </div>
     </div>
@@ -824,7 +824,7 @@ function renderMargin(){
 
   /* 마진 × 전환율 표 */
   var MARGINS=[3000,6000,10000,15000,20000,30000,50000];
-  var CVRS=[0.01,0.02,0.03,0.04,0.05];
+  var CVRS=[0.01,0.02,0.03,0.05,0.08,0.10];
   var h='<thead><tr><th>마진 \\ 목표 전환율</th>';
   CVRS.forEach(function(c){ h+='<th>'+(c*100).toFixed(0)+'%</th>'; }); h+='</tr></thead><tbody>';
   var curM=mg.margin;
@@ -834,7 +834,7 @@ function renderMargin(){
     CVRS.forEach(function(c){
       var pct = passAt(m*c/roasMult())/CPC_SORTED.length*100;
       var st = pct>=80?7:pct>=60?6:pct>=40?5:pct>=25?4:pct>=12?3:pct>=3?2:1;
-      var here = near && Math.abs(c-SET.tgtCvr)<0.006;
+      var here = near && Math.abs(c-SET.tgtCvr)<0.008;
       h+='<td><div class="mxc'+(here?" here":"")+'" style="background:var(--seq'+st+');color:'+(st<=3?"var(--ink-2)":"#fff")+'" '
         +'data-t="마진 '+fmt(m)+'원 · 전환율 '+(c*100).toFixed(0)+'% → 감당 CPC '+fmt(m*c/roasMult())+'원 → '+pct.toFixed(1)+'%">'+pct.toFixed(0)+'%</div></td>';
     });
