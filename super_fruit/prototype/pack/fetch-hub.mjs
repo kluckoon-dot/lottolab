@@ -53,8 +53,17 @@ const SECRET = process.env.NAVER_HUB_SECRET || K.SECRET;
             X-NCP-APIGW-API-KEY    : Client Secret
    이 조합이 210 "A subscription to the API is required" 를 돌려줬다.
    210 은 게이트웨이가 요청을 인식했다는 뜻이다. 남은 것은 키 값과 구독뿐이다. */
-const HUB = "https://naveropenapi.apigw.ntruss.com";
-const HOSTS = [HUB, "https://openapi.naver.com"];
+const HUB = process.env.NAVER_HUB_HOST || "https://naveropenapi.apigw.ntruss.com";
+/* 콘솔 [인증 정보] 팝업이 헤더 이름을 직접 표기한다.
+     Client ID     → X-NCP-APIGW-API-KEY-ID
+     Client Secret → X-NCP-APIGW-API-KEY
+   즉 키와 헤더는 확정이다. 남은 변수는 호출 주소뿐이다. */
+const HOSTS = [
+  "https://naveropenapi.apigw.ntruss.com",
+  "https://apihub.apigw.ntruss.com",
+  "https://naver-api-hub.apigw.ntruss.com",
+  "https://apigw.ntruss.com"
+];
 /* 1차 진단에서 얻은 것
      openapi.naver.com          401 NID AUTH  → 호스트와 헤더는 맞고 값이 거부됨
      naveropenapi.apigw.ntruss  404           → 호스트는 살아있고 경로가 다름
@@ -76,7 +85,23 @@ const AUTHS = [
                                            "X-NCP-APIGW-API-KEY-ID": ID, "X-NCP-APIGW-API-KEY": SECRET }) }
 ];
 const TREND_PATH = "/v1/datalab/search";
-const TREND_PATHS = ["/datalab/v1/search", "/v1/datalab/search"];
+const TREND_PATHS = [
+  "/datalab/v1/search",
+  "/naver-api-hub/v1/datalab/search",
+  "/api-hub/v1/datalab/search",
+  "/apihub/v1/datalab/search",
+  "/hub/v1/datalab/search",
+  "/v1/datalab/search",
+  "/search-trend/v1/search",
+  "/searchtrend/v1/search",
+  "/naver-searchtrend/v1/search",
+  "/ai-naver-searchtrend/v1/search",
+  "/datalab/v1/search/trend"
+];
+/* 대조군. 존재할 리 없는 경로다.
+   이게 404 면 "404 = 없는 경로, 210 = 있는데 구독 안 됨" 으로 읽어도 된다.
+   이것마저 210 이면 210 은 아무 의미가 없다는 뜻이므로 다르게 접근해야 한다. */
+const CONTROL_PATH = "/zzz-definitely-not-an-api/v1/nothing";
 const HUB_TREND = "/datalab/v1/search";
 /* 쇼핑인사이트는 같은 게이트웨이의 이웃 경로로 추정한다. 실호출로 확정한다. → 확인 필요 */
 const SHOP_PATHS = {
@@ -157,16 +182,33 @@ async function probe() {
   const { startDate, endDate } = threeYears();
   console.log(`── 3년 주간 추세 요청으로 시험한다  ${startDate} ~ ${endDate}\n`);
 
+  /* 먼저 대조군으로 응답의 의미를 보정한다 */
+  console.log("── 먼저 대조군으로 응답의 뜻을 확인한다");
+  const ctrl = [];
+  for (const host of HOSTS) {
+    const r = await tryCall(host, AUTHS[1], body, CONTROL_PATH);
+    const code = (r.json && r.json.error && r.json.error.errorCode) || "";
+    ctrl.push({ host, status: r.raw, code });
+    console.log(`  ${String(r.raw).padEnd(5)} ${code ? "("+code+") " : ""}${host}${CONTROL_PATH}`);
+    await sleep(180);
+  }
+  const ctrl210 = ctrl.some(c => c.code === "210");
+  console.log(ctrl210
+    ? "\n  → 없는 경로에도 210 이 온다. 210 은 경로 판단에 못 쓴다. 200(OK) 만 믿는다.\n"
+    : "\n  → 없는 경로는 210 이 아니다. 그러므로 210 = 경로는 있는데 구독이 안 된 것이다.\n");
+
   let hit = null, notable = [];
   for (const host of HOSTS) {
     for (const p of TREND_PATHS) {
-      for (const auth of AUTHS) {
+      for (const auth of [AUTHS[1]]) {          // 콘솔이 지정한 X-NCP-APIGW-* 만 쓴다
         const r = await tryCall(host, auth, body, p);
+        const code = (r.json && r.json.error && r.json.error.errorCode) || "";
         const real = r.ok;
-        const authish = r.raw === 401 || r.raw === 403 || r.raw === 405;
+        const authish = !real && (r.raw === 401 || r.raw === 403 || r.raw === 405)
+                        && !(ctrl210 && code === "210");
         if (real || authish) {
           const mark = real ? "OK  " : authish ? "경로○" : "    ";
-          console.log(`  ${mark} ${String(r.raw).padEnd(5)} ${host}${p}  [${auth.name}]`
+          console.log(`  ${mark} ${String(r.raw).padEnd(5)} ${code ? "("+code+") " : ""}${host}${p}  [${auth.name}]`
             + (r.errBody ? "  ← 200 인데 본문은 에러" : ""));
           notable.push({ host, p, auth: auth.name, status: r.raw, authish, text: r.text });
         }
@@ -213,18 +255,17 @@ async function probe() {
 
   var sub210 = notable.filter(n => /"210"|subscription to the API is required/i.test(n.text));
   if (sub210.length) {
-    console.log("*** 주소와 헤더는 맞다. 구독 또는 키 값 문제다 ***\n");
+    console.log("*** 모든 후보가 210 이다 ***\n");
     console.log("    " + HUB + HUB_TREND + "  [X-NCP-APIGW-*]");
     console.log('    응답: 210 "A subscription to the API is required."\n');
     console.log("    210 은 게이트웨이가 요청을 제대로 읽었다는 뜻이다.");
     console.log("    주소도 헤더 이름도 맞다. 남은 것은 둘 중 하나다.\n");
-    console.log("    ① 넣은 Client ID / Secret 이 그 Application 의 값이 아니다");
-    console.log("       콘솔 → NAVER API HUB → Application → [인증 정보] 팝업의 두 값을 그대로.");
-    console.log("       지금 넣은 값은 ID " + String(ID).length + "자 / Secret " + String(SECRET).length + "자다.\n");
-    console.log("    ② 그 Application 에 검색어트렌드가 구독되어 있지 않다");
-    console.log("       콘솔의 API 관리 목록에 '검색어트렌드'가 보이는지 확인.\n");
-    console.log("    가장 빠른 길: 기존에 돌아가던 시스템의 .env 파일을 열어");
-    console.log("    실제로 작동 중인 값을 그대로 key.txt 에 옮겨라.\n");
+    console.log("    콘솔 [인증 정보] 팝업이 헤더 이름을 직접 표기하므로 키와 헤더는 맞다.");
+    console.log("    그렇다면 남은 것은 호출 주소다. 위 후보 중에 정답이 없다는 뜻이다.\n");
+    console.log("    확실하게 끝내는 방법:");
+    console.log("      콘솔 화면 상단의 [개발 가이드] 버튼을 눌러라.");
+    console.log("      공식 문서가 열리고 거기에 호출 주소가 적혀 있다.");
+    console.log("      그 주소 한 줄만 알려주면 바로 붙인다.\n");
     return;
   }
   const auth401 = notable.filter(n => n.status === 401);
