@@ -294,40 +294,74 @@ async function main() {
   /* 1단계 — 연관 키워드. 철자가 다르면 다른 키워드로 전부 남긴다 */
   console.error("");
   plan.forEach(t => console.error(`  ${t.tier}단계  ${t.name.padEnd(12)} 시드 ${t.seeds.length}개`));
+  const snowRounds = parseInt(val("--snowball") ?? "2", 10);
+  const snowTop = parseInt(val("--snowball-top") || "300", 10);
+  if (snowRounds > 0) console.error(`  눈덩이 확장 ${snowRounds}바퀴 · 바퀴당 상위 ${snowTop}개`);
   if (maxCalls) console.error(`  호출 상한 ${maxCalls.toLocaleString()}회`);
   let stop = false, budget = false;
 
+  /* 힌트 하나를 넣고 연관 키워드를 거둔다. 반환값은 계속 진행해도 되는지 여부 */
+  async function runHint(hint, tier, label) {
+    if (maxCalls && calls >= maxCalls) { budget = true; return false; }
+    const r = await keywordTool(hint); calls++;
+    if (!r.ok) {
+      failed.push({ phase: "keywords", tier, hint, status: r.status, note: explain(r.status, r.text) });
+      console.error(`  ${label} ${hint} → 실패 ${r.status} ${explain(r.status, r.text)}`);
+      if (r.status === 429) { stop = true; return false; }
+      doneHints.add(hint);
+      return true;
+    }
+    for (const row of (r.json?.keywordList || [])) {
+      const m = normalize(row); if (!m.kw) continue;
+      const prev = byKw.get(m.kw);
+      if (!prev) { m.hints = [hint]; m.tier = tier; byKw.set(m.kw, m); }
+      else {
+        if (!prev.hints.includes(hint)) prev.hints.push(hint);
+        if (prev.tier == null || tier < prev.tier) prev.tier = tier;
+        if (prev.total !== m.total) (prev.seenAlso ||= []).push({ hint, total: m.total, at: m.fetchedAt });
+      }
+    }
+    doneHints.add(hint);
+    return true;
+  }
+
   for (const t of plan) {
     const todo = t.seeds.filter(h => !doneHints.has(h));
-    if (!todo.length) { console.error(`\n${t.tier}단계 ${t.name} — 이미 끝남`); continue; }
-    console.error(`\n${t.tier}단계  ${t.name}  —  ${todo.length}개 처리` + (todo.length < t.seeds.length ? ` (${t.seeds.length - todo.length}개는 이미 끝남)` : ""));
-    for (let i = 0; i < todo.length; i++) {
-      if (maxCalls && calls >= maxCalls) { console.error("  호출 상한에 닿았다. 저장하고 멈춘다."); budget = true; break; }
-      const hint = todo[i];
-      const r = await keywordTool(hint); calls++;
-      if (!r.ok) {
-        failed.push({ phase: "keywords", tier: t.tier, hint, status: r.status, note: explain(r.status, r.text) });
-        console.error(`  [${i + 1}/${todo.length}] ${hint} → 실패 ${r.status} ${explain(r.status, r.text)}`);
-        if (r.status === 429) { console.error("  한도 도달. 저장하고 멈춘다."); stop = true; break; }
-      } else {
-        for (const row of (r.json?.keywordList || [])) {
-          const m = normalize(row); if (!m.kw) continue;
-          const prev = byKw.get(m.kw);
-          if (!prev) { m.hints = [hint]; m.tier = t.tier; byKw.set(m.kw, m); }
-          else {
-            if (!prev.hints.includes(hint)) prev.hints.push(hint);
-            if (prev.tier == null || t.tier < prev.tier) prev.tier = t.tier;
-            if (prev.total !== m.total) (prev.seenAlso ||= []).push({ hint, total: m.total, at: m.fetchedAt });
-          }
-        }
-        doneHints.add(hint);
+    if (todo.length) {
+      console.error(`\n${t.tier}단계  ${t.name}  —  시드 ${todo.length}개` + (todo.length < t.seeds.length ? ` (${t.seeds.length - todo.length}개는 이미 끝남)` : ""));
+      for (let i = 0; i < todo.length; i++) {
+        if (!await runHint(todo[i], t.tier, `[${i + 1}/${todo.length}]`)) break;
         if ((i + 1) % 10 === 0 || i === todo.length - 1)
-          console.error(`  [${i + 1}/${todo.length}] ${hint} → 누적 키워드 ${byKw.size.toLocaleString()}개`);
+          console.error(`  [${i + 1}/${todo.length}] ${todo[i]} → 누적 ${byKw.size.toLocaleString()}개`);
+        if ((i + 1) % 20 === 0) await save("keywords");
+        await sleep(350);
       }
-      if ((i + 1) % 20 === 0) await save("keywords");
-      await sleep(350);
+      await save("keywords");
+    } else console.error(`\n${t.tier}단계 ${t.name} — 시드는 이미 끝남`);
+    if (stop || budget) break;
+
+    /* 눈덩이 확장 — 찾아낸 키워드를 다시 힌트로 넣는다.
+       시드 목록을 손으로 완벽하게 적는 건 불가능하다. 빠진 가지는 이걸로 메운다. */
+    for (let round = 1; round <= snowRounds; round++) {
+      const pool = [...byKw.values()]
+        .filter(k => k.tier === t.tier && !doneHints.has(k.kw))
+        .sort((a, b) => b.total - a.total)
+        .slice(0, snowTop)
+        .map(k => k.kw);
+      if (!pool.length) break;
+      const before = byKw.size;
+      console.error(`\n${t.tier}단계  눈덩이 ${round}바퀴  —  ${pool.length}개를 다시 힌트로`);
+      for (let i = 0; i < pool.length; i++) {
+        if (!await runHint(pool[i], t.tier, `[${i + 1}/${pool.length}]`)) break;
+        if ((i + 1) % 25 === 0 || i === pool.length - 1)
+          console.error(`  [${i + 1}/${pool.length}] → 누적 ${byKw.size.toLocaleString()}개 (+${(byKw.size - before).toLocaleString()})`);
+        if ((i + 1) % 20 === 0) await save("keywords");
+        await sleep(350);
+      }
+      await save("keywords");
+      console.error(`  ${round}바퀴로 새로 찾은 키워드 ${(byKw.size - before).toLocaleString()}개`);
+      if (stop || budget) break;
     }
-    await save("keywords");
     if (stop || budget) break;
   }
   console.error(`\n1단계 끝. 고유 키워드 ${byKw.size.toLocaleString()}개`);
