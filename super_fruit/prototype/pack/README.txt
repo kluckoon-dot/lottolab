@@ -29,7 +29,25 @@ https://nodejs.org  접속
 안 깔려 있으면 1-check.bat 이 알려주고 사이트를 열어줍니다.
 
 
-[1단계] 키 3개 발급
+[이 폴더의 파일]
+----------------
+ 1-check.bat        검색광고 API 연결 확인      <- 여기부터
+ 2-collect-40.bat   40품종 수집
+ 3-collect-all.bat  202품종 전체 수집
+ 4-check-hub.bat    API HUB 연결 확인
+ key.txt            키를 넣는 곳
+
+
+[알아둘 것] 네이버 API 는 두 종류입니다
+---------------------------------------
+ A. 검색광고 API   월검색수 / 클릭 / CTR / 경쟁도 / 1~3위 입찰가
+ B. NAVER API HUB  3년 주간 추세 / 연령 / 성별 / 기기
+
+서로 다른 서비스라 키도 따로입니다. 둘 다 있어야 화면이 완성됩니다.
+입찰가는 A 에서만 나옵니다. B 에는 없습니다.
+
+
+[1단계] 키 3개 발급  (A. 검색광고)
 -------------------
 1. searchad.naver.com 로그인
 2. 우측 상단 [도구] -> [API 사용 관리]
@@ -115,6 +133,28 @@ Ctrl+S 로 저장하고 닫습니다.
 
  5) 붙여넣다가 줄바꿈이 들어감
     key.txt 에서 = 뒤에 값만, 한 줄로 있어야 합니다.
+
+
+[6단계] 4-check-hub.bat  (B. API HUB)
+-------------------------------------
+key.txt 아래쪽의 NAVER_HUB_ID / NAVER_HUB_SECRET 를 채운 뒤 실행하세요.
+
+발급 위치
+  console.ncloud.com 접속
+  좌측 상단 [Menu] -> All Services
+  -> Application Services -> NAVER API HUB
+  -> 좌측 [Application] 메뉴
+  -> Application 등록 (아직 안 했으면)
+  -> API 관리 아래 [인증 정보] 버튼
+  -> Client ID / Client Secret 복사
+
+Application 을 등록할 때 쓸 API 를 고르게 되어 있습니다.
+"검색어트렌드" 와 "쇼핑인사이트" 를 꼭 포함시키세요.
+
+이 프로그램은 호출 주소를 찾아내는 역할입니다.
+이관하면서 주소가 바뀌었는데 확정이 안 돼서,
+후보를 전부 시도해보고 되는 것을 찾습니다.
+결과(hub.txt)를 보내주세요.
 
 
 [주의]
