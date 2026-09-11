@@ -53,20 +53,17 @@ const SECRET = process.env.NAVER_HUB_SECRET || K.SECRET;
             X-NCP-APIGW-API-KEY    : Client Secret
    이 조합이 210 "A subscription to the API is required" 를 돌려줬다.
    210 은 게이트웨이가 요청을 인식했다는 뜻이다. 남은 것은 키 값과 구독뿐이다. */
-const HUB = process.env.NAVER_HUB_HOST || "https://naveropenapi.apigw.ntruss.com";
-/* 콘솔 [인증 정보] 팝업이 헤더 이름을 직접 표기한다.
-     Client ID     → X-NCP-APIGW-API-KEY-ID
-     Client Secret → X-NCP-APIGW-API-KEY
-   즉 키와 헤더는 확정이다. 남은 변수는 호출 주소뿐이다. */
-const HOSTS = [
-  "https://naveropenapi.apigw.ntruss.com",
-  "https://naverapihub.apigw.ntruss.com",
-  "https://apihub.apigw.ntruss.com",
-  "https://naver-api-hub.apigw.ntruss.com",
-  "https://naverapi.apigw.ntruss.com",
-  "https://openapi.apigw.ntruss.com",
-  "https://apigw.ntruss.com"
-];
+const HUB = process.env.NAVER_HUB_HOST || "https://naverapihub.apigw.ntruss.com";
+/* 2026-09-11 이관 가이드로 확정.
+     호출 도메인   openapi.naver.com     →  naverapihub.apigw.ntruss.com
+     API Path     /v1/search/news.json  →  /search/v1/news
+                  (v1 이 앞에서 뒤로 이동하고 .json 이 빠진다)
+     헤더         X-Naver-Client-Id     →  X-NCP-APIGW-API-KEY-ID
+                  X-Naver-Client-Secret →  X-NCP-APIGW-API-KEY
+
+   그동안 naveropenapi.apigw.ntruss.com 을 두드렸는데 그건 옛 게이트웨이다.
+   그래서 210 "구독 필요" 가 나왔다. 키가 그쪽에 구독되어 있지 않았을 뿐이다. */
+const HOSTS = [HUB, "https://naveropenapi.apigw.ntruss.com"];
 /* 1차 진단에서 얻은 것
      openapi.naver.com          401 NID AUTH  → 호스트와 헤더는 맞고 값이 거부됨
      naveropenapi.apigw.ntruss  404           → 호스트는 살아있고 경로가 다름
@@ -88,52 +85,36 @@ const AUTHS = [
                                            "X-NCP-APIGW-API-KEY-ID": ID, "X-NCP-APIGW-API-KEY": SECRET }) }
 ];
 const TREND_PATH = "/v1/datalab/search";
-const TREND_PATHS = [
-  "/datalab/v1/search",
-  "/naver-api-hub/v1/datalab/search",
-  "/api-hub/v1/datalab/search",
-  "/apihub/v1/datalab/search",
-  "/hub/v1/datalab/search",
-  "/v1/datalab/search",
-  "/search-trend/v1/search",
-  "/searchtrend/v1/search",
-  "/naver-searchtrend/v1/search",
-  "/ai-naver-searchtrend/v1/search",
-  "/datalab/v1/search/trend",
-  "/datalab/v1/search?api=hub",
-  "/v1/datalab/search?api=hub",
-  "/naverapihub/v1/datalab/search",
-  "/nah/v1/datalab/search"
-];
+const TREND_PATHS = ["/datalab/v1/search", "/v1/datalab/search"];
 /* 대조군. 존재할 리 없는 경로다.
    이게 404 면 "404 = 없는 경로, 210 = 있는데 구독 안 됨" 으로 읽어도 된다.
    이것마저 210 이면 210 은 아무 의미가 없다는 뜻이므로 다르게 접근해야 한다. */
 const CONTROL_PATH = "/zzz-definitely-not-an-api/v1/nothing";
 const HUB_TREND = "/datalab/v1/search";
+/* 같은 규칙을 쇼핑인사이트에 적용한 경로.  /v1/datalab/... → /datalab/v1/... */
 /* 쇼핑인사이트는 같은 게이트웨이의 이웃 경로로 추정한다. 실호출로 확정한다. → 확인 필요 */
 const SHOP_PATHS = {
-  keywords: "/datalab/v1/shopping/category/keywords",
-  device:   "/datalab/v1/shopping/category/keyword/device",
-  gender:   "/datalab/v1/shopping/category/keyword/gender",
-  age:      "/datalab/v1/shopping/category/keyword/age"
+  categories: "/datalab/v1/shopping/categories",
+  keywords:   "/datalab/v1/shopping/category/keywords",
+  device:     "/datalab/v1/shopping/category/keyword/device",
+  gender:     "/datalab/v1/shopping/category/keyword/gender",
+  age:        "/datalab/v1/shopping/category/keyword/age"
 };
 
 /* 씨앗을 네이버한테 받아올 수 있는 통로가 있는지 확인할 후보들.
    404 면 없는 것, 400 이면 있는데 요청 형식만 틀린 것이다. */
 const RAW_PATHS = [
-  ["카테고리 목록",              "GET",  "/v1/datalab/shopping/categories", null],
-  ["카테고리 목록(다른 이름)",    "GET",  "/v1/datalab/shopping/category", null],
-  ["카테고리별 인기 키워드",      "POST", "/v1/datalab/shopping/category/keywords",
-    { startDate: "2026-08-01", endDate: "2026-08-31", timeUnit: "month", category: "50000006",
-      keyword: [{ name: "전체", param: ["전체"] }] }],
-  ["카테고리 클릭 추세",          "POST", "/v1/datalab/shopping/categories",
+  ["카테고리 목록",        "POST", SHOP_PATHS.categories,
     { startDate: "2026-08-01", endDate: "2026-08-31", timeUnit: "month",
       category: [{ name: "식품", param: ["50000006"] }] }],
-  ["키워드별 기기",              "POST", "/v1/datalab/shopping/category/keyword/device",
+  ["카테고리별 인기 키워드", "POST", SHOP_PATHS.keywords,
+    { startDate: "2026-08-01", endDate: "2026-08-31", timeUnit: "month", category: "50000006",
+      keyword: [{ name: "사과", param: ["사과"] }] }],
+  ["키워드별 기기",        "POST", SHOP_PATHS.device,
     { startDate: "2026-08-01", endDate: "2026-08-31", timeUnit: "month", category: "50000006", keyword: "사과" }],
-  ["키워드별 성별",              "POST", "/v1/datalab/shopping/category/keyword/gender",
+  ["키워드별 성별",        "POST", SHOP_PATHS.gender,
     { startDate: "2026-08-01", endDate: "2026-08-31", timeUnit: "month", category: "50000006", keyword: "사과" }],
-  ["키워드별 연령",              "POST", "/v1/datalab/shopping/category/keyword/age",
+  ["키워드별 연령",        "POST", SHOP_PATHS.age,
     { startDate: "2026-08-01", endDate: "2026-08-31", timeUnit: "month", category: "50000006", keyword: "사과" }]
 ];
 

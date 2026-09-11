@@ -136,11 +136,42 @@ VAT 별도.
 
 ---
 
+## 3-b. 호출 주소 — 확정 (2026-09-11)
+
+이관 가이드가 답이었다. 그동안 막혔던 이유가 여기 있다.
+
+| | 개발자센터 (구) | **NAVER API HUB (신)** |
+|---|---|---|
+| 호출 도메인 | `openapi.naver.com` | **`naverapihub.apigw.ntruss.com`** |
+| API Path | `/v1/search/news.json` | `/search/v1/news` |
+| Client ID 헤더 | `X-Naver-Client-Id` | `X-NCP-APIGW-API-KEY-ID` |
+| Client Secret 헤더 | `X-Naver-Client-Secret` | `X-NCP-APIGW-API-KEY` |
+
+**경로 규칙: `v1` 이 앞에서 뒤로 이동하고 `.json` 이 빠진다.**
+
+```
+/v1/datalab/search                          →  /datalab/v1/search
+/v1/datalab/shopping/categories             →  /datalab/v1/shopping/categories
+/v1/datalab/shopping/category/keywords      →  /datalab/v1/shopping/category/keywords
+/v1/datalab/shopping/category/keyword/age   →  /datalab/v1/shopping/category/keyword/age
+```
+
+### 왜 210 이 계속 나왔나
+
+우리가 두드린 `naveropenapi.apigw.ntruss.com` 은 **옛 게이트웨이**(AI·NAVER API 제품군)다.
+API HUB 는 `naverapihub` 다. 호스트가 아예 달랐다.
+
+키는 처음부터 맞았고, 헤더도 맞았다. 그 키가 옛 게이트웨이 제품에 구독되어 있지 않아서
+`210 A subscription to the API is required` 가 나온 것뿐이다.
+**210 을 "경로는 맞다" 는 신호로 읽은 것이 오독이었다.**
+
+---
+
 ## 4. 시작 전에 확인할 것
 
 | 확인할 것 | 왜 중요한가 | 방법 |
 |---|---|---|
-| **호출 주소** | 이관하며 바뀜. 모르면 아무것도 못 함 | `4-check-hub.bat` |
+| ~~호출 주소~~ | ~~이관하며 바뀜~~ | **확정됨 · 위 3-b 참조** |
 | 인증 헤더 방식 | 두 가지 후보 | 같은 파일 |
 | 검색어트렌드 1회 최대 키워드 그룹 수 | 예산이 5배 갈린다 | 실호출 |
 | **쇼핑인사이트 연령/성별/기기의 묶음 조회 가능 여부** | **병목이 사라지느냐 마느냐** | 실호출 |
