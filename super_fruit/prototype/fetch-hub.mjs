@@ -60,8 +60,11 @@ const HUB = process.env.NAVER_HUB_HOST || "https://naveropenapi.apigw.ntruss.com
    즉 키와 헤더는 확정이다. 남은 변수는 호출 주소뿐이다. */
 const HOSTS = [
   "https://naveropenapi.apigw.ntruss.com",
+  "https://naverapihub.apigw.ntruss.com",
   "https://apihub.apigw.ntruss.com",
   "https://naver-api-hub.apigw.ntruss.com",
+  "https://naverapi.apigw.ntruss.com",
+  "https://openapi.apigw.ntruss.com",
   "https://apigw.ntruss.com"
 ];
 /* 1차 진단에서 얻은 것
@@ -96,7 +99,11 @@ const TREND_PATHS = [
   "/searchtrend/v1/search",
   "/naver-searchtrend/v1/search",
   "/ai-naver-searchtrend/v1/search",
-  "/datalab/v1/search/trend"
+  "/datalab/v1/search/trend",
+  "/datalab/v1/search?api=hub",
+  "/v1/datalab/search?api=hub",
+  "/naverapihub/v1/datalab/search",
+  "/nah/v1/datalab/search"
 ];
 /* 대조군. 존재할 리 없는 경로다.
    이게 404 면 "404 = 없는 경로, 210 = 있는데 구독 안 됨" 으로 읽어도 된다.
