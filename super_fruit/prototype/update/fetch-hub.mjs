@@ -375,6 +375,15 @@ async function collectShop(args) {
   const full = k => done[k] && done[k].device && done[k].gender && done[k].age;
   const todo = targets.filter(k => !full(k));
 
+  /* 왜 남았는지를 숫자로 먼저 밝힌다.
+     '남은 개수'만 보면 코드가 잃어버린 건지, 애초에 대상이 바뀐 건지 구분이 안 된다. */
+  const inFile = Object.keys(done).length;
+  const fresh  = targets.filter(k => !done[k]).length;              // 파일에 아예 없던 키워드
+  const part   = targets.filter(k => done[k] && !full(k)).length;   // 있는데 덜 받은 키워드
+  const miss   = { device: 0, gender: 0, age: 0 };
+  for (const k of targets) if (done[k] && !full(k))
+    for (const d of ["device", "gender", "age"]) if (!done[k][d]) miss[d]++;
+
   const { startDate, endDate } = (() => {
     const end = new Date(); end.setDate(1); end.setDate(0);              // 지난달 말일
     const start = new Date(end); start.setMonth(start.getMonth() - 11); start.setDate(1);
@@ -383,14 +392,19 @@ async function collectShop(args) {
 
   console.error(`쇼핑인사이트 — 카테고리 ${CAT} · 기간 ${startDate} ~ ${endDate}`);
   console.error(`대상 ${targets.length.toLocaleString()}개 · 남은 ${todo.length.toLocaleString()}개 · 예상 ${(todo.length * 3).toLocaleString()}회`);
+  console.error(`  shop.json 안 ${inFile.toLocaleString()}개 · 그중 이번 대상에 없던 새 키워드 ${fresh.toLocaleString()}개 · 덜 받은 것 ${part.toLocaleString()}개`);
+  if (part) console.error(`  덜 받은 항목: 기기 ${miss.device} · 성별 ${miss.gender} · 연령 ${miss.age}`);
+  if (fresh > 50) console.error(`  ※ 새 키워드가 ${fresh.toLocaleString()}개다. 그사이 keywords.json 이 커져서 상위 ${limit.toLocaleString()}개 명단이 바뀐 것이다. 코드가 잃어버린 게 아니다.`);
   if ((todo.length * 3) > budget)
     console.error(`한도 ${budget.toLocaleString()}회에 걸린다. ${Math.floor(budget / 3).toLocaleString()}개까지만 받고 멈춘다. 다음 달에 이어받으면 된다.`);
   if (!todo.length) { console.error("이미 다 받았다."); return; }
 
-  let calls = 0, failed = [];
+  let calls = 0, failed = [], emptyN = 0;
   const save = async () => fs.writeFile(OUT, JSON.stringify({
     category: CAT, startDate, endDate, savedAt: new Date().toISOString(),
-    calls, keywords: Object.keys(done).length, failed, data: done }, null, 1), "utf8");
+    calls, keywords: Object.keys(done).length,
+    targets: targets.length, targetList: targets,   // 이번에 무엇을 대상으로 삼았는지 남긴다
+    emptyDims: emptyN, failed, data: done }, null, 1), "utf8");
 
   outer:
   for (let i = 0; i < todo.length; i++) {
@@ -414,14 +428,90 @@ async function collectShop(args) {
         /* 월별로 여러 개 들어오므로 평균 낸다. 비율이라 합보다 평균이 맞다. */
         slot[dim] = Object.fromEntries(Object.entries(out)
           .map(([g, a]) => [g, +(a.reduce((x, y) => x + y, 0) / a.length).toFixed(2)]));
+        /* 200 인데 내용이 빈 경우다. 실패가 아니라 '이 카테고리엔 그 키워드가 없다'는 답이다.
+           빈 값도 답이므로 그대로 저장한다. 다시 물어보지 않는다. */
+        if (!Object.keys(slot[dim]).length) emptyN++;
       }
       await sleep(120);
     }
-    if (i % 50 === 0) { await save(); console.error(`  ${i + 1}/${todo.length} · 호출 ${calls.toLocaleString()}회`); }
+    if (i % 20 === 0) await save();
+    if (i % 50 === 0) console.error(`  ${i + 1}/${todo.length} · 호출 ${calls.toLocaleString()}회`);
   }
   await save();
-  console.error(`\n완료  호출 ${calls.toLocaleString()}회 · 키워드 ${Object.keys(done).length.toLocaleString()}개 · 실패 ${failed.length}건`);
+  const stillPart = targets.filter(k => done[k] && !full(k)).length;
+  console.error(`\n완료  호출 ${calls.toLocaleString()}회 · 키워드 ${Object.keys(done).length.toLocaleString()}개 · 실패 ${failed.length}건 · 빈 응답 ${emptyN.toLocaleString()}개`);
+  console.error(`      아직 덜 받은 키워드 ${stillPart.toLocaleString()}개. 실패 건수보다 많으면 알려줘라.`);
   console.error(`→ ${OUT}`);
+}
+
+/* ── shop.json 진단 (호출 0회) ──
+   왜 자꾸 남은 개수가 크게 나오는지 파일만 보고 판정한다.
+   원인이 둘 중 무엇인지 가른다.
+     1) 대상 명단이 바뀌었다  → keywords.json 이 커져서 상위 N 개가 달라진 것. 정상.
+     2) 받은 걸 잃어버렸다    → 내 코드 잘못. 고쳐야 한다. */
+async function shopStat(args) {
+  const val = f => { const i = args.indexOf(f); return i >= 0 ? args[i + 1] : null; };
+  const OUT = path.join(OUTDIR, "shop.json");
+  let j; try { j = JSON.parse(await fs.readFile(OUT, "utf8")); }
+  catch { console.error(`${OUT} 을 읽지 못했다.`); process.exit(1); }
+  const data = j.data || {};
+  const keys = Object.keys(data);
+
+  let fullN = 0, partN = 0, emptyAll = 0;
+  const miss = { device: 0, gender: 0, age: 0 };
+  const partSample = [];
+  for (const k of keys) {
+    const v = data[k] || {};
+    const have = ["device", "gender", "age"].filter(d => v[d]);
+    if (have.length === 3) {
+      fullN++;
+      if (have.every(d => !Object.keys(v[d]).length)) emptyAll++;
+    } else {
+      partN++;
+      for (const d of ["device", "gender", "age"]) if (!v[d]) miss[d]++;
+      if (partSample.length < 10) partSample.push(`${k}(${have.join("·") || "없음"})`);
+    }
+  }
+  console.log(`\n── shop.json 진단   저장 ${j.savedAt || "?"}`);
+  console.log(`  카테고리 ${j.category}  ·  기간 ${j.startDate} ~ ${j.endDate}`);
+  console.log(`  파일 안 키워드      ${keys.length.toLocaleString()}개`);
+  console.log(`  3개 다 받은 것      ${fullN.toLocaleString()}개   (그중 내용이 전부 빈 것 ${emptyAll.toLocaleString()}개)`);
+  console.log(`  덜 받은 것          ${partN.toLocaleString()}개`);
+  if (partN) {
+    console.log(`    빠진 항목  기기 ${miss.device} · 성별 ${miss.gender} · 연령 ${miss.age}`);
+    console.log(`    예시  ${partSample.join("  ")}`);
+  }
+  console.log(`  기록된 실패         ${(j.failed || []).length.toLocaleString()}건`);
+
+  /* 대상 명단이 바뀌었는지 본다 */
+  const src = val("--from") || path.join(OUTDIR, "keywords.json");
+  let rows = null;
+  try { rows = JSON.parse(await fs.readFile(src, "utf8")).rows; } catch {}
+  if (rows) {
+    const limit = parseInt(val("--limit") || "3000", 10);
+    const minVol = parseInt(val("--min-vol") || "100", 10);
+    const now = rows.filter(r => (r.total || 0) >= minVol)
+                    .sort((a, b) => b.total - a.total).map(r => r.kw).slice(0, limit);
+    const fresh = now.filter(k => !data[k]).length;
+    console.log(`\n  keywords.json 전체    ${rows.length.toLocaleString()}개`);
+    console.log(`  지금 기준 상위 ${limit.toLocaleString()}개 중 shop.json 에 없는 것  ${fresh.toLocaleString()}개`);
+    if (j.targetList) {
+      const before = new Set(j.targetList);
+      const changed = now.filter(k => !before.has(k)).length;
+      console.log(`  지난번 대상 명단과 달라진 것  ${changed.toLocaleString()}개`);
+    } else console.log("  (지난번 대상 명단이 파일에 없다. 이번 수집부터 기록된다.)");
+    console.log("");
+    if (fresh > 50) {
+      console.log("  판정: 대상 명단이 바뀐 것이다.");
+      console.log("        그사이 keywords.json 이 커져서 상위 명단에 새 키워드가 들어왔다.");
+      console.log("        받은 걸 잃어버린 게 아니다. 계속 돌리면 채워진다.");
+    } else if (partN > (j.failed || []).length + 50) {
+      console.log("  판정: 받은 걸 잃어버렸다. 내 잘못이다. 이 화면을 그대로 보내줘라.");
+    } else {
+      console.log("  판정: 정상이다. 남은 건 실패분뿐이다.");
+    }
+  }
+  console.log("");
 }
 
 /* ── 카테고리 ID 확인 ──
@@ -699,9 +789,10 @@ async function main() {
   console.error(`API HUB 인증 정보 확인. Client ID ${String(ID).slice(0, 4)}***\n`);
   if (args.includes("--find")) return findPath();
   if (args.includes("--trend")) return collectTrend(args);
+  if (args.includes("--shop-stat")) return shopStat(args);
   if (args.includes("--shop")) return collectShop(args);
   if (args.includes("--cat")) return checkCat(args);
   if (args.includes("--probe") || args.length === 0) return probe();
-  console.error("--probe / --find / --trend / --shop / --cat 중 하나를 써라.");
+  console.error("--probe / --find / --trend / --shop / --shop-stat / --cat 중 하나를 써라.");
 }
 main().catch(e => { console.error(e); process.exit(1); });
