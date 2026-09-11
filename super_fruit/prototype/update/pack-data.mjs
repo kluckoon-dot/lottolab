@@ -16,7 +16,9 @@
  *
  * 키워드는 하나도 버리지 않는다. 접기만 한다.
  *
- * 실행:  node pack-data.mjs
+ * 실행:  node pack-data.mjs                       전부 담는다 (섹션 표시만)
+ *        node pack-data.mjs --section 1        과일·채소만
+ *        node pack-data.mjs --section 1,2      과일·채소 + 곡물·견과
  */
 import fs from "node:fs";
 import path from "node:path";
@@ -35,6 +37,43 @@ fs.mkdirSync(DST, { recursive: true });
 const meta = { builtAt: new Date().toISOString(), alphabet: A };
 let total = 0;
 
+/* ── 섹션 ──
+   419,049개를 한 화면에 다 넣는 건 무리다. 보갬이 정한 순서대로 자른다.
+     1 과일·채소  →  2 곡물·견과·건과  →  3 수산물  →  4 축산물
+   그 밖의 카테고리는 나중에 별도 사이트로 뺀다.
+   키워드를 버리는 게 아니다. 어느 섹션에 속하는지 표시만 한다.
+   한 키워드가 여러 섹션에 속할 수 있다. 어디에도 안 붙으면 0 이다. */
+let SEC = null;
+try { SEC = JSON.parse(fs.readFileSync("sections.json", "utf8")).sections; } catch {}
+let secMatch = () => 0;
+if (SEC) {
+  const multi = SEC.map(() => new Set()), one = SEC.map(() => []);
+  let maxLen = 0;
+  SEC.forEach((sec, si) => {
+    for (const raw of sec.terms) {
+      const w = String(raw).replace(/\s+/g, "");
+      if (w.length === 1) one[si].push(w);
+      else if (w.length >= 2) { multi[si].add(w); if (w.length > maxLen) maxLen = w.length; }
+    }
+  });
+  /* 비트로 담는다. 1=과일·채소, 2=곡물, 4=수산, 8=축산 */
+  secMatch = kw => {
+    let m = 0;
+    for (let si = 0; si < SEC.length; si++) {
+      let hit = false;
+      for (let i = 0; i < kw.length && !hit; i++)
+        for (let L = 2; L <= Math.min(maxLen, kw.length - i); L++)
+          if (multi[si].has(kw.slice(i, i + L))) { hit = true; break; }
+      if (!hit)
+        for (const c of one[si])
+          if (kw === c || kw.slice(-1) === c || (kw.slice(0, 1) === c && kw.length <= 4)) { hit = true; break; }
+      if (hit) m |= (1 << si);
+    }
+    return m;
+  };
+  console.log(`섹션 ${SEC.length}개: ` + SEC.map(x => x.name).join(" · "));
+}
+
 /* ── 1. 키워드 ── */
 const kj = read("keywords.json");
 if (!kj) { console.error("naver-out/keywords.json 을 못 읽었다."); process.exit(1); }
@@ -42,18 +81,46 @@ const rows = kj.rows || [];
 console.log(`키워드 ${rows.length.toLocaleString()}개  (원본 ${MB(size("keywords.json"))})`);
 
 const num = x => (x == null || x === "" ? 0 : (typeof x === "number" ? x : Number(x) || 0));
-const packed = rows.map(r => [
+const want = (() => {
+  const i = process.argv.indexOf("--section");
+  if (i < 0 || !SEC) return null;
+  const names = process.argv[i + 1].split(",").map(x => x.trim());
+  const bits = SEC.reduce((acc, sec, si) =>
+    names.includes(sec.id) || names.includes(String(sec.order)) ? acc | (1 << si) : acc, 0);
+  if (!bits) { console.error("--section 에 쓸 수 있는 값: " + SEC.map(x => `${x.order}/${x.id}`).join(" ")); process.exit(1); }
+  console.log("이 섹션만 담는다: " + SEC.filter((_, si) => bits & (1 << si)).map(x => x.name).join(" · "));
+  return bits;
+})();
+
+const secCount = new Array(SEC ? SEC.length : 0).fill(0);
+let secNone = 0;
+const packedAll = rows.map(r => [
   r.kw, num(r.pc), num(r.mo), num(r.depth), num(r.comp),
   num(r.clickPc), num(r.clickMo), num(r.ctrPc), num(r.ctrMo),
   num(r.bp1), num(r.bp2), num(r.bp3), num(r.bm1), num(r.bm2), num(r.bm3),
-  r.masked ? 1 : 0, num(r.intent), r.hint || ""
+  r.masked ? 1 : 0, num(r.intent), r.hint || "", secMatch(r.kw)
 ]);
+if (SEC) {
+  for (const row of packedAll) {
+    const m = row[18];
+    if (!m) { secNone++; continue; }
+    for (let si = 0; si < SEC.length; si++) if (m & (1 << si)) secCount[si]++;
+  }
+  console.log("  섹션별 키워드 수");
+  SEC.forEach((sec, si) => console.log(`    ${sec.order}. ${sec.name.padEnd(12)} ${secCount[si].toLocaleString().padStart(9)}개`));
+  console.log(`    ${"어디에도 안 붙음".padEnd(15)} ${secNone.toLocaleString().padStart(9)}개`);
+  meta.sections = SEC.map((sec, si) => ({ id: sec.id, name: sec.name, n: secCount[si] }));
+  meta.sectionNone = secNone;
+}
+const packed = want ? packedAll.filter(r => r[18] & want) : packedAll;
+if (want) console.log(`  걸러낸 뒤 ${packed.length.toLocaleString()}개를 담는다`);
 /* 12 MB 씩 나눠 담는다. 한 파일이 16 MB 를 넘으면 아티팩트가 안 받는다.
    처음엔 추세만 나누고 키워드는 한 파일로 뒀는데, 419,049개가 나오니
    kw.js 가 27 MB 가 됐다. 키워드도 똑같이 나눈다. */
 const CAP = 10 * 1048576;   // 실측 103 bytes/키워드. 16 MB 한도에 여유를 둔다
 const head = { fetchedAt: kj.fetchedAt || "", calls: kj.calls || 0, failed: (kj.failed || []).length,
-  cols: "kw,pc,mo,depth,comp,clickPc,clickMo,ctrPc,ctrMo,bp1,bp2,bp3,bm1,bm2,bm3,masked,intent,hint" };
+  cols: "kw,pc,mo,depth,comp,clickPc,clickMo,ctrPc,ctrMo,bp1,bp2,bp3,bm1,bm2,bm3,masked,intent,hint,sec",
+  sections: SEC ? SEC.map(x => ({ id: x.id, name: x.name, naver: x.naver })) : [] };
 fs.writeFileSync(path.join(DST, "kw-head.js"), "window.KWHEAD=" + JSON.stringify(head) + ";", "utf8");
 total += Buffer.byteLength("window.KWHEAD=" + JSON.stringify(head) + ";");
 
@@ -86,7 +153,9 @@ console.log(`  검색량 분포  월 10↑ ${cut(10).toLocaleString()} · 100↑
 const sj = read("shop.json");
 if (sj) {
   const AG = ["10","20","30","40","50","60"], out = {};
+  const keepS = new Set(packed.map(r => r[0]));
   for (const [k, v] of Object.entries(sj.data || {})) {
+    if (!keepS.has(k)) continue;
     const d = v.device, g = v.gender, a = v.age;
     if (!d || !g || !a) continue;
     const td = Object.values(d).reduce((x,y)=>x+y,0);
@@ -106,7 +175,8 @@ if (sj) {
 const tj = read("trend.json");
 if (tj) {
   const src = tj.data || {};
-  const keys = Object.keys(src);
+  const keep = new Set(packed.map(r => r[0]));
+  const keys = Object.keys(src).filter(k => keep.has(k));
   console.log(`3년 추세 ${keys.length.toLocaleString()}개  (원본 ${MB(size("trend.json"))})`);
   const enc1 = arr => (arr || []).map(p => enc(Array.isArray(p) ? p[1] : p.ratio)).join("");
   let shard = {}, tbytes = 0, n = 0, files = [];
