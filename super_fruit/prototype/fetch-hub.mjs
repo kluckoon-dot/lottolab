@@ -446,17 +446,36 @@ const CAT_KNOWN = [
 /* 정체를 물어볼 키워드. 서로 다른 분야에서 하나씩 골랐다. */
 const CAT_PROBE = [
   ["과일",       "사과"],   ["채소",      "상추"],
-  ["곡물",       "쌀"],     ["축산",      "삼겹살"],
+  ["곡물",       "햅쌀"],   ["축산",      "삼겹살"],
   ["수산",       "고등어"],  ["가공식품",   "라면"],
   ["화장품",     "립스틱"],  ["패션",      "티셔츠"],
-  ["생활용품",   "세탁세제"], ["디지털",     "노트북"]
+  ["생활용품",   "세탁세제"], ["디지털",     "노트북"],
+  ["대조군",     "쟈끄루퉁뷔"]   // 아무 데도 없어야 하는 말. 여기 O 가 뜨면 이 검사는 못 쓴다.
 ];
 
-async function catLive(id, name, startDate, endDate) {
+/* 세 가지를 구분한다. 뭉뚱그리면 안 된다.
+     살아있음  200 이고 data 가 있다
+     없음      200 인데 data 가 비었다  →  그런 카테고리가 없다
+     오류      400/500 등            →  카테고리 존재 여부를 모른다. 한 번 더 때려본다.
+   2026-09-11 50000001 패션잡화가 400 "쇼핑 API 호출 오류" 를 냈다.
+   이걸 '없음' 으로 읽었던 게 내 실수다. 오류는 모른다는 뜻이지 없다는 뜻이 아니다. */
+/* 식품 하위를 가를 때 쓰는 촘촘한 판. --probe food 로 고른다.
+   1차 카테고리 가를 때 쓰는 넓은 판(CAT_PROBE)으로는 과일과 채소가 안 갈린다. */
+const CAT_PROBE_FOOD = [
+  ["과일",   "사과"],   ["채소",   "상추"],   ["곡물",   "햅쌀"],
+  ["축산",   "삼겹살"],  ["수산",   "고등어"],  ["건강",   "홍삼"],
+  ["음료",   "원두커피"], ["과자",   "초콜릿"],  ["유제품", "우유"],
+  ["조미료", "간장"],    ["즉석",   "즉석밥"],  ["냉동",   "냉동만두"],
+  ["대조군", "쟈끄루퉁뷔"]
+];
+
+async function catLive(id, name, startDate, endDate, retry = 1) {
   const r = await call("POST", SHOP_PATHS.categories, { body: {
     startDate, endDate, timeUnit: "month", category: [{ name: name || id, param: [id] }] } });
   const data = r.json?.results?.[0]?.data || [];
-  return { live: r.ok && data.length > 0, raw: r.raw, text: r.text, n: data.length };
+  if (!r.ok && retry > 0) { await sleep(700); return catLive(id, name, startDate, endDate, retry - 1); }
+  const state = !r.ok ? "오류" : data.length > 0 ? "살아있음" : "없음";
+  return { state, live: state === "살아있음", raw: r.raw, text: r.text, n: data.length };
 }
 
 async function checkCat(args) {
@@ -479,46 +498,58 @@ async function checkCat(args) {
   } else cands = CAT_KNOWN;
 
   console.log(`── 카테고리 ID 확인  (${startDate} ~ ${endDate}) · ${cands.length}개\n`);
-  const good = {};
+  const good = {}, errs = [];
   for (const [name, id] of cands) {
     const r = await catLive(id, name, startDate, endDate);
-    if (scan) { if (r.live) { good[id] = id; console.log(`  살아있음  ${id}`); } }
+    if (scan) { if (r.live) { good[id] = id; console.log(`  살아있음  ${id}`); }
+                else if (r.state === "오류") { errs.push(id); console.log(`  오류      ${id}   ${r.raw}`); } }
     else {
-      console.log(`  ${r.live ? "살아있음" : "없음    "}  ${id}  ${name}` +
+      console.log(`  ${r.state.padEnd(4, "  ")}  ${id}  ${name}` +
                   (r.live ? "" : `   ${String(r.raw)} ${safe(r.text).replace(/\s+/g, " ").slice(0, 90)}`));
-      if (r.live) good[name] = id;
+      if (r.live) good[name] = id; else if (r.state === "오류") errs.push(`${id} ${name}`);
     }
     await sleep(130);
   }
   console.log(`\n  살아있는 것 ${Object.keys(good).length}개.`);
+  if (errs.length) {
+    console.log(`  오류 ${errs.length}개 — ${errs.join(" · ")}`);
+    console.log("  오류는 '없다'가 아니라 '모른다'다. 두 번 때려도 같으면 나중에 다시 확인한다.");
+  }
 
   /* 정체 확인 */
   if (args.includes("--name")) {
     console.log("\n── 정체 확인  (그 카테고리 안에 이 키워드가 있는지 물어본다)\n");
+    const PANEL = (val("--probe") === "food") ? CAT_PROBE_FOOD : CAT_PROBE;
     let liveIds = [...new Set(Object.values(good))];
     /* 한 ID 당 키워드 10회다. 스캔 결과가 크면 호출이 순식간에 불어난다. */
     const cap = parseInt(val("--name-limit") || "40", 10);
     if (liveIds.length > cap) {
-      console.log(`  살아있는 ID 가 ${liveIds.length}개다. 전부 하면 ${(liveIds.length * CAT_PROBE.length).toLocaleString()}회가 된다.`);
+      console.log(`  살아있는 ID 가 ${liveIds.length}개다. 전부 하면 ${(liveIds.length * PANEL.length).toLocaleString()}회가 된다.`);
       console.log(`  앞에서 ${cap}개만 본다. 더 보려면 --name-limit 숫자 를 붙여라.\n`);
       liveIds = liveIds.slice(0, cap);
     }
-    console.log(`  호출 ${(liveIds.length * CAT_PROBE.length).toLocaleString()}회 예정.\n`);
-    console.log("  " + "ID".padEnd(11) + CAT_PROBE.map(([t]) => t.padEnd(7)).join(""));
+    console.log(`  호출 ${(liveIds.length * PANEL.length).toLocaleString()}회 예정.\n`);
+    console.log("  " + "ID".padEnd(11) + PANEL.map(([t]) => t.padEnd(7)).join(""));
     const named = {};
     for (const id of liveIds) {
       const hit = [];
-      for (const [, kw] of CAT_PROBE) {
+      for (const [, kw] of PANEL) {
         const r = await call("POST", SHOP_PATHS.device, { body: {
           startDate, endDate, timeUnit: "month", category: id, keyword: kw } });
         hit.push(r.ok && (r.json?.results?.[0]?.data || []).length > 0);
         await sleep(110);
       }
-      named[id] = CAT_PROBE.filter((_, k) => hit[k]).map(([t]) => t);
+      named[id] = PANEL.filter((_, k) => hit[k]).map(([t]) => t);
       console.log("  " + id.padEnd(11) + hit.map(h => (h ? "  O    " : "  .    ")).join(""));
     }
     await fs.writeFile(path.join(OUTDIR, "hub-cat-identity.json"), JSON.stringify(named, null, 1), "utf8");
+    const ctrl = PANEL.findIndex(([t]) => t === "대조군");
+    const badCtrl = ctrl >= 0 && Object.values(named).some(v => v.includes("대조군"));
     console.log("\n  O 가 붙은 것이 그 카테고리에 실제로 있는 키워드다.");
+    if (badCtrl) {
+      console.log("  *** 대조군 열에 O 가 떴다. 없는 말인데도 데이터가 나온다는 뜻이다.");
+      console.log("      이 정체 확인은 못 쓴다. 다른 방법을 찾아야 한다. 알려줘라. ***");
+    }
     console.log("  한 줄이 전부 O 면 그 ID 는 상위 카테고리이거나, 이 검사가 카테고리를 안 가린다는 뜻이다.");
     console.log(`  → ${OUTDIR}/hub-cat-identity.json`);
   }
