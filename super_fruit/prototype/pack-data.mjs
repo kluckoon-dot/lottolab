@@ -26,7 +26,16 @@ import path from "node:path";
 const OUT = "naver-out";
 const DST = path.join(OUT, "pack");
 const MB = n => (n / 1048576).toFixed(2) + " MB";
-const read = f => { try { return JSON.parse(fs.readFileSync(path.join(OUT, f), "utf8")); } catch { return null; } };
+const read = f => {
+  const full = path.join(OUT, f);
+  if (!fs.existsSync(full)) { console.log(`  ${f} 가 없다.`); return null; }
+  try { return JSON.parse(fs.readFileSync(full, "utf8")); }
+  catch (e) {
+    /* 512 MB 를 넘으면 readFileSync 가 문자열을 못 만든다. 삼키면 '파일 없음' 으로 보인다. */
+    console.log(`  ${f} 를 통째로 읽지 못했다: ${e.message}`);
+    return null;
+  }
+};
 const size = f => { try { return fs.statSync(path.join(OUT, f)).size; } catch { return 0; } };
 
 /* 한 주를 한 글자로. JSON 문자열에서 탈이 나는 " 와 \ 는 뺐다. */
@@ -82,6 +91,27 @@ const rows = kj.rows || [];
 console.log(`키워드 ${rows.length.toLocaleString()}개  (원본 ${MB(size("keywords.json"))})`);
 
 const num = x => (x == null || x === "" ? 0 : (typeof x === "number" ? x : Number(x) || 0));
+
+/* 수집기가 실제로 쓰는 모양에 맞춘다. 처음엔 내가 이름을 잘못 짚어서
+   입찰가·경쟁도·힌트가 전부 0 과 빈 문자열로 나갔다.
+     bid      { pc:[1위,2위,3위], mo:[...] }   (bp1 같은 평평한 이름이 아니다)
+     compIdx  "낮음" | "중간" | "높음"          (comp 라는 숫자가 아니다)
+     hints    ["씨앗", ...]                    (hint 문자열이 아니다) */
+const COMP = { "낮음": 0, "중간": 1, "높음": 2 };
+const bidOf = (r, dev, i) => { const b = r.bid && r.bid[dev]; return b ? num(b[i]) : 0; };
+
+/* 의도 분류. 옛 수집분 13,662개의 라벨과 대조해 77.7% 일치하는 규칙이다.
+   완벽하지 않다. 특히 브랜드성이 약하다(26.6%). 화면에서 칩으로 켜고 끄는 용도라
+   이 정도면 쓴다. 어느 것도 삭제하지 않는다. */
+const RE_INFO = /효능|레시피|만드는법|만들기|보관법|보관방법|먹는법|손질법|손질방법|맛집|가볼만한곳|증상|좋은음식|좋은차|부작용|칼로리|키우기|재배|심는시기|수확시기|차이|뜻|유래|빨리낫는법|하는법|하는방법|어디|언제|왜/;
+const RE_BRAND = /[A-Za-z]{3,}/;
+const RE_SHOP = /선물세트|선물|세트|\d+\s*(kg|KG|g|개|박스|팩|입|호|과|봉|병)|가격|시세|도매|소매|판매|구매|주문|배송|특가|할인|최저가|산지직송|택배/;
+const intentOf = (kw, secBits) => {
+  if (RE_INFO.test(kw)) return 1;
+  if (RE_BRAND.test(kw)) return 2;
+  if (secBits || RE_SHOP.test(kw)) return 0;
+  return 3;
+};
 const want = (() => {
   const i = process.argv.indexOf("--section");
   if (i < 0 || !SEC) return null;
@@ -95,12 +125,22 @@ const want = (() => {
 
 const secCount = new Array(SEC ? SEC.length : 0).fill(0);
 let secNone = 0;
-const packedAll = rows.map(r => [
-  r.kw, num(r.pc), num(r.mo), num(r.depth), num(r.comp),
-  num(r.clickPc), num(r.clickMo), num(r.ctrPc), num(r.ctrMo),
-  num(r.bp1), num(r.bp2), num(r.bp3), num(r.bm1), num(r.bm2), num(r.bm3),
-  r.masked ? 1 : 0, num(r.intent), r.hint || "", secMatch(r.kw)
-]);
+const packedAll = rows.map(r => {
+  const sec = secMatch(r.kw);
+  return [
+    r.kw, num(r.pc), num(r.mo), num(r.depth), (COMP[r.compIdx] ?? 0),
+    num(r.clickPc), num(r.clickMo), num(r.ctrPc), num(r.ctrMo),
+    bidOf(r, "pc", 0), bidOf(r, "pc", 1), bidOf(r, "pc", 2),
+    bidOf(r, "mo", 0), bidOf(r, "mo", 1), bidOf(r, "mo", 2),
+    r.masked ? 1 : 0, intentOf(r.kw, sec), (r.hints && r.hints[0]) || "", sec
+  ];
+});
+{ /* 제대로 담겼는지 바로 확인한다. 전부 0 이면 또 이름을 잘못 짚은 것이다. */
+  const withBid = packedAll.filter(r => r[9] || r[12]).length;
+  const withComp = packedAll.filter(r => r[4]).length;
+  console.log(`  입찰가 있는 키워드 ${withBid.toLocaleString()} · 경쟁도 있는 키워드 ${withComp.toLocaleString()}`);
+  if (!withBid) console.log("  *** 입찰가가 하나도 없다. keywords.json 에 bid 가 안 들어있거나 이름이 또 다르다. 알려줘라. ***");
+}
 if (SEC) {
   for (const row of packedAll) {
     const m = row[18];
@@ -172,15 +212,73 @@ if (sj) {
   console.log(`구매층 ${Object.keys(out).length.toLocaleString()}개  (원본 ${MB(size("shop.json"))})  → pack/shop.js  ${MB(Buffer.byteLength(js))}`);
 } else console.log("구매층 shop.json 없음 — 건너뛴다");
 
+/* ── 큰 파일 흘려 읽기 ──
+   trend.json 이 512.3 MB 였다. Node 가 만들 수 있는 문자열이 512 MB 라
+   readFileSync 가 통째로는 못 읽는다. 앞서 이걸 '파일 없음' 으로 찍었던 게 내 잘못이다.
+   그래서 data 안의 항목을 하나씩 떼어 읽는다. 메모리에 다 올리지 않는다. */
+async function streamTrend(file, onEntry) {
+  const rs = fs.createReadStream(file, { encoding: "utf8", highWaterMark: 1 << 20 });
+  let buf = "", started = false, head = null, n = 0;
+  const findHead = () => {
+    const i = buf.indexOf('"data"');
+    if (i < 0) return false;
+    const j = buf.indexOf("{", i);
+    if (j < 0) return false;
+    head = buf.slice(0, i);                       // startDate 등이 들어있는 앞부분
+    buf = buf.slice(j + 1); started = true; return true;
+  };
+  /* 따옴표 안의 [ ] 는 세지 않는다 */
+  const balanced = from => {
+    let d = 0, str = false, esc = false;
+    for (let i = from; i < buf.length; i++) {
+      const c = buf[i];
+      if (esc) { esc = false; continue; }
+      if (c === "\\") { esc = true; continue; }
+      if (c === '"') { str = !str; continue; }
+      if (str) continue;
+      if (c === "[") d++;
+      else if (c === "]") { d--; if (!d) return i; }
+    }
+    return -1;
+  };
+  const drain = () => {
+    for (;;) {
+      let i = 0;
+      while (i < buf.length && /[\s,]/.test(buf[i])) i++;
+      if (i >= buf.length) { buf = buf.slice(i); return; }
+      if (buf[i] === "}") { buf = ""; return; }     // data 끝
+      if (buf[i] !== '"') { buf = buf.slice(i); return; }
+      let j = i + 1, esc = false;
+      while (j < buf.length) { const c = buf[j]; if (esc) esc = false; else if (c === "\\") esc = true; else if (c === '"') break; j++; }
+      if (j >= buf.length) { buf = buf.slice(i); return; }   // 키가 아직 안 끝났다
+      const key = JSON.parse(buf.slice(i, j + 1));
+      let k = j + 1;
+      while (k < buf.length && /[\s:]/.test(buf[k])) k++;
+      if (k >= buf.length || buf[k] !== "[") { buf = buf.slice(i); return; }
+      const end = balanced(k);
+      if (end < 0) { buf = buf.slice(i); return; }            // 배열이 아직 안 끝났다
+      onEntry(key, JSON.parse(buf.slice(k, end + 1))); n++;
+      buf = buf.slice(end + 1);
+    }
+  };
+  for await (const chunk of rs) {
+    buf += chunk;
+    if (!started) { if (!findHead()) continue; }
+    drain();
+  }
+  if (started) drain();
+  let meta = {};
+  try { meta = JSON.parse((head || "{") + "}"); } catch {}
+  return { n, meta };
+}
+
 /* ── 3. 3년 추세 ── */
-const tj = read("trend.json");
-if (tj) {
-  const src = tj.data || {};
+const trendPath = path.join(OUT, "trend.json");
+if (fs.existsSync(trendPath)) {
+  console.log(`3년 추세 (원본 ${MB(size("trend.json"))}) — 흘려 읽는다`);
   const keep = new Set(packed.map(r => r[0]));
-  const keys = Object.keys(src).filter(k => keep.has(k));
-  console.log(`3년 추세 ${keys.length.toLocaleString()}개  (원본 ${MB(size("trend.json"))})`);
-  const enc1 = arr => (arr || []).map(p => enc(Array.isArray(p) ? p[1] : p.ratio)).join("");
-  let shard = {}, tbytes = 0, n = 0, files = [];
+  const enc1 = arr => (arr || []).map(pt => enc(Array.isArray(pt) ? pt[1] : pt.ratio)).join("");
+  let shard = {}, tbytes = 0, n = 0, files = [], kept = 0;
   const flush = () => {
     if (!Object.keys(shard).length) return;
     const nm = `trend-${String(n).padStart(3,"0")}.js`;
@@ -190,15 +288,17 @@ if (tj) {
     console.log(`  → pack/${nm}  ${MB(Buffer.byteLength(js))}`);
     shard = {}; tbytes = 0; n++;
   };
-  for (const k of keys) {
-    const v = enc1(src[k]);
-    if (!v) continue;
-    shard[k] = v; tbytes += k.length + v.length + 6;
+  const { n: seen, meta: tmeta } = await streamTrend(trendPath, (k, arr) => {
+    if (!keep.has(k)) return;
+    const v = enc1(arr);
+    if (!v) return;
+    shard[k] = v; kept++; tbytes += k.length + v.length + 6;
     if (tbytes > CAP) flush();
-  }
+  });
   flush();
-  meta.trend = keys.length; meta.trendFiles = files;
-  meta.trendWeeks = { start: tj.startDate, end: tj.endDate, unit: tj.timeUnit || "week" };
+  console.log(`  파일 안 ${seen.toLocaleString()}개 중 ${kept.toLocaleString()}개를 담았다`);
+  meta.trend = kept; meta.trendFiles = files;
+  meta.trendWeeks = { start: tmeta.startDate, end: tmeta.endDate, unit: tmeta.timeUnit || "week" };
 } else console.log("3년 추세 trend.json 없음 — 건너뛴다");
 
 meta.totalBytes = total;
