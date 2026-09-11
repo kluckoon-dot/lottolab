@@ -11,6 +11,8 @@
  * 실행
  *   node fetch-hub.mjs --probe        호출 주소와 인증을 찾아낸다 (제일 먼저)
  *   node fetch-hub.mjs --trend        3년 주간 추세 수집
+ *   node fetch-hub.mjs --shop         키워드별 기기·성별·연령 수집
+ *   node fetch-hub.mjs --cat          카테고리 ID 가 살아있는지 확인
  */
 import fs from "node:fs/promises";
 import { readFileSync } from "node:fs";
@@ -92,21 +94,25 @@ const TREND_PATHS = [HUB_TREND];
    이것마저 210 이면 210 은 아무 의미가 없다는 뜻이므로 다르게 접근해야 한다. */
 const CONTROL_PATH = "/zzz-definitely-not-an-api/v1/nothing";
 /* 경로 규칙은 legacy 에서 유도되는 게 아니라 제품 이름을 그대로 쓴다.
-     검색어트렌드 → /search-trend/v1/search   (확정)
-     쇼핑인사이트 → /shopping-insight/v1/...  (추정 · --find 로 확인한다) */
-/* 쇼핑인사이트는 같은 게이트웨이의 이웃 경로로 추정한다. 실호출로 확정한다. → 확인 필요 */
+     검색어트렌드 → /search-trend/v1/search   (2026-09-11 확정)
+     쇼핑인사이트 → /shopping/v1/...          (2026-09-11 확정)
+   쇼핑 쪽 서비스 이름은 shopping-insight 가 아니라 그냥 shopping 이었다.
+   8개 경로 전부 200 과 실데이터를 확인했다. */
 const SHOP_PATHS = {
-  categories: "/shopping-insight/v1/categories",
-  keywords:   "/shopping-insight/v1/category/keywords",
-  device:     "/shopping-insight/v1/category/keyword/device",
-  gender:     "/shopping-insight/v1/category/keyword/gender",
-  age:        "/shopping-insight/v1/category/keyword/age"
+  categories:  "/shopping/v1/categories",                  // 분야별 트렌드 (목록 조회가 아니다)
+  keywords:    "/shopping/v1/category/keywords",           // 카테고리 안 키워드 트렌드
+  catDevice:   "/shopping/v1/category/device",
+  catGender:   "/shopping/v1/category/gender",
+  catAge:      "/shopping/v1/category/age",
+  device:      "/shopping/v1/category/keyword/device",
+  gender:      "/shopping/v1/category/keyword/gender",
+  age:         "/shopping/v1/category/keyword/age"
 };
 
 /* 씨앗을 네이버한테 받아올 수 있는 통로가 있는지 확인할 후보들.
    404 면 없는 것, 400 이면 있는데 요청 형식만 틀린 것이다. */
 const RAW_PATHS = [
-  ["카테고리 목록",        "POST", SHOP_PATHS.categories,
+  ["분야별 트렌드",        "POST", SHOP_PATHS.categories,
     { startDate: "2026-08-01", endDate: "2026-08-31", timeUnit: "month",
       category: [{ name: "식품", param: ["50000006"] }] }],
   ["카테고리별 인기 키워드", "POST", SHOP_PATHS.keywords,
@@ -339,6 +345,120 @@ async function collectTrend(args) {
   console.error(`→ ${OUT}`);
 }
 
+/* ── 쇼핑인사이트: 키워드별 기기 · 성별 · 연령 ──
+   키워드 하나당 3회 호출이다. 묶어서 부를 방법이 없다.
+   쇼핑인사이트 무료 구간이 월 30,000회이므로 키워드 10,000개가 한 달 천장이다.
+   그래서 검색량 큰 순서로 받고, 중간에 끊겨도 이어받는다.
+   원칙은 그대로다. 철자가 다르면 다른 키워드로 따로 받는다. 합치지 않는다. */
+const SHOP_DIMS = [["device", SHOP_PATHS.device], ["gender", SHOP_PATHS.gender], ["age", SHOP_PATHS.age]];
+
+async function collectShop(args) {
+  const val = f => { const i = args.indexOf(f); return i >= 0 ? args[i + 1] : null; };
+  const src = val("--from") || path.join(OUTDIR, "keywords.json");
+  let rows;
+  try { rows = JSON.parse(await fs.readFile(src, "utf8")).rows; }
+  catch { console.error(`${src} 을 읽지 못했다. 검색광고 수집을 먼저 끝내라.`); process.exit(1); }
+
+  const CAT = val("--cat-id") || "50000006";          // 기본 식품
+  const minVol = parseInt(val("--min-vol") || "0", 10);
+  const limit  = parseInt(val("--limit")  || "3000", 10);   // 3,000개 = 9,000회
+  const budget = parseInt(val("--budget") || "27000", 10);  // 월 30,000 중 여유 3,000 남긴다
+
+  let targets = rows.filter(r => (r.total || 0) >= minVol)
+                    .sort((a, b) => b.total - a.total).map(r => r.kw);
+  if (limit > 0) targets = targets.slice(0, limit);
+
+  const OUT = path.join(OUTDIR, "shop.json");
+  await fs.mkdir(OUTDIR, { recursive: true });
+  const done = {};
+  try { Object.assign(done, JSON.parse(await fs.readFile(OUT, "utf8")).data || {}); } catch {}
+  const full = k => done[k] && done[k].device && done[k].gender && done[k].age;
+  const todo = targets.filter(k => !full(k));
+
+  const { startDate, endDate } = (() => {
+    const end = new Date(); end.setDate(1); end.setDate(0);              // 지난달 말일
+    const start = new Date(end); start.setMonth(start.getMonth() - 11); start.setDate(1);
+    return { startDate: ymd(start), endDate: ymd(end) };
+  })();
+
+  console.error(`쇼핑인사이트 — 카테고리 ${CAT} · 기간 ${startDate} ~ ${endDate}`);
+  console.error(`대상 ${targets.length.toLocaleString()}개 · 남은 ${todo.length.toLocaleString()}개 · 예상 ${(todo.length * 3).toLocaleString()}회`);
+  if ((todo.length * 3) > budget)
+    console.error(`한도 ${budget.toLocaleString()}회에 걸린다. ${Math.floor(budget / 3).toLocaleString()}개까지만 받고 멈춘다. 다음 달에 이어받으면 된다.`);
+  if (!todo.length) { console.error("이미 다 받았다."); return; }
+
+  let calls = 0, failed = [];
+  const save = async () => fs.writeFile(OUT, JSON.stringify({
+    category: CAT, startDate, endDate, savedAt: new Date().toISOString(),
+    calls, keywords: Object.keys(done).length, failed, data: done }, null, 1), "utf8");
+
+  outer:
+  for (let i = 0; i < todo.length; i++) {
+    const kw = todo[i];
+    const slot = (done[kw] ||= {});
+    for (const [dim, p] of SHOP_DIMS) {
+      if (slot[dim]) continue;
+      if (calls >= budget) { console.error(`\n한도 ${budget.toLocaleString()}회 도달. 저장하고 멈춘다.`); break outer; }
+      const r = await call("POST", p, { body: { startDate, endDate, timeUnit: "month", category: CAT, keyword: kw } });
+      calls++;
+      if (!r.ok) {
+        failed.push({ kw, dim, status: r.raw, note: safe(r.text).slice(0, 160) });
+        if (r.raw === 429) { console.error("  호출 한도 도달. 저장하고 멈춘다."); break outer; }
+      } else {
+        /* group 별 ratio 를 그대로 접어둔다. mo/pc · f/m · 10~60 */
+        const out = {};
+        for (const res of (r.json?.results || []))
+          for (const d of (res.data || [])) {
+            (out[d.group] ||= []).push(d.ratio);
+          }
+        /* 월별로 여러 개 들어오므로 평균 낸다. 비율이라 합보다 평균이 맞다. */
+        slot[dim] = Object.fromEntries(Object.entries(out)
+          .map(([g, a]) => [g, +(a.reduce((x, y) => x + y, 0) / a.length).toFixed(2)]));
+      }
+      await sleep(120);
+    }
+    if (i % 50 === 0) { await save(); console.error(`  ${i + 1}/${todo.length} · 호출 ${calls.toLocaleString()}회`); }
+  }
+  await save();
+  console.error(`\n완료  호출 ${calls.toLocaleString()}회 · 키워드 ${Object.keys(done).length.toLocaleString()}개 · 실패 ${failed.length}건`);
+  console.error(`→ ${OUT}`);
+}
+
+/* ── 카테고리 ID 확인 ──
+   /categories 는 목록을 주지 않는다. 내가 넣은 ID 를 그대로 돌려줄 뿐이다.
+   그래서 목록을 받아오는 대신, 후보 ID 가 살아있는지 하나씩 때려서 확인한다.
+   기준점(식품 50000006)을 같이 넣고 비율이 나오는지 본다. */
+async function checkCat(args) {
+  const val = f => { const i = args.indexOf(f); return i >= 0 ? args[i + 1] : null; };
+  const list = (val("--ids") || "").split(",").map(x => x.trim()).filter(Boolean);
+  const CANDS = list.length ? list.map(x => [x, x]) : [
+    ["식품",           "50000006"], ["농산물",   "50000145"],
+    ["과일",           "50000146"], ["채소",     "50000147"],
+    ["생활/건강",       "50000008"], ["여가/생활편의", "50000010"],
+    ["패션의류",        "50000000"], ["화장품/미용", "50000002"],
+    ["없는번호(대조군)", "59999999"]
+  ];
+  const end = new Date(); end.setDate(1); end.setDate(0);
+  const start = new Date(end); start.setMonth(start.getMonth() - 2); start.setDate(1);
+  console.log(`── 카테고리 ID 확인  (${ymd(start)} ~ ${ymd(end)})\n`);
+  const good = {};
+  for (const [name, id] of CANDS) {
+    const r = await call("POST", SHOP_PATHS.categories, { body: {
+      startDate: ymd(start), endDate: ymd(end), timeUnit: "month",
+      category: [{ name, param: [id] }] } });
+    const data = r.json?.results?.[0]?.data || [];
+    const live = r.ok && data.length > 0;
+    console.log(`  ${live ? "살아있음" : "없음    "}  ${id}  ${name}` +
+                (live ? "" : `   ${String(r.raw)} ${safe(r.text).replace(/\s+/g, " ").slice(0, 110)}`));
+    if (live) good[name] = id;
+    await sleep(150);
+  }
+  await fs.mkdir(OUTDIR, { recursive: true });
+  await fs.writeFile(path.join(OUTDIR, "hub-categories.json"), JSON.stringify(good, null, 1), "utf8");
+  console.log(`\n  살아있는 것만 ${OUTDIR}/hub-categories.json 에 저장했다.`);
+  console.log("  대조군(59999999)까지 '살아있음' 이면 이 검사는 의미가 없다는 뜻이다. 알려줘라.\n");
+}
+
 /* ── 경로 찾기 ──
    대조군으로 확인됐다.  404 = 없는 경로 · 210 = 있는데 구독 안 됨 · 200 = 정답
    그래서 404 가 아닌 것만 걸러내면 된다.
@@ -458,7 +578,9 @@ async function findShopping() {
     for (const [k,v] of Object.entries(hits)) console.log(`    ${k.padEnd(16)} ${v}`);
     await fs.writeFile(path.join(OUTDIR, "hub-shopping.json"), JSON.stringify(hits, null, 1), "utf8");
     console.log(`\n  ${OUTDIR}/hub-shopping.json 에 저장했다.`);
-    if (hits["카테고리 목록"]) console.log("\n  카테고리 목록이 잡혔다. 카테고리 ID 문제도 여기서 풀린다.");
+    console.log("\n  주의: /categories 는 목록 조회가 아니라 '분야별 트렌드'다.");
+        console.log("  내가 넣은 카테고리 ID 를 그대로 돌려준다. 트리를 받아오지는 못한다.");
+        console.log("  카테고리 ID 는 --cat 으로 하나씩 유효한지 확인한다.");
   } else {
     console.log("쇼핑인사이트 쪽은 아직 못 찾았다. 위 응답을 보내주면 맞춘다.");
   }
@@ -478,7 +600,9 @@ async function main() {
   console.error(`API HUB 인증 정보 확인. Client ID ${String(ID).slice(0, 4)}***\n`);
   if (args.includes("--find")) return findPath();
   if (args.includes("--trend")) return collectTrend(args);
+  if (args.includes("--shop")) return collectShop(args);
+  if (args.includes("--cat")) return checkCat(args);
   if (args.includes("--probe") || args.length === 0) return probe();
-  console.error("--probe 또는 --trend 중 하나를 써라.");
+  console.error("--probe / --find / --trend / --shop / --cat 중 하나를 써라.");
 }
 main().catch(e => { console.error(e); process.exit(1); });
