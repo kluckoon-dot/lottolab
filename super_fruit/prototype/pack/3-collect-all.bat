@@ -7,18 +7,14 @@ if errorlevel 1 goto nonode
 echo.
 echo  STEP 3 / all 202 items
 echo.
-echo  Phase 1  related keywords     about 2 minutes
-echo  Phase 2  bid prices           15 to 30 minutes
-echo.
-echo  Do NOT close this window. Progress is saved along the way,
-echo  so if it stops you can run it again later.
+echo  Every keyword gets bid prices - no volume cutoff.
+echo  This can take a while. Progress is saved as it goes,
+echo  so if it stops, just run this file again to continue.
 echo.
 pause
-node fetch-naver.mjs --from supply-calendar.json --bid-min 1000
+node fetch-naver.mjs --from supply-calendar.json
 echo.
-echo  ----------------------------------------------
 echo   Result:  naver-out\keywords.json
-echo  ----------------------------------------------
 echo.
 pause
 exit /b

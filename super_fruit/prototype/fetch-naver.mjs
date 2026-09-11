@@ -2,38 +2,35 @@
 /**
  * 네이버 검색광고 API 수집기
  *
- * 이 저장소가 도는 클라우드 세션에서는 api.searchad.naver.com 이 egress 정책으로 막혀 있다.
- * 네트워크가 열린 곳(로컬 PC 등)에서 실행하면 그대로 동작한다.
+ * ─────────────────────────────────────────────────────────────
+ *  원칙 : 키워드에는 옳고 그름이 없다
  *
- * 준비
- *   네이버 검색광고 → 도구 → API 사용 관리 에서 발급
- *   .env 또는 환경변수:
- *     NAVER_AD_API_KEY=...        (액세스라이선스)
- *     NAVER_AD_SECRET=...         (비밀키)
- *     NAVER_AD_CUSTOMER=...       (CUSTOMER_ID, 숫자)
+ *  "샤인머스캣"과 "샤인머스켓"은 서로 다른 시장이다.
+ *  맞춤법이 맞는 쪽만 남기거나, 검색량이 큰 쪽으로 합치거나,
+ *  검색량이 적다고 지표 수집을 건너뛰는 일을 하지 않는다.
+ *
+ *  수집된 모든 키워드는 예외 없이 같은 대접을 받는다.
+ *  월검색수 · 클릭수 · CTR · 경쟁도 · 1~3위 입찰가(PC/모바일) 전부.
+ * ─────────────────────────────────────────────────────────────
  *
  * 실행
- *   node fetch-naver.mjs --probe 샤인머스캣          응답 원본을 그대로 덤프한다 (첫 실행용)
- *   node fetch-naver.mjs --keywords-file kw.txt      지표 수집 (UTF-8, 한 줄에 하나)
+ *   node fetch-naver.mjs --probe                    연결 확인
  *   node fetch-naver.mjs --from supply-calendar.json --limit 40
+ *   node fetch-naver.mjs --from supply-calendar.json          전체
+ *   node fetch-naver.mjs --resume                   중단된 지점부터 이어서
  *
- * 윈도우 콘솔은 한글 인자가 깨질 수 있다. --probe 는 인자 없이 써라 (샤인머스캣이 기본값),
- * 목록은 --keywords-file 로 넘겨라.
- *
- * 결과: naver-out/keywords.json
- *
- * 키를 커밋하지 마라. .env 는 .gitignore 에 있다.
+ * 결과 : naver-out/keywords.json
  */
 import crypto from "node:crypto";
 import fs from "node:fs/promises";
+import { readFileSync } from "node:fs";
 import path from "node:path";
 
 const HOST = process.env.NAVER_AD_HOST || "https://api.searchad.naver.com";
+const OUTDIR = "naver-out";
+const OUT = path.join(OUTDIR, "keywords.json");
 
-/* 키 읽기.
-   1) 환경변수가 있으면 그걸 쓴다
-   2) 없으면 이 파일 옆의 key.txt 를 읽는다 (프로그램 모르는 사람용)
-   한글 라벨도 받아준다. 따옴표·공백·BOM 은 알아서 떼낸다. */
+/* ── 키 읽기 ── */
 const ALIAS = {
   naver_ad_api_key:"KEY", 액세스라이선스:"KEY", 라이선스:"KEY", apikey:"KEY", api_key:"KEY",
   naver_ad_secret:"SECRET", 비밀키:"SECRET", secret:"SECRET", secretkey:"SECRET",
@@ -43,14 +40,12 @@ const ALIAS = {
 function loadKeyFile() {
   const here = path.dirname(new URL(import.meta.url).pathname.replace(/^\/([A-Za-z]:)/, "$1"));
   for (const name of ["key.txt", ".env"]) {
-    let raw;
-    try { raw = require$readFileSync(path.join(here, name), "utf8"); } catch { continue; }
+    let raw; try { raw = readFileSync(path.join(here, name), "utf8"); } catch { continue; }
     const out = {};
-    for (const line of raw.replace(/^\uFEFF/, "").split(/\r?\n/)) {
+    for (const line of raw.replace(/^﻿/, "").split(/\r?\n/)) {
       const t = line.trim();
       if (!t || t.startsWith("#") || t.startsWith("//")) continue;
-      const i = t.indexOf("=");
-      if (i < 0) continue;
+      const i = t.indexOf("="); if (i < 0) continue;
       const k = t.slice(0, i).trim().toLowerCase().replace(/[\s-]/g, "");
       const v = t.slice(i + 1).trim().replace(/^["']|["']$/g, "");
       if (ALIAS[k] && v && !/여기에|붙여넣|paste|<|>/.test(v)) out[ALIAS[k]] = v;
@@ -59,338 +54,290 @@ function loadKeyFile() {
   }
   return {};
 }
-import { readFileSync as require$readFileSync } from "node:fs";
-const FILEKEYS = loadKeyFile();
-const KEY = process.env.NAVER_AD_API_KEY || FILEKEYS.KEY;
-const SECRET = process.env.NAVER_AD_SECRET || FILEKEYS.SECRET;
-const CUSTOMER = process.env.NAVER_AD_CUSTOMER || FILEKEYS.CUSTOMER;
+const FK = loadKeyFile();
+const KEY = process.env.NAVER_AD_API_KEY || FK.KEY;
+const SECRET = process.env.NAVER_AD_SECRET || FK.SECRET;
+const CUSTOMER = process.env.NAVER_AD_CUSTOMER || FK.CUSTOMER;
 
-/* 서명: HMAC-SHA256(비밀키, `${timestamp}.${method}.${path}`) → Base64
-   path 는 쿼리스트링을 제외한 경로만 넣는다. */
+/* ── 호출 ── */
 function headers(method, urlPath) {
   const ts = Date.now().toString();
-  const sig = crypto.createHmac("sha256", SECRET)
-    .update(`${ts}.${method}.${urlPath}`).digest("base64");
-  return {
-    "X-Timestamp": ts,
-    "X-API-KEY": KEY,
-    "X-Customer": String(CUSTOMER),
-    "X-Signature": sig,
-    "Content-Type": "application/json; charset=UTF-8"
-  };
+  const sig = crypto.createHmac("sha256", SECRET).update(`${ts}.${method}.${urlPath}`).digest("base64");
+  return { "X-Timestamp": ts, "X-API-KEY": KEY, "X-Customer": String(CUSTOMER),
+           "X-Signature": sig, "Content-Type": "application/json; charset=UTF-8" };
 }
-
 async function call(method, urlPath, { query, body } = {}) {
   const qs = query ? "?" + new URLSearchParams(query) : "";
-  const res = await fetch(HOST + urlPath + qs, {
-    method,
-    headers: headers(method, urlPath),
-    body: body ? JSON.stringify(body) : undefined
-  });
-  const text = await res.text();
-  let json = null;
-  try { json = JSON.parse(text); } catch { /* 원문 그대로 반환 */ }
-  return { ok: res.ok, status: res.status, json, text };
+  try {
+    const res = await fetch(HOST + urlPath + qs, { method, headers: headers(method, urlPath),
+      body: body ? JSON.stringify(body) : undefined });
+    const text = await res.text();
+    let json = null; try { json = JSON.parse(text); } catch {}
+    return { ok: res.ok, status: res.status, json, text };
+  } catch (e) { return { ok: false, status: "연결실패", json: null, text: String(e.message || e) }; }
 }
-
 const sleep = ms => new Promise(r => setTimeout(r, ms));
-
-/* 출력에 키가 섞여 나가는 일이 없게 한 번 걸러낸다 */
-function safe(text) {
-  let t = String(text ?? "");
-  for (const v of [KEY, SECRET, CUSTOMER]) if (v) t = t.split(v).join("<가림>");
-  return t;
-}
+function safe(t) { let s = String(t ?? ""); for (const v of [KEY, SECRET, CUSTOMER]) if (v) s = s.split(v).join("<가림>"); return s; }
 function explain(status, body) {
   const b = String(body || "");
-  if (status === 403 && /not in allowlist/i.test(b)) return "네트워크 차단. 이 PC 에서 api.searchad.naver.com 에 못 나간다.";
-  if (status === 403 && /auth-failed|Auth Failed/i.test(b)) return "네이버가 키를 거부했다. 네트워크는 뚫렸다.";
-  if (status === 401) return "인증 실패. 키 세 값을 다시 확인해라.";
-  if (status === 403) return "권한 없음. API 사용 신청 상태를 확인해라.";
-  if (status === 404) return "경로가 다르다. 이 엔드포인트는 후보에서 빼면 된다.";
+  if (status === 403 && /not in allowlist/i.test(b)) return "네트워크 차단.";
+  if (status === 403 && /auth-failed|Auth Failed/i.test(b)) return "네이버가 키를 거부했다.";
+  if (status === 401) return "인증 실패.";
   if (status === 429) return "호출 한도 초과.";
+  if (status === 400) return "요청 형식 오류.";
   return "";
 }
 
-/* ── 1. 키워드 지표 + 연관 키워드 ──────────────────────────────
-   /keywordstool 은 힌트 키워드의 연관 키워드까지 함께 돌려준다.
-   탐색의 입구가 여기다. 접미사로 키워드를 지어내지 말고 이 응답을 써라. */
-async function keywordTool(hint) {
-  return call("GET", "/keywordstool", {
-    query: { hintKeywords: hint, showDetail: "1" }
-  });
-}
-
-/* ── 2. 순위별 입찰가 ────────────────────────────────────────
-   경로와 본문 스키마는 계정 권한에 따라 다를 수 있어 확정 전이다.
-   --probe 로 실제 응답을 먼저 확인하고 맞는 것 하나만 남겨라. */
-/* 실응답으로 확정한 형태. 2026-09-11 검증.
-   요청  { device, keywordplus, key, items:[{key, position}] }
-   응답  { device, estimate:[{ bid, keyword, position }] }
-   exposure-minimum-bid 는 400 이었다. 쓰지 않는다. */
+/* ── 엔드포인트 (2026-09-11 실응답으로 확정) ── */
 const BID_PATH = "/estimate/average-position-bid/keyword";
-function bidBody(kw, device) {
-  return { device, keywordplus: false, key: kw,
-           items: [1, 2, 3].map(p => ({ key: kw, position: p })) };
-}
-async function bidsFor(kw, device) {
-  const r = await call("POST", BID_PATH, { body: bidBody(kw, device) });
-  if (!r.ok) return { ok: false, status: r.status };
-  const out = {};
-  for (const e of (r.json?.estimate || [])) out[e.position] = e.bid;
-  return { ok: true, 1: out[1] ?? null, 2: out[2] ?? null, 3: out[3] ?? null };
-}
+const keywordTool = hint => call("GET", "/keywordstool", { query: { hintKeywords: hint, showDetail: "1" } });
 
-/* 값을 노출하지 않고 모양만 본다. 대부분의 인증 실패는 여기서 잡힌다. */
-function shapeReport() {
-  const shape = v => {
-    const t = String(v ?? "");
-    const cls = /^\d+$/.test(t) ? "숫자만"
-      : /^[A-Za-z0-9+/=]+$/.test(t) ? "영문+숫자(+/=)"
-      : /\s/.test(t) ? "공백·줄바꿈 섞임 ← 의심"
-      : "기타 문자 포함";
-    return { len: t.length, head: t.slice(0, 4), cls, tail: t.slice(-1) };
-  };
-  const k = shape(KEY), s2 = shape(SECRET), c = shape(CUSTOMER);
-  console.log("── 키 모양 점검 (값은 보여주지 않는다)");
-  console.log(`  액세스라이선스  길이 ${k.len}  앞 4글자 ${k.head}  ${k.cls}`);
-  console.log(`  비밀키          길이 ${s2.len}  ${s2.cls}${s2.tail === "=" ? "  끝이 = 로 끝남" : ""}`);
-  console.log(`  고객ID          길이 ${c.len}  ${c.cls}`);
-
-  const warn = [];
-  if (!/^\d+$/.test(String(CUSTOMER))) warn.push("고객ID 가 숫자가 아니다. 네이버 아이디나 사업자번호를 넣은 게 아닌지 확인해라.");
-  if (String(CUSTOMER).length < 5 || String(CUSTOMER).length > 12) warn.push("고객ID 자릿수가 보통과 다르다.");
-  if (KEY === SECRET) warn.push("액세스라이선스와 비밀키가 같은 값이다.");
-  if (/\s/.test(String(KEY)) || /\s/.test(String(SECRET))) warn.push("키 안에 공백이나 줄바꿈이 섞여 있다. 붙여넣기를 다시 해라.");
-  if (k.len && s2.len && k.len > s2.len) warn.push("보통 비밀키가 액세스라이선스보다 길다. 두 값이 서로 바뀌었을 수 있다.");
-  if (warn.length) { console.log("\n  의심되는 점"); warn.forEach(w => console.log("   · " + w)); }
-  console.log("");
-}
-
-/* 인증 실패의 원인을 갈라낸다.
-   키를 잘못 넣은 것인지, 내 서명 구현이 틀린 것인지는 밖에서 구분되지 않는다.
-   그래서 조합을 전부 시도해보고 200 이 나오는 게 있는지 본다. 6번이면 끝난다. */
-async function diagnose(kw) {
-  const P = "/keywordstool";
-  const QS = "?hintKeywords=" + encodeURIComponent(kw) + "&showDetail=1";
-  const variants = [
-    { name: "표준 (시각.METHOD.경로)",  msg: ts => `${ts}.GET.${P}` },
-    { name: "경로에 쿼리까지 포함",      msg: ts => `${ts}.GET.${P}${QS}` },
-    { name: "메서드 소문자",             msg: ts => `${ts}.get.${P}` }
-  ];
-  const creds = [
-    { name: "입력한 그대로", api: KEY,    sec: SECRET },
-    { name: "두 값 맞바꿈",  api: SECRET, sec: KEY }
-  ];
-  console.log("  조합을 하나씩 시도한다. 200 이 하나라도 나오면 거기서 답이 갈린다.\n");
-  let hit = null;
-  for (const c of creds) {
-    for (const v of variants) {
-      const ts = Date.now().toString();
-      const sig = crypto.createHmac("sha256", c.sec).update(v.msg(ts)).digest("base64");
-      let status = "??";
-      try {
-        const res = await fetch(HOST + P + QS, {
-          headers: { "X-Timestamp": ts, "X-API-KEY": c.api, "X-Customer": String(CUSTOMER),
-                     "X-Signature": sig, "Content-Type": "application/json; charset=UTF-8" }
-        });
-        status = res.status;
-        if (res.ok && !hit) hit = { cred: c.name, variant: v.name };
-      } catch (e) { status = "연결실패"; }
-      console.log(`   ${status === 200 ? "OK  " : "실패"}  ${c.name} / ${v.name}  → ${status}`);
-      await sleep(250);
-    }
-  }
-  console.log("");
-  if (hit) {
-    console.log("*** 통하는 조합을 찾았다 ***");
-    console.log(`    자격증명: ${hit.cred}`);
-    console.log(`    서명방식: ${hit.variant}`);
-    if (hit.cred === "두 값 맞바꿈")
-      console.log("\n    → key.txt 에서 액세스라이선스와 비밀키의 위치를 맞바꾸고 저장한 뒤 다시 실행해라.");
-    if (hit.variant !== "표준 (시각.METHOD.경로)")
-      console.log("\n    → 서명 방식 문제다. 이 결과를 보내주면 코드를 고쳐서 다시 보낸다.");
-    return true;
-  }
-  console.log("여섯 조합이 전부 실패했다.");
-  console.log("서명 방식 문제가 아니다. 키 값 자체가 이 계정에서 안 통한다는 뜻이다.\n");
-  return false;
-}
-
-function authChecklist() {
-  console.log("── 인증 실패 점검표 (위에서부터 흔한 순서)");
-  console.log("  1. 고객ID  검색광고 화면 우측 상단 [내 정보] 옆 숫자다.");
-  console.log("     네이버 아이디도, 사업자등록번호도, 광고그룹 번호도 아니다.");
-  console.log("  2. 키 쌍   액세스라이선스와 비밀키는 같이 발급된 한 쌍이어야 한다.");
-  console.log("     예전에 발급한 것과 새로 발급한 것을 섞어 넣지 않았는지 본다.");
-  console.log("  3. 재발급  비밀키는 발급 때 한 번만 보인다. 못 봤으면 못 쓴다.");
-  console.log("     [도구] → [API 사용 관리] 에서 다시 발급받고 그 자리에서 둘 다 복사한다.");
-  console.log("  4. 계정    로그인한 계정에 검색광고 광고주 계정이 있어야 한다.");
-  console.log("     여러 계정을 쓰고 있으면 키를 발급한 그 계정의 고객ID 여야 한다.");
-  console.log("  5. 붙여넣기  key.txt 에서 = 뒤에 값만 있어야 한다.");
-  console.log("     따옴표는 떼주지만 중간에 줄바꿈이 들어가면 못 고친다.\n");
-}
-
-async function probeBids(kw) {
-  for (const device of ["PC", "MOBILE"]) {
-    const r = await call("POST", BID_PATH, { body: bidBody(kw, device) });
-    console.log(`\n── 순위별 입찰가 / ${device} → HTTP ${r.status} ${explain(r.status, r.text)}`);
-    console.log(safe(r.text).slice(0, 900));
-    await sleep(300);
-  }
-}
-
-/* 지표 정규화. 프로토타입(keyword-lab.html)의 필드 이름에 맞춘다.
-   "< 10" 같은 문자열이 섞여 오므로 숫자로 강제한다. */
 function num(v) {
   if (typeof v === "number") return v;
   if (typeof v === "string") { const n = parseInt(v.replace(/[^\d]/g, ""), 10); return isNaN(n) ? 0 : n; }
   return 0;
 }
+/* 네이버는 검색량이 적으면 "< 10" 같은 문자열을 준다. 숫자로 바꾸되 가려진 값이었음을 남긴다. */
 function normalize(row) {
-  const pc = num(row.monthlyPcQcCnt), mo = num(row.monthlyMobileQcCnt);
+  const pcRaw = row.monthlyPcQcCnt, moRaw = row.monthlyMobileQcCnt;
+  const pc = num(pcRaw), mo = num(moRaw);
   return {
-    kw: row.relKeyword,
-    pc, mo, total: pc + mo,
+    kw: row.relKeyword, pc, mo, total: pc + mo,
+    masked: typeof pcRaw === "string" || typeof moRaw === "string",
     moShare: pc + mo ? mo / (pc + mo) : 0,
-    clickPc: num(row.monthlyAvePcClkCnt),
-    clickMo: num(row.monthlyAveMobileClkCnt),
-    ctrPc: parseFloat(row.monthlyAvePcCtr) || 0,
-    ctrMo: parseFloat(row.monthlyAveMobileCtr) || 0,
-    depth: num(row.plAvgDepth),
-    compIdx: row.compIdx || null,       // 높음 / 중간 / 낮음
-    fetchedAt: new Date().toISOString()
+    clickPc: Number(row.monthlyAvePcClkCnt) || 0, clickMo: Number(row.monthlyAveMobileClkCnt) || 0,
+    ctrPc: Number(row.monthlyAvePcCtr) || 0, ctrMo: Number(row.monthlyAveMobileCtr) || 0,
+    depth: num(row.plAvgDepth), compIdx: row.compIdx || null,
+    hints: [], bid: null, fetchedAt: new Date().toISOString()
   };
 }
 
+/* ── 입찰가 : 한 번에 여러 키워드를 받아주는지 실제로 확인한다 ── */
+let BID_MODE = null;            // "batch" | "single"
+let BATCH_SIZE = 10;
+function bidBody(keywords, device) {
+  const items = [];
+  for (const k of keywords) for (const p of [1, 2, 3]) items.push({ key: k, position: p });
+  return { device, keywordplus: false, key: keywords[0], items };
+}
+function readBids(json) {
+  const out = {};
+  for (const e of (json?.estimate || [])) {
+    (out[e.keyword] ||= {})[e.position] = e.bid;
+  }
+  return out;
+}
+async function detectBidMode(sample) {
+  if (sample.length < 2) { BID_MODE = "single"; return; }
+  const probe = sample.slice(0, Math.min(5, sample.length));
+  const r = await call("POST", BID_PATH, { body: bidBody(probe, "PC") });
+  if (r.ok) {
+    const got = Object.keys(readBids(r.json));
+    if (got.length >= probe.length) {
+      BID_MODE = "batch";
+      console.error(`  입찰가 묶음 조회 지원됨 (한 번에 ${BATCH_SIZE}개). 호출 수가 ${BATCH_SIZE}분의 1로 줄어든다.`);
+      return;
+    }
+    console.error(`  묶음 요청은 받았지만 ${got.length}/${probe.length}개만 돌아왔다. 하나씩 조회한다.`);
+  } else {
+    console.error(`  묶음 조회 미지원 (HTTP ${r.status}). 하나씩 조회한다.`);
+  }
+  BID_MODE = "single";
+}
+/* 반환: { 키워드: {pc:[1위,2위,3위], mo:[...]}, ... }  ·  실패한 키워드는 담기지 않는다 */
+async function fetchBids(keywords) {
+  const groups = BID_MODE === "batch"
+    ? Array.from({ length: Math.ceil(keywords.length / BATCH_SIZE) }, (_, i) => keywords.slice(i * BATCH_SIZE, (i + 1) * BATCH_SIZE))
+    : keywords.map(k => [k]);
+  const out = {}; let limitHit = false;
+  for (const g of groups) {
+    const pc = await call("POST", BID_PATH, { body: bidBody(g, "PC") });
+    await sleep(340);
+    const mo = await call("POST", BID_PATH, { body: bidBody(g, "MOBILE") });
+    await sleep(340);
+    if (pc.status === 429 || mo.status === 429) { limitHit = true; break; }
+    if (!pc.ok || !mo.ok) continue;
+    const P = readBids(pc.json), M = readBids(mo.json);
+    for (const k of g) {
+      if (!P[k] && !M[k]) continue;
+      out[k] = { pc: [P[k]?.[1] ?? null, P[k]?.[2] ?? null, P[k]?.[3] ?? null],
+                 mo: [M[k]?.[1] ?? null, M[k]?.[2] ?? null, M[k]?.[3] ?? null] };
+    }
+  }
+  return { out, limitHit, calls: groups.length * 2 };
+}
+
+/* ── 진단 ── */
+function shapeReport() {
+  const shape = v => { const t = String(v ?? "");
+    return { len: t.length, head: t.slice(0, 4),
+      cls: /^\d+$/.test(t) ? "숫자만" : /\s/.test(t) ? "공백·줄바꿈 섞임 ← 의심"
+         : /^[A-Za-z0-9+/=]+$/.test(t) ? "영문+숫자(+/=)" : "기타 문자 포함" }; };
+  const k = shape(KEY), s = shape(SECRET), c = shape(CUSTOMER);
+  console.log("── 키 모양 점검 (값은 보여주지 않는다)");
+  console.log(`  액세스라이선스  길이 ${k.len}  앞 4글자 ${k.head}  ${k.cls}`);
+  console.log(`  비밀키          길이 ${s.len}  ${s.cls}`);
+  console.log(`  고객ID          길이 ${c.len}  ${c.cls}\n`);
+}
+async function diagnose(kw) {
+  const P = "/keywordstool", QS = "?hintKeywords=" + encodeURIComponent(kw) + "&showDetail=1";
+  const variants = [
+    { name: "표준 (시각.METHOD.경로)", msg: ts => `${ts}.GET.${P}` },
+    { name: "경로에 쿼리까지 포함",     msg: ts => `${ts}.GET.${P}${QS}` },
+    { name: "메서드 소문자",            msg: ts => `${ts}.get.${P}` }];
+  const creds = [{ name: "입력한 그대로", api: KEY, sec: SECRET }, { name: "두 값 맞바꿈", api: SECRET, sec: KEY }];
+  let hit = null;
+  for (const c of creds) for (const v of variants) {
+    const ts = Date.now().toString();
+    const sig = crypto.createHmac("sha256", c.sec).update(v.msg(ts)).digest("base64");
+    let st = "??";
+    try {
+      const res = await fetch(HOST + P + QS, { headers: { "X-Timestamp": ts, "X-API-KEY": c.api,
+        "X-Customer": String(CUSTOMER), "X-Signature": sig, "Content-Type": "application/json; charset=UTF-8" } });
+      st = res.status; if (res.ok && !hit) hit = { cred: c.name, variant: v.name };
+    } catch { st = "연결실패"; }
+    console.log(`   ${st === 200 ? "OK  " : "실패"}  ${c.name} / ${v.name}  → ${st}`);
+    await sleep(250);
+  }
+  console.log("");
+  if (hit) {
+    console.log(`*** 통하는 조합 : ${hit.cred} / ${hit.variant} ***`);
+    if (hit.cred === "두 값 맞바꿈") console.log("    → key.txt 에서 두 값의 위치를 맞바꾸고 저장해라.");
+    if (hit.variant !== "표준 (시각.METHOD.경로)") console.log("    → 서명 방식 문제다. 이 결과를 보내주면 고쳐서 보낸다.");
+    return true;
+  }
+  console.log("여섯 조합 전부 실패. 서명 문제가 아니라 키 값 문제다.");
+  console.log("  1. 고객ID  검색광고 우측 상단 [내 정보] 옆 숫자다");
+  console.log("  2. 키 쌍   액세스라이선스와 비밀키는 같이 발급된 한 쌍이어야 한다");
+  console.log("  3. 재발급  비밀키는 발급 때 한 번만 보인다\n");
+  return false;
+}
+
+/* ── 본체 ── */
 async function main() {
   const args = process.argv.slice(2);
   const has = f => args.includes(f);
   const val = f => { const i = args.indexOf(f); return i >= 0 ? args[i + 1] : null; };
 
-  const major = parseInt(process.versions.node.split(".")[0], 10);
-  if (major < 18) { console.error(`Node ${process.versions.node} 은 너무 낮다. 18 이상이 필요하다.`); process.exit(1); }
+  if (parseInt(process.versions.node, 10) < 18) { console.error(`Node ${process.versions.node} 은 너무 낮다. 18 이상 필요.`); process.exit(1); }
   if (!KEY || !SECRET || !CUSTOMER) {
-    const miss = [];
-    if (!KEY) miss.push("액세스라이선스");
-    if (!SECRET) miss.push("비밀키");
-    if (!CUSTOMER) miss.push("고객ID");
-    console.error("\n키가 없다: " + miss.join(" / "));
-    console.error("같은 폴더의 key.txt 를 메모장으로 열어서 = 뒤에 값을 붙여넣고 저장해라.");
-    console.error("세 줄 모두 채워야 한다.\n");
+    const m = []; if (!KEY) m.push("액세스라이선스"); if (!SECRET) m.push("비밀키"); if (!CUSTOMER) m.push("고객ID");
+    console.error(`\n키가 없다: ${m.join(" / ")}`);
+    console.error("같은 폴더의 key.txt 를 메모장으로 열어 = 뒤에 값을 붙여넣고 저장해라.\n");
     process.exit(1);
   }
-  console.error("키 확인 완료. 고객ID " + String(CUSTOMER).slice(0, 3) + "***");
+  console.error(`키 확인 완료. 고객ID ${String(CUSTOMER).slice(0, 3)}***`);
 
   if (has("--probe")) {
-    const kw = args[args.indexOf("--probe") + 1] || "샤인머스캣";
     shapeReport();
-    console.log(`=== /keywordstool 원본 · "${kw}" ===`);
+    const kw = "샤인머스캣";
+    console.log(`=== /keywordstool · "${kw}" ===`);
     const r = await keywordTool(kw);
     console.log("HTTP", r.status, explain(r.status, r.text));
-    console.log(safe(r.text).slice(0, 2000));
-
-    if (r.status === 403 && /auth-failed|Auth Failed/i.test(r.text)) {
-      console.log("\n=== 인증 실패 자동 진단 ===");
-      console.log("  네트워크는 뚫렸다. 이건 네이버 서버가 직접 준 응답이다.");
-      console.log("  남은 가능성은 두 가지다. 키 값이 안 맞거나, 서명 방식이 안 맞거나.\n");
-      const fixed = await diagnose(kw);
-      if (!fixed) authChecklist();
-      console.log("입찰가 탐침은 건너뛴다. 인증이 풀린 뒤에 다시 돌리면 된다.");
-      return;
+    console.log(safe(r.text).slice(0, 1400));
+    if (r.status === 403 && /auth|Auth/i.test(r.text)) {
+      console.log("\n=== 인증 실패 자동 진단 ===\n"); await diagnose(kw); return;
     }
-
-    console.log("\n=== 입찰가 엔드포인트 탐침 ===");
-    await probeBids(kw);
-    console.log("\n이 출력을 그대로 붙여주면 파서를 확정한다.");
+    for (const d of ["PC", "MOBILE"]) {
+      const b = await call("POST", BID_PATH, { body: bidBody([kw], d) });
+      console.log(`\n── 순위별 입찰가 / ${d} → HTTP ${b.status} ${explain(b.status, b.text)}`);
+      console.log(safe(b.text).slice(0, 600));
+      await sleep(300);
+    }
+    console.log("\n이 출력을 그대로 붙여주면 된다.");
     return;
   }
 
+  /* 힌트 목록 */
   let hints = [];
-  if (val("--keywords-file")) {
-    const raw = await fs.readFile(val("--keywords-file"), "utf8");
-    hints = raw.split(/\r?\n/).map(x => x.trim()).filter(Boolean);
-  }
+  if (val("--keywords-file")) hints = (await fs.readFile(val("--keywords-file"), "utf8")).split(/\r?\n/).map(x => x.trim()).filter(Boolean);
   else if (val("--keywords")) hints = val("--keywords").split(",").map(x => x.trim());
-  else if (val("--from")) {
-    const cat = JSON.parse(await fs.readFile(val("--from"), "utf8"));
-    hints = cat.items.map(i => i.v);
-  } else { console.error("--keywords-file / --keywords / --from 중 하나가 필요하다"); process.exit(1); }
-
+  else if (val("--from")) hints = JSON.parse(await fs.readFile(val("--from"), "utf8")).items.map(i => i.v);
+  else if (!has("--resume")) { console.error("--from / --keywords-file / --keywords / --resume 중 하나가 필요하다"); process.exit(1); }
   const limit = parseInt(val("--limit") || "0", 10);
   if (limit > 0) hints = hints.slice(0, limit);
-  const bidMin = parseInt(val("--bid-min") || "1000", 10);   // 이 검색량 이상만 입찰가를 받는다
-  const noBids = has("--no-bids");
+  if (val("--batch-size")) BATCH_SIZE = Math.max(1, parseInt(val("--batch-size"), 10));
 
-  await fs.mkdir("naver-out", { recursive: true });
-  const OUT = path.join("naver-out", "keywords.json");
-  const started = new Date().toISOString();
-  const byKw = new Map();
-  const failed = [];
-  let calls = 0, stop = false;
+  /* 이어하기 */
+  await fs.mkdir(OUTDIR, { recursive: true });
+  const byKw = new Map(); const failed = []; const doneHints = new Set();
+  let calls = 0, started = new Date().toISOString();
+  try {
+    const prev = JSON.parse(await fs.readFile(OUT, "utf8"));
+    for (const r of prev.rows || []) byKw.set(r.kw, r);
+    (prev.doneHints || []).forEach(h => doneHints.add(h));
+    started = prev.startedAt || started;
+    console.error(`이어하기: 키워드 ${byKw.size}개 · 끝난 품종 ${doneHints.size}개를 불러왔다.`);
+  } catch {}
 
-  const save = async (phase) => {
+  const save = async phase => {
     const rows = [...byKw.values()].sort((a, b) => b.total - a.total);
     await fs.writeFile(OUT, JSON.stringify({
       startedAt: started, savedAt: new Date().toISOString(), phase,
-      hints: hints.length, calls, keywords: rows.length, failed, rows
+      rule: "키워드는 합치거나 버리지 않는다. 철자가 다르면 다른 시장이다.",
+      bidMode: BID_MODE, hints: hints.length, doneHints: [...doneHints],
+      calls, keywords: rows.length, withBid: rows.filter(r => r.bid).length, failed, rows
     }, null, 1), "utf8");
   };
 
-  /* 1단계 — 품종명을 힌트로 넣고 연관 키워드까지 받아온다 */
-  console.error(`1단계  품종 ${hints.length}개로 연관 키워드 수집`);
-  for (let i = 0; i < hints.length; i++) {
-    const hint = hints[i];
+  /* 1단계 — 연관 키워드. 철자가 다르면 다른 키워드로 전부 남긴다 */
+  const todo = hints.filter(h => !doneHints.has(h));
+  console.error(`\n1단계  품종 ${todo.length}개로 연관 키워드 수집` + (todo.length < hints.length ? ` (${hints.length - todo.length}개는 이미 끝남)` : ""));
+  let stop = false;
+  for (let i = 0; i < todo.length; i++) {
+    const hint = todo[i];
     const r = await keywordTool(hint); calls++;
     if (!r.ok) {
       failed.push({ phase: "keywords", hint, status: r.status, note: explain(r.status, r.text) });
-      console.error(`  [${i + 1}/${hints.length}] ${hint} → 실패 ${r.status} ${explain(r.status, r.text)}`);
-      if (r.status === 429) { console.error("  한도 도달. 여기까지 저장하고 멈춘다."); stop = true; break; }
+      console.error(`  [${i + 1}/${todo.length}] ${hint} → 실패 ${r.status} ${explain(r.status, r.text)}`);
+      if (r.status === 429) { console.error("  한도 도달. 저장하고 멈춘다."); stop = true; break; }
     } else {
-      let added = 0;
       for (const row of (r.json?.keywordList || [])) {
-        const m = normalize(row);
-        if (!m.kw) continue;
+        const m = normalize(row); if (!m.kw) continue;
         const prev = byKw.get(m.kw);
-        if (!prev || m.total > prev.total) { m.hints = [...new Set([...(prev?.hints || []), hint])]; byKw.set(m.kw, m); added++; }
-        else if (!prev.hints.includes(hint)) prev.hints.push(hint);
+        if (!prev) { m.hints = [hint]; byKw.set(m.kw, m); }
+        else {
+          if (!prev.hints.includes(hint)) prev.hints.push(hint);
+          // 값이 달라지면 덮지 않고 기록만 남긴다. 어느 쪽도 대표값으로 정하지 않는다.
+          if (prev.total !== m.total) (prev.seenAlso ||= []).push({ hint, total: m.total, at: m.fetchedAt });
+        }
       }
-      console.error(`  [${i + 1}/${hints.length}] ${hint} → 연관 ${r.json?.keywordList?.length || 0}개 (누적 ${byKw.size})`);
+      doneHints.add(hint);
+      console.error(`  [${i + 1}/${todo.length}] ${hint} → 연관 ${r.json?.keywordList?.length || 0}개 (누적 ${byKw.size})`);
     }
     if ((i + 1) % 20 === 0) await save("keywords");
     await sleep(350);
   }
   await save("keywords");
-  console.error(`1단계 끝. 고유 키워드 ${byKw.size}개\n`);
+  console.error(`1단계 끝. 고유 키워드 ${byKw.size}개`);
 
-  /* 2단계 — 검색량이 받쳐주는 키워드만 1~3위 입찰가를 PC·모바일로 받는다 */
-  if (!noBids && !stop) {
-    const targets = [...byKw.values()].filter(k => k.total >= bidMin).sort((a, b) => b.total - a.total);
-    const est = Math.round(targets.length * 2 * 0.4 / 60);
-    console.error(`2단계  입찰가 수집 — 검색량 ${bidMin.toLocaleString()} 이상 ${targets.length}개 · 약 ${est}분`);
-    for (let i = 0; i < targets.length; i++) {
-      const k = targets[i];
-      const pc = await bidsFor(k.kw, "PC"); calls++;
-      await sleep(350);
-      const mo = await bidsFor(k.kw, "MOBILE"); calls++;
-      if (pc.ok && mo.ok) {
-        k.bid = { pc: [pc[1], pc[2], pc[3]], mo: [mo[1], mo[2], mo[3]] };
-      } else {
-        const bad = !pc.ok ? pc.status : mo.status;
-        failed.push({ phase: "bids", kw: k.kw, status: bad });
-        if (bad === 429) { console.error("  한도 도달. 여기까지 저장하고 멈춘다."); await save("bids"); stop = true; break; }
+  /* 2단계 — 입찰가. 검색량과 무관하게 전부 받는다 */
+  if (!stop && !has("--no-bids")) {
+    const need = [...byKw.values()].filter(k => !k.bid).map(k => k.kw);
+    if (need.length) {
+      console.error(`\n2단계  입찰가 수집 — 남은 ${need.length}개 (검색량과 무관하게 전부 받는다)`);
+      if (!BID_MODE) await detectBidMode(need);
+      const per = BID_MODE === "batch" ? BATCH_SIZE : 1;
+      console.error(`  예상 ${Math.ceil(need.length / per / 60 * 0.7)}분 내외. 중간중간 저장된다.\n`);
+      const chunk = per * 25;
+      for (let i = 0; i < need.length; i += chunk) {
+        const part = need.slice(i, i + chunk);
+        const { out, limitHit, calls: c } = await fetchBids(part);
+        calls += c;
+        for (const [k, b] of Object.entries(out)) { const row = byKw.get(k); if (row) row.bid = b; }
+        const got = [...byKw.values()].filter(r => r.bid).length;
+        console.error(`  ${Math.min(i + chunk, need.length)}/${need.length} 처리 · 입찰가 확보 ${got}개`);
+        await save("bids");
+        if (limitHit) { console.error("  한도 도달. 저장하고 멈춘다. 내일 --resume 으로 이어가면 된다."); stop = true; break; }
       }
-      if ((i + 1) % 25 === 0) { await save("bids"); console.error(`  [${i + 1}/${targets.length}] ${k.kw}`); }
-      await sleep(350);
     }
-    await save("bids");
   }
 
-  await save("done");
-  const withBid = [...byKw.values()].filter(k => k.bid).length;
-  console.error(`\n완료  호출 ${calls}회 · 키워드 ${byKw.size}개 · 입찰가 있는 것 ${withBid}개 · 실패 ${failed.length}건`);
+  await save(stop ? "중단됨" : "done");
+  const rows = [...byKw.values()];
+  console.error(`\n완료  호출 ${calls}회 · 키워드 ${rows.length}개 · 입찰가 ${rows.filter(r => r.bid).length}개 · 실패 ${failed.length}건`);
   console.error(`→ ${OUT}`);
-  if (failed.length) console.error("실패는 실패로 남겼다. 이전 값으로 덮지 않았다.");
-  if (stop) console.error("한도로 중단됐다. 내일 다시 돌리면 이어서 채운다.");
+  if (rows.some(r => r.masked)) console.error(`검색량이 "< 10" 으로 가려진 키워드도 그대로 담았다 (masked 표시).`);
+  if (stop) console.error("중단됐다. 3-collect-all.bat 을 다시 실행하면 이어서 채운다.");
 }
 main().catch(e => { console.error(e); process.exit(1); });
