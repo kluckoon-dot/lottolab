@@ -334,6 +334,73 @@ async function collectTrend(args) {
   console.error(`→ ${OUT}`);
 }
 
+/* ── 경로 찾기 ──
+   대조군으로 확인됐다.  404 = 없는 경로 · 210 = 있는데 구독 안 됨 · 200 = 정답
+   그래서 404 가 아닌 것만 걸러내면 된다.
+   이관 가이드의 규칙은 /v1/search/news.json → /search/v1/news 였다.
+   즉 서비스 이름이 맨 앞으로 온다. 그 이름이 무엇인지를 찾는다. */
+async function findPath() {
+  const SERVICES = ["datalab","search","searchtrend","search-trend","trend","shopping",
+                    "shoppinginsight","shopping-insight","insight","naversearch","nsearch",
+                    "ai-naver-searchtrend","dl","openapi","naver"];
+  const SHAPES = [
+    s => `/${s}/v1/search`,
+    s => `/${s}/v1/datalab/search`,
+    s => `/${s}/v1/trend`,
+    s => `/${s}/v1/search/trend`,
+    s => `/${s}/v1/shopping/categories`
+  ];
+  const body = trendBody(["샤인머스캣"]);
+  console.log("── 대조군으로 응답의 뜻을 먼저 확인한다");
+  const c = await tryCall(HUB, AUTHS[1], body, "/zzz-not-real/v1/nothing");
+  const cc = (c.json && c.json.error && c.json.error.errorCode) || "";
+  console.log(`  ${c.raw} (${cc}) ${HUB}/zzz-not-real/v1/nothing`);
+  if (String(c.raw) !== "404") {
+    console.log("\n  대조군이 404 가 아니다. 이 방법은 못 쓴다. 여기서 멈춘다.\n");
+    return;
+  }
+  console.log("  → 404 확인. 이제 404 가 아닌 경로만 찾으면 된다.\n");
+
+  console.log(`── ${HUB} 을 훑는다  (서비스 ${SERVICES.length} × 형태 ${SHAPES.length})\n`);
+  const found = [];
+  for (const s of SERVICES) {
+    for (const shape of SHAPES) {
+      const p = shape(s);
+      const r = await tryCall(HUB, AUTHS[1], body, p);
+      const code = (r.json && r.json.error && r.json.error.errorCode) || "";
+      if (String(r.raw) === "404") { await sleep(120); continue; }
+      const tag = r.ok ? "OK  " : code === "210" ? "구독?" : "    ";
+      console.log(`  ${tag} ${String(r.raw).padEnd(5)} ${code ? "("+code+") " : ""}${p}`);
+      found.push({ p, status: r.raw, code, ok: r.ok, text: r.text });
+      await sleep(150);
+    }
+  }
+  console.log("");
+  const ok = found.filter(f => f.ok);
+  if (ok.length) {
+    console.log("*** 찾았다 ***");
+    for (const f of ok) console.log(`    ${HUB}${f.p}`);
+    console.log("\n── 응답 원본");
+    console.log(safe(ok[0].text).slice(0, 900));
+    await fs.mkdir(OUTDIR, { recursive: true });
+    await fs.writeFile(path.join(OUTDIR, "hub-endpoint.json"),
+      JSON.stringify({ host: HUB, path: ok[0].p, auth: "X-NCP-APIGW-*", foundAt: new Date().toISOString() }, null, 1), "utf8");
+    console.log(`\n주소를 ${OUTDIR}/hub-endpoint.json 에 저장했다.`);
+    return;
+  }
+  if (found.length) {
+    console.log("200 은 없었지만 404 도 아닌 것들이다. 이 중에 답이 있다.\n");
+    for (const f of found.slice(0, 12)) {
+      console.log(`  ${f.status} ${f.code ? "("+f.code+") " : ""}${f.p}`);
+      console.log(`     ${safe(f.text).replace(/\s+/g," ").slice(0,180)}`);
+    }
+  } else {
+    console.log("전부 404 였다. 서비스 이름이 후보에 없다.");
+    console.log("콘솔 [개발 가이드] → 검색어트렌드 → search 페이지의 주소 한 줄이 필요하다.");
+  }
+  console.log("");
+}
+
 async function main() {
   const args = process.argv.slice(2);
   if (parseInt(process.versions.node, 10) < 18) { console.error("Node 18 이상이 필요하다."); process.exit(1); }
@@ -345,6 +412,7 @@ async function main() {
     process.exit(1);
   }
   console.error(`API HUB 인증 정보 확인. Client ID ${String(ID).slice(0, 4)}***\n`);
+  if (args.includes("--find")) return findPath();
   if (args.includes("--trend")) return collectTrend(args);
   if (args.includes("--probe") || args.length === 0) return probe();
   console.error("--probe 또는 --trend 중 하나를 써라.");
