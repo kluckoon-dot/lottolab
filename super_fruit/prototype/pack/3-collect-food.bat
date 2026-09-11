@@ -1,18 +1,18 @@
 @echo off
 chcp 65001 >nul
 cd /d "%~dp0"
-title STEP 1 - connection check
+title STEP 3 - all food
 where node >nul 2>nul
 if errorlevel 1 goto nonode
 echo.
-echo  STEP 1 / connection check
+echo  STEP 3 / TIER 2  all food categories   (+189 seeds)
 echo.
-node fetch-naver.mjs --probe > probe.txt 2>&1
-type probe.txt
+echo  Continues from where STEP 2 stopped. Nothing is redone.
 echo.
-echo   Saved to probe.txt - Notepad will open. Copy all of it and send it.
+node fetch-naver.mjs --tier 2
 echo.
-notepad probe.txt
+echo   Result: naver-out\keywords.json
+echo.
 pause
 exit /b
 :nonode

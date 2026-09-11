@@ -102,7 +102,7 @@ function normalize(row) {
   const pcRaw = row.monthlyPcQcCnt, moRaw = row.monthlyMobileQcCnt;
   const pc = num(pcRaw), mo = num(moRaw);
   return {
-    kw: row.relKeyword, pc, mo, total: pc + mo,
+    kw: row.relKeyword, pc, mo, total: pc + mo, tier: null,
     masked: typeof pcRaw === "string" || typeof moRaw === "string",
     moShare: pc + mo ? mo / (pc + mo) : 0,
     clickPc: Number(row.monthlyAvePcClkCnt) || 0, clickMo: Number(row.monthlyAveMobileClkCnt) || 0,
@@ -248,15 +248,23 @@ async function main() {
     return;
   }
 
-  /* 힌트 목록 */
-  let hints = [];
-  if (val("--keywords-file")) hints = (await fs.readFile(val("--keywords-file"), "utf8")).split(/\r?\n/).map(x => x.trim()).filter(Boolean);
-  else if (val("--keywords")) hints = val("--keywords").split(",").map(x => x.trim());
-  else if (val("--from")) hints = JSON.parse(await fs.readFile(val("--from"), "utf8")).items.map(i => i.v);
-  else if (!has("--resume")) { console.error("--from / --keywords-file / --keywords / --resume 중 하나가 필요하다"); process.exit(1); }
+  /* 시드 — 단계 순서대로 처리한다 */
+  let plan = [];
+  if (val("--keywords-file")) plan = [{ tier: 1, name: "직접 지정",
+      seeds: (await fs.readFile(val("--keywords-file"), "utf8")).split(/\r?\n/).map(x => x.trim()).filter(Boolean) }];
+  else if (val("--keywords")) plan = [{ tier: 1, name: "직접 지정", seeds: val("--keywords").split(",").map(x => x.trim()) }];
+  else {
+    const f = val("--seeds") || "seeds.json";
+    try { plan = JSON.parse(await fs.readFile(f, "utf8")).tiers; }
+    catch { console.error(`${f} 을 읽지 못했다. 같은 폴더에 있는지 확인해라.`); process.exit(1); }
+  }
+  const maxTier = parseInt(val("--tier") || "99", 10);
+  plan = plan.filter(t => t.tier <= maxTier);
   const limit = parseInt(val("--limit") || "0", 10);
-  if (limit > 0) hints = hints.slice(0, limit);
+  if (limit > 0) { let n = limit; plan = plan.map(t => { const take = Math.max(0, Math.min(n, t.seeds.length)); n -= take; return { ...t, seeds: t.seeds.slice(0, take) }; }).filter(t => t.seeds.length); }
+  const maxCalls = parseInt(val("--max-calls") || "0", 10);
   if (val("--batch-size")) BATCH_SIZE = Math.max(1, parseInt(val("--batch-size"), 10));
+  const hints = plan.flatMap(t => t.seeds);
 
   /* 이어하기 */
   await fs.mkdir(OUTDIR, { recursive: true });
@@ -276,46 +284,62 @@ async function main() {
       startedAt: started, savedAt: new Date().toISOString(), phase,
       rule: "키워드는 합치거나 버리지 않는다. 철자가 다르면 다른 시장이다.",
       bidMode: BID_MODE, hints: hints.length, doneHints: [...doneHints],
-      calls, keywords: rows.length, withBid: rows.filter(r => r.bid).length, failed, rows
+      calls, keywords: rows.length, withBid: rows.filter(r => r.bid).length,
+      byTier: [1,2,3,4].map(t => ({ tier: t, keywords: rows.filter(r => r.tier === t).length,
+                                    withBid: rows.filter(r => r.tier === t && r.bid).length })),
+      failed, rows
     }, null, 1), "utf8");
   };
 
   /* 1단계 — 연관 키워드. 철자가 다르면 다른 키워드로 전부 남긴다 */
-  const todo = hints.filter(h => !doneHints.has(h));
-  console.error(`\n1단계  품종 ${todo.length}개로 연관 키워드 수집` + (todo.length < hints.length ? ` (${hints.length - todo.length}개는 이미 끝남)` : ""));
-  let stop = false;
-  for (let i = 0; i < todo.length; i++) {
-    const hint = todo[i];
-    const r = await keywordTool(hint); calls++;
-    if (!r.ok) {
-      failed.push({ phase: "keywords", hint, status: r.status, note: explain(r.status, r.text) });
-      console.error(`  [${i + 1}/${todo.length}] ${hint} → 실패 ${r.status} ${explain(r.status, r.text)}`);
-      if (r.status === 429) { console.error("  한도 도달. 저장하고 멈춘다."); stop = true; break; }
-    } else {
-      for (const row of (r.json?.keywordList || [])) {
-        const m = normalize(row); if (!m.kw) continue;
-        const prev = byKw.get(m.kw);
-        if (!prev) { m.hints = [hint]; byKw.set(m.kw, m); }
-        else {
-          if (!prev.hints.includes(hint)) prev.hints.push(hint);
-          // 값이 달라지면 덮지 않고 기록만 남긴다. 어느 쪽도 대표값으로 정하지 않는다.
-          if (prev.total !== m.total) (prev.seenAlso ||= []).push({ hint, total: m.total, at: m.fetchedAt });
+  console.error("");
+  plan.forEach(t => console.error(`  ${t.tier}단계  ${t.name.padEnd(12)} 시드 ${t.seeds.length}개`));
+  if (maxCalls) console.error(`  호출 상한 ${maxCalls.toLocaleString()}회`);
+  let stop = false, budget = false;
+
+  for (const t of plan) {
+    const todo = t.seeds.filter(h => !doneHints.has(h));
+    if (!todo.length) { console.error(`\n${t.tier}단계 ${t.name} — 이미 끝남`); continue; }
+    console.error(`\n${t.tier}단계  ${t.name}  —  ${todo.length}개 처리` + (todo.length < t.seeds.length ? ` (${t.seeds.length - todo.length}개는 이미 끝남)` : ""));
+    for (let i = 0; i < todo.length; i++) {
+      if (maxCalls && calls >= maxCalls) { console.error("  호출 상한에 닿았다. 저장하고 멈춘다."); budget = true; break; }
+      const hint = todo[i];
+      const r = await keywordTool(hint); calls++;
+      if (!r.ok) {
+        failed.push({ phase: "keywords", tier: t.tier, hint, status: r.status, note: explain(r.status, r.text) });
+        console.error(`  [${i + 1}/${todo.length}] ${hint} → 실패 ${r.status} ${explain(r.status, r.text)}`);
+        if (r.status === 429) { console.error("  한도 도달. 저장하고 멈춘다."); stop = true; break; }
+      } else {
+        for (const row of (r.json?.keywordList || [])) {
+          const m = normalize(row); if (!m.kw) continue;
+          const prev = byKw.get(m.kw);
+          if (!prev) { m.hints = [hint]; m.tier = t.tier; byKw.set(m.kw, m); }
+          else {
+            if (!prev.hints.includes(hint)) prev.hints.push(hint);
+            if (prev.tier == null || t.tier < prev.tier) prev.tier = t.tier;
+            if (prev.total !== m.total) (prev.seenAlso ||= []).push({ hint, total: m.total, at: m.fetchedAt });
+          }
         }
+        doneHints.add(hint);
+        if ((i + 1) % 10 === 0 || i === todo.length - 1)
+          console.error(`  [${i + 1}/${todo.length}] ${hint} → 누적 키워드 ${byKw.size.toLocaleString()}개`);
       }
-      doneHints.add(hint);
-      console.error(`  [${i + 1}/${todo.length}] ${hint} → 연관 ${r.json?.keywordList?.length || 0}개 (누적 ${byKw.size})`);
+      if ((i + 1) % 20 === 0) await save("keywords");
+      await sleep(350);
     }
-    if ((i + 1) % 20 === 0) await save("keywords");
-    await sleep(350);
+    await save("keywords");
+    if (stop || budget) break;
   }
-  await save("keywords");
-  console.error(`1단계 끝. 고유 키워드 ${byKw.size}개`);
+  console.error(`\n1단계 끝. 고유 키워드 ${byKw.size.toLocaleString()}개`);
 
   /* 2단계 — 입찰가. 검색량과 무관하게 전부 받는다 */
-  if (!stop && !has("--no-bids")) {
-    const need = [...byKw.values()].filter(k => !k.bid).map(k => k.kw);
+  if (!stop && !budget && !has("--no-bids")) {
+    const need = [...byKw.values()].filter(k => !k.bid)
+      .sort((a, b) => (a.tier ?? 99) - (b.tier ?? 99) || b.total - a.total)
+      .map(k => k.kw);
     if (need.length) {
-      console.error(`\n2단계  입찰가 수집 — 남은 ${need.length}개 (검색량과 무관하게 전부 받는다)`);
+      console.error(`\n2단계  입찰가 수집 — 남은 ${need.length.toLocaleString()}개`);
+      console.error("  검색량과 무관하게 전부 받는다. 앞 단계 키워드부터 먼저 받는다.");
       if (!BID_MODE) await detectBidMode(need);
       const per = BID_MODE === "batch" ? BATCH_SIZE : 1;
       console.error(`  예상 ${Math.ceil(need.length / per / 60 * 0.7)}분 내외. 중간중간 저장된다.\n`);
@@ -328,7 +352,8 @@ async function main() {
         const got = [...byKw.values()].filter(r => r.bid).length;
         console.error(`  ${Math.min(i + chunk, need.length)}/${need.length} 처리 · 입찰가 확보 ${got}개`);
         await save("bids");
-        if (limitHit) { console.error("  한도 도달. 저장하고 멈춘다. 내일 --resume 으로 이어가면 된다."); stop = true; break; }
+        if (limitHit) { console.error("  한도 도달. 저장하고 멈춘다. 다시 실행하면 이어서 받는다."); stop = true; break; }
+        if (maxCalls && calls >= maxCalls) { console.error("  호출 상한에 닿았다. 저장하고 멈춘다."); stop = true; break; }
       }
     }
   }
@@ -338,6 +363,8 @@ async function main() {
   console.error(`\n완료  호출 ${calls}회 · 키워드 ${rows.length}개 · 입찰가 ${rows.filter(r => r.bid).length}개 · 실패 ${failed.length}건`);
   console.error(`→ ${OUT}`);
   if (rows.some(r => r.masked)) console.error(`검색량이 "< 10" 으로 가려진 키워드도 그대로 담았다 (masked 표시).`);
-  if (stop) console.error("중단됐다. 3-collect-all.bat 을 다시 실행하면 이어서 채운다.");
+  const bt = [1,2,3,4].map(t => rows.filter(r => r.tier === t).length);
+  console.error(`  단계별  1단계 ${bt[0].toLocaleString()} · 2단계 ${bt[1].toLocaleString()} · 3단계 ${bt[2].toLocaleString()} · 4단계 ${bt[3].toLocaleString()}`);
+  if (stop || budget) console.error("\n중단됐다. 2-collect.bat 을 다시 실행하면 이어서 채운다. 처음부터 하지 않는다.");
 }
 main().catch(e => { console.error(e); process.exit(1); });

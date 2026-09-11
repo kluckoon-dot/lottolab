@@ -6,7 +6,8 @@
 
 
 # ─────────────────────────────────────────────
-#  A. 검색광고 API   (월검색수 / 클릭 / 입찰가)
+#  A. 검색광고 API
+#     월검색수 / 클릭 / CTR / 경쟁도 / 1~3위 입찰가
 #
 #  searchad.naver.com 로그인
 #   → 우측 상단 [도구] → [API 사용 관리]
@@ -24,13 +25,15 @@ NAVER_AD_CUSTOMER=
 
 
 # ─────────────────────────────────────────────
-#  B. NAVER API HUB   (3년 주간 추세 / 연령 / 성별 / 기기)
+#  B. NAVER API HUB
+#     3년 주간 추세 / 연령 / 성별 / 기기
 #
-#  네이버 클라우드 콘솔 (console.ncloud.com)
+#  console.ncloud.com 접속
 #   → 좌측 상단 [Menu] → All Services
 #   → Application Services → NAVER API HUB
 #   → 좌측 [Application] 메뉴
 #   → Application 등록  (아직 안 했으면)
+#      이때 "검색어 트렌드" 와 "쇼핑 인사이트" 를 꼭 포함시킬 것
 #   → API 관리 아래 [인증 정보] 버튼
 #   → Client ID / Client Secret 복사
 #
