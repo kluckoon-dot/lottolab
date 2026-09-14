@@ -8,31 +8,25 @@ echo.
 echo  STEP 18 / Product count probe
 echo.
 echo  Competition strength = product count / monthly searches.
-echo  We already have the searches. The product count is the
-echo  only missing piece, so this step asks one question:
-echo  can we get it at all?
+echo  We have the searches. The product count is the only
+echo  missing piece.
 echo.
-echo  It sweeps 12 candidate addresses on two hosts with one
-echo  test keyword. About 15 seconds. It writes nothing unless
-echo  it actually finds a number.
+echo  First run said: API HUB 404 everywhere, openapi.naver.com
+echo  401. Reports say the Shopping Search API was shut down on
+echo  2026-07-31 while blog/news search moved to the HUB.
 echo.
-echo  NOTE - the Search API uses a DIFFERENT key pair than the
-echo  API HUB. If this step tells you to add SEARCH_ID and
-echo  SEARCH_SECRET to key.txt, get them here (free, 5 min):
+echo  So this run settles it with one control. If blog/news
+echo  search answers on OUR key but shopping does not, the
+echo  shopping API is genuinely gone. If blog/news is ALSO 404,
+echo  then 404 just means we never subscribed to Search on NCP
+echo  and it is worth applying for.
 echo.
-echo    1. https://developers.naver.com/apps/#/register
-echo    2. Application name: anything. Check "검색".
-echo    3. Environment: "WEB 설정", URL http://localhost
-echo    4. Copy the Client ID and Client Secret it gives you.
-echo    5. Open key.txt in Notepad, add two lines:
-echo         SEARCH_ID=the Client ID
-echo         SEARCH_SECRET=the Client Secret
-echo    6. Save, then run this file again.
+echo  Do NOT go to developers.naver.com - the search options are
+echo  no longer in that dropdown. That path is closed.
 echo.
 node fetch-hub.mjs --shop-count
 echo.
-echo   If it found something: naver-out\hub-shopcount.json
-echo   Either way, copy the whole screen output and send it.
+echo   Copy the whole screen output and send it.
 echo.
 pause
 exit /b

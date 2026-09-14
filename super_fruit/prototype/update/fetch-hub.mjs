@@ -947,6 +947,12 @@ async function findShopCount() {
   ];
   const OLD_PATHS = ["/v1/search/shop.json", "/v1/search/shop"];
   const CTRL = "/zzz-not-real/v1/nothing";
+  /* 결정적 대조군.
+     블로그·뉴스 검색은 허브로 "이관"됐고 쇼핑 검색은 "종료"됐다고 한다.
+     그 말이 맞다면 /search/v1/blog 는 살아있고 /search/v1/shop 만 404 여야 한다.
+     둘 다 404 면 404 의 뜻은 "종료"가 아니라 "이 계정이 검색 API 를 구독 안 함"이다.
+     이 한 줄이 막다른 길인지 신청만 하면 되는지를 가른다. */
+  const LIVE_PATHS = ["/search/v1/blog", "/search/v1/news"];
 
   const get = async (host, p2, headers) => {
     try {
@@ -972,6 +978,23 @@ async function findShopCount() {
     ? "  검색 API 키가 따로 있다. 개발자센터 주소에는 그 키를 쓴다.\n"
     : "  검색 API 키가 없다. 개발자센터 주소에도 허브 키를 써본다.\n"
       + "  거기서 401(인증 실패)이 나오면 그건 '주소는 살아있고 키만 다르다'는 뜻이다.\n");
+
+  /* 살아있다고 알려진 검색 API 부터. 이게 뭘 주는지가 판정의 기준이다. */
+  console.log("  [기준점] 이관됐다고 알려진 검색 API 가 이 키로 뭘 주는지 먼저 본다");
+  let liveOk = false, liveStatus = [];
+  for (const p2 of LIVE_PATHS) {
+    const r = await get(HUB, p2, NCP);
+    await sleep(200);
+    const code = (r.json && r.json.error && r.json.error.errorCode) || "";
+    if (String(r.status) !== String(ctl.status)) liveOk = true;
+    liveStatus.push(`${p2} → ${r.status}${code ? " (" + code + ")" : ""}`);
+    console.log(`    ${String(r.status).padEnd(6)} ${p2.padEnd(24)} ${safe(r.text).replace(/\s+/g, " ").slice(0, 70)}`);
+  }
+  console.log(liveOk
+    ? "    → 블로그·뉴스는 살아있다. 그러면 쇼핑의 404 는 진짜 '없음'이다.\n"
+    : "    → 블로그·뉴스도 대조군과 똑같다. 404 는 '종료'가 아니라\n"
+      + "       '이 계정이 검색 API 를 구독하지 않았다'는 뜻일 수 있다.\n"
+      + "       NCP 콘솔에서 검색 API 를 신청하면 달라질 수 있다.\n");
 
   const hits = [];
   let sawAuthFail = false;
@@ -1001,7 +1024,7 @@ async function findShopCount() {
   if (hits.length) {
     await fs.mkdir(OUTDIR, { recursive: true });
     await fs.writeFile(path.join(OUTDIR, "hub-shopcount.json"),
-      JSON.stringify({ kw: q, hits, at: new Date().toISOString() }, null, 1), "utf8");
+      JSON.stringify({ kw: q, hits, liveOk, liveStatus, at: new Date().toISOString() }, null, 1), "utf8");
     const h = hits[0];
     console.log(`  찾았다.  ${h.host}${h.path}`);
     console.log(`  "${q}" 상품수 ${h.total.toLocaleString()}개`);
@@ -1017,9 +1040,14 @@ async function findShopCount() {
     console.log("           SEARCH_ID=받은Client ID");
     console.log("           SEARCH_SECRET=받은Client Secret\n");
     console.log("  적고 나서 이 파일을 다시 더블클릭하면 된다.\n");
+  } else if (liveOk) {
+    console.log("  상품수를 주는 자리가 없다. 그리고 그건 설정 문제가 아니다.");
+    console.log("  블로그·뉴스 검색은 같은 키로 살아있는데 쇼핑만 404 다.");
+    console.log("  = 쇼핑 검색 API 는 실제로 없어진 것이다. 공식 경로는 막혔다.\n");
   } else {
     console.log("  상품수를 주는 자리를 못 찾았다.");
-    console.log("  위 응답을 통째로 보내주면 다음 후보를 정한다.\n");
+    console.log("  다만 블로그·뉴스 검색도 똑같이 404 였다. 구독 문제일 수 있다.");
+    console.log("  NCP 콘솔 > API HUB 에서 '검색' 을 신청해보고 다시 돌려라.\n");
   }
 }
 
