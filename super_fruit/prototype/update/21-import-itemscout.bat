@@ -15,34 +15,32 @@ echo  YOUR OWN ItemScout account. That is your data, exported
 echo  through their own export button - not scraping their site.
 echo.
 echo  HOW:
-echo    1. In ItemScout, open 연관키워드 for a keyword you care
-echo       about and use its download / export button.
-echo    2. If it gives you .xlsx, open it in Excel and save as
-echo       "CSV UTF-8". The importer reads CSV, not xlsx.
-echo    3. Drop the .csv files into THIS folder.
-echo    4. Run this file.
+echo    1. In ItemScout, open the related-keyword tab and
+echo       press its download button.
+echo    2. Drop the file into THIS folder. xlsx works as-is -
+echo       no need to convert it to CSV any more.
+echo    3. Run this file.
 echo.
 echo  Column names are detected automatically, Korean or English,
 echo  in any order. Re-running merges - newest file wins.
+echo  It also picks up the category and the shopping/info label.
 echo.
-setlocal enabledelayedexpansion
-set FOUND=
-for %%f in (*.csv) do set FOUND=1
-if not defined FOUND goto nocsv
-node import-itemscout.mjs *.csv
+dir /b *.xlsx *.csv >nul 2>nul
+if errorlevel 1 goto nofile
+node import-itemscout.mjs *.xlsx *.csv
 echo.
 echo   Result: naver-out\shopcount.json
 echo   Then run 16b-pack-sections.bat to put it on screen.
 echo.
 pause
 exit /b
-:nocsv
-echo  [!] No .csv file in this folder.
-echo      Put your ItemScout export here first.
+:nofile
+echo  [X] No .xlsx or .csv file in this folder.
+echo      Put your ItemScout download here first.
 echo.
 pause
 exit /b
 :nonode
-echo  [!] Node.js is not installed. https://nodejs.org
+echo  [X] Node.js is not installed. https://nodejs.org
 start https://nodejs.org/ko
 pause

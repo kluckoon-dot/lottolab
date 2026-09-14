@@ -5,8 +5,9 @@
  * 남의 사이트를 긁는 게 아니라 내 자료를 가져오는 것이다.
  *
  * 쓰는 법
- *   node import-itemscout.mjs 내려받은파일.csv
- *   node import-itemscout.mjs *.csv          여러 개 한꺼번에
+ *   node import-itemscout.mjs 내려받은파일.xlsx
+ *   node import-itemscout.mjs *.xlsx         여러 개 한꺼번에
+ *   xlsx 도 csv 도 그대로 읽는다. 엑셀로 변환할 필요 없다.
  *
  * 열 이름은 자동으로 찾는다. 한글이든 영문이든, 순서가 달라도 된다.
  * 같은 키워드가 여러 파일에 있으면 최신 파일 값이 이긴다.
@@ -15,14 +16,24 @@
  *        그대로 16b 팩에 실린다.
  */
 import fs from "node:fs";
+import zlib from "node:zlib";
 import path from "node:path";
 
 const OUTDIR = "naver-out";
 const OUT = path.join(OUTDIR, "shopcount.json");
-const files = process.argv.slice(2).filter(f => !f.startsWith("--"));
+/* 윈도우 cmd 는 *.xlsx 를 풀어주지 않는다. node 도 안 풀어준다.
+   그래서 별표가 들어오면 여기서 직접 편다. 없는 패턴은 조용히 버린다. */
+const expand = pat => {
+  if (!pat.includes("*")) return [pat];
+  const dir = path.dirname(pat) || ".";
+  const re = new RegExp("^" + path.basename(pat).replace(/[.+^${}()|[\]\\]/g, "\\$&").replace(/\*/g, ".*") + "$", "i");
+  try { return fs.readdirSync(dir).filter(f => re.test(f)).map(f => path.join(dir, f)); }
+  catch { return []; }
+};
+const files = [...new Set(process.argv.slice(2).filter(f => !f.startsWith("--")).flatMap(expand))];
 if (!files.length) {
-  console.error("\n  쓰는 법: node import-itemscout.mjs 내려받은파일.csv\n");
-  console.error("  아이템스카우트에서 연관키워드를 CSV 또는 엑셀로 내려받은 뒤");
+  console.error("\n  쓰는 법: node import-itemscout.mjs 내려받은파일.xlsx\n");
+  console.error("  아이템스카우트에서 연관키워드를 내려받은 뒤 (xlsx 그대로 됨)");
   console.error("  그 파일을 이 폴더에 두고 파일명을 적어라.\n");
   process.exit(1);
 }
@@ -45,6 +56,78 @@ const findCol = (head, names) => {
   for (let i = 0; i < h.length; i++) if (names.map(norm).some(n => h[i].includes(n))) return i;
   return -1;
 };
+
+/* ── xlsx 직접 읽기 ──
+   엑셀로 열어서 CSV 로 저장하라고 시켰는데, 그건 파일 하나 넣을 때마다 손이 간다.
+   xlsx 는 그냥 zip 이다. 안에 든 XML 두 개만 꺼내면 된다.
+   외부 라이브러리 없이 node 의 zlib 만 쓴다. */
+function unzip(buf) {
+  /* 끝에서 중앙 디렉터리를 찾는다 */
+  let eocd = -1;
+  for (let i = buf.length - 22; i >= 0 && i > buf.length - 66000; i--)
+    if (buf.readUInt32LE(i) === 0x06054b50) { eocd = i; break; }
+  if (eocd < 0) throw new Error("zip 구조가 아니다");
+  const n = buf.readUInt16LE(eocd + 10);
+  let p = buf.readUInt32LE(eocd + 16);
+  const out = {};
+  for (let k = 0; k < n; k++) {
+    if (buf.readUInt32LE(p) !== 0x02014b50) break;
+    const method = buf.readUInt16LE(p + 10);
+    const csize = buf.readUInt32LE(p + 20);
+    const nameLen = buf.readUInt16LE(p + 28);
+    const extraLen = buf.readUInt16LE(p + 30);
+    const cmtLen = buf.readUInt16LE(p + 32);
+    const lho = buf.readUInt32LE(p + 42);
+    const name = buf.toString("utf8", p + 46, p + 46 + nameLen);
+    /* 로컬 헤더에서 실제 자료 시작 위치를 다시 잰다. extra 길이가 다를 수 있다. */
+    const lNameLen = buf.readUInt16LE(lho + 26), lExtraLen = buf.readUInt16LE(lho + 28);
+    const start = lho + 30 + lNameLen + lExtraLen;
+    const raw = buf.subarray(start, start + csize);
+    if (name.endsWith(".xml"))
+      out[name] = method === 0 ? raw : zlib.inflateRawSync(raw);
+    p += 46 + nameLen + extraLen + cmtLen;
+  }
+  return out;
+}
+const unesc = t => t.replace(/&lt;/g, "<").replace(/&gt;/g, ">")
+  .replace(/&quot;/g, '"').replace(/&apos;/g, "'")
+  .replace(/&#(\d+);/g, (_, d) => String.fromCodePoint(+d))
+  .replace(/&amp;/g, "&");
+const colNum = ref => { let c = 0; for (const ch of (ref.match(/^[A-Z]+/) || [""])[0]) c = c * 26 + (ch.charCodeAt(0) - 64); return c - 1; };
+
+function readXlsx(buf) {
+  const files = unzip(buf);
+  const sstXml = files["xl/sharedStrings.xml"];
+  const sst = [];
+  if (sstXml) {
+    const x = sstXml.toString("utf8");
+    for (const m of x.matchAll(/<si>([\s\S]*?)<\/si>/g))
+      sst.push([...m[1].matchAll(/<t[^>]*>([\s\S]*?)<\/t>/g)].map(t => unesc(t[1])).join(""));
+  }
+  const sheetName = Object.keys(files).find(k => /^xl\/worksheets\/sheet\d+\.xml$/.test(k));
+  if (!sheetName) throw new Error("시트를 못 찾았다");
+  const sheet = files[sheetName].toString("utf8");
+  const rows = [];
+  for (const rm of sheet.matchAll(/<row[^>]*>([\s\S]*?)<\/row>/g)) {
+    const cells = [];
+    for (const cm of rm[1].matchAll(/<c([^>]*)>([\s\S]*?)<\/c>/g)) {
+      const attrs = cm[1], body = cm[2];
+      const ref = (attrs.match(/r="([A-Z]+\d+)"/) || [])[1];
+      const t = (attrs.match(/t="([^"]+)"/) || [])[1];
+      let val = "";
+      if (t === "inlineStr") val = [...body.matchAll(/<t[^>]*>([\s\S]*?)<\/t>/g)].map(x => unesc(x[1])).join("");
+      else {
+        const v = (body.match(/<v>([\s\S]*?)<\/v>/) || [])[1];
+        if (v != null) val = t === "s" ? (sst[+v] ?? "") : unesc(v);
+      }
+      const at = ref ? colNum(ref) : cells.length;
+      while (cells.length < at) cells.push("");
+      cells.push(val);
+    }
+    rows.push(cells);
+  }
+  return rows.filter(r => r.some(x => String(x).trim()));
+}
 
 /* 쉼표 구분. 따옴표 안의 쉼표는 구분자가 아니다. */
 function parseCsv(text) {
@@ -78,15 +161,18 @@ try {
 
 let added = 0, updated = 0, skipped = 0;
 for (const f of files) {
-  let text;
-  try { text = fs.readFileSync(f, "utf8"); }
+  let buf;
+  try { buf = fs.readFileSync(f); }
   catch (e) { console.error(`  ${f} 를 못 읽었다: ${e.message}`); continue; }
-  if (text.charCodeAt(0) === 0xFEFF) text = text.slice(1);
-  if (/^PK\x03\x04/.test(text)) {
-    console.error(`  ${f} 는 엑셀 파일이다. 엑셀에서 열어 "다른 이름으로 저장 > CSV UTF-8" 로 바꾼 뒤 다시 넣어라.`);
-    continue;
+  let rows;
+  if (buf[0] === 0x50 && buf[1] === 0x4b) {           // "PK" = xlsx
+    try { rows = readXlsx(buf); }
+    catch (e) { console.error(`  ${path.basename(f)} 엑셀을 못 읽었다: ${e.message}`); continue; }
+  } else {
+    let text = buf.toString("utf8");
+    if (text.charCodeAt(0) === 0xFEFF) text = text.slice(1);
+    rows = parseCsv(text);
   }
-  const rows = parseCsv(text);
   if (rows.length < 2) { console.error(`  ${f} 에 행이 없다.`); continue; }
 
   /* 머리글이 첫 줄이 아닐 수 있다. 키워드 열이 보이는 첫 줄을 머리글로 본다. */
