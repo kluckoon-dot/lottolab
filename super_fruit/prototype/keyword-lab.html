@@ -1148,8 +1148,13 @@ function buildHints(){
       if(R[j][K.KW]===k) exact=j;
       if(S_tot[j]>tv){ tv=S_tot[j]; top=j; }
     }
-    if(!n) continue;
-    list.push({ name:k, all:n, vol:vol, top: exact>=0 ? exact : top, exact: exact>=0 });
+    /* 품목 이름과 똑같은 키워드가 수집분에 없으면 칩으로 내놓지 않는다.
+       김치 칩을 눌렀더니 돼지고기김치찌개가 열리던 자리다. 김치는 가공식품이라
+       다섯 섹션 어디에도 안 붙어 화면 데이터에 없다.
+       그 자리는 다음으로 큰 품목이 대신 올라온다. 키워드를 버리는 게 아니라
+       '바로가기' 칩으로 안 쓰는 것뿐이고, 목록과 검색에는 그대로 있다. */
+    if(!n || exact<0) continue;
+    list.push({ name:k, all:n, vol:vol, top: exact });
   }
   list.sort(function(a,b){
     if(a.name==="기타") return 1; if(b.name==="기타") return -1;
@@ -1178,11 +1183,10 @@ function renderHintChips(){
       var b=el("button","hchip");
       b.type="button";
       b.setAttribute("aria-pressed", F.hint===h.name ? "true":"false");
-      b.innerHTML=emojiFor(h.name,h.name)+' <span>'+h.name+'</span> <span class="n">'+ok+'/'+h.all+'</span>'
-        + (h.exact ? '' : ' <span class="n" title="이 품목 이름과 똑같은 키워드는 수집분에 없다. 가장 큰 것을 대신 보여준다.">≈</span>');
+      b.innerHTML=emojiFor(h.name,h.name)+' <span>'+h.name+'</span> <span class="n">'+ok+'/'+h.all+'</span>';
       b.onclick=function(){
         F.hint = (F.hint===h.name) ? "" : h.name;
-        if(F.hint && h.top>=0) CUR=h.top;
+        if(F.hint) CUR=h.top;
         CURPAGE(); refresh();
       };
       box.appendChild(b);
