@@ -23,6 +23,7 @@
  */
 import crypto from "node:crypto";
 import fs from "node:fs/promises";
+import fsSync from "node:fs";
 import { readFileSync } from "node:fs";
 import path from "node:path";
 
@@ -119,7 +120,7 @@ function normalize(row) {
     clickPc: Number(row.monthlyAvePcClkCnt) || 0, clickMo: Number(row.monthlyAveMobileClkCnt) || 0,
     ctrPc: Number(row.monthlyAvePcCtr) || 0, ctrMo: Number(row.monthlyAveMobileCtr) || 0,
     depth: num(row.plAvgDepth), compIdx: row.compIdx || null,
-    hints: [], bid: null, fetchedAt: new Date().toISOString()
+    hints: [], bid: null
   };
 }
 
@@ -225,6 +226,103 @@ async function diagnose(kw) {
 }
 
 /* ── 본체 ── */
+/* ── keywords.json 읽고 쓰기 ──
+   2026-09-14 기준 566,276개에 252 MB 다. Node 가 만들 수 있는 문자열이 512 MB 라
+   112만 개쯤에서 trend.json 과 똑같이 터진다. 미리 고친다.
+
+   부풀어 있던 이유
+     들여쓰기(indent 1)      줄마다 줄바꿈과 공백
+     필드 이름을 매 줄 반복    "clickPc": "ctrMo": ... 15개씩 56만 번
+     키워드마다 수집 시각      "2026-09-11T05:47:45.065Z" 35 바이트씩
+
+   고친 방식
+     이름은 맨 위 cols 에 한 번만 적고 줄은 값만 담은 배열로 쓴다
+     수집 시각은 맨 위 savedAt 하나로 충분하다
+     들여쓰기를 없애고 4 MB 씩 끊어 흘려 쓴다
+     tmp 에 다 쓰고 이름을 바꾼다. 도중에 죽어도 기존 파일이 안 깨진다
+   예전 형식(객체로 된 줄)도 그대로 읽는다. 받아둔 것은 하나도 안 버린다. */
+const KW_COLS = "kw,pc,mo,total,tier,masked,clickPc,clickMo,ctrPc,ctrMo,depth,compIdx,hints,bid,seenAlso";
+const KW_KEYS = KW_COLS.split(",");
+const rowToArr = r => [r.kw, r.pc, r.mo, r.total, r.tier, r.masked ? 1 : 0,
+  r.clickPc, r.clickMo, r.ctrPc, r.ctrMo, r.depth, r.compIdx || null,
+  r.hints || [], r.bid ? [r.bid.pc, r.bid.mo] : null, r.seenAlso || null];
+const arrToRow = a => {
+  if (!Array.isArray(a)) return a;                       // 예전 형식은 그대로
+  const o = {};
+  KW_KEYS.forEach((k, i) => { o[k] = a[i]; });
+  o.masked = !!o.masked;
+  o.hints = o.hints || [];
+  o.bid = o.bid ? { pc: o.bid[0], mo: o.bid[1] } : null;
+  if (!o.seenAlso) delete o.seenAlso;
+  return o;
+};
+
+async function saveKeywords(file, meta, rows) {
+  const tmp = file + ".tmp";
+  const fh = await fsSync.promises.open(tmp, "w");
+  try {
+    const head = { ...meta, cols: KW_COLS, keywords: rows.length };
+    let s = JSON.stringify(head);
+    await fh.write(s.slice(0, -1) + ',"rows":[');       // 마지막 } 를 떼고 rows 를 잇는다
+    let buf = "";
+    for (let i = 0; i < rows.length; i++) {
+      buf += (i ? "," : "") + JSON.stringify(rowToArr(rows[i]));
+      if (buf.length > 4000000) { await fh.write(buf); buf = ""; }
+    }
+    if (buf) await fh.write(buf);
+    await fh.write("]}");
+  } finally { await fh.close(); }
+  await fsSync.promises.rename(tmp, file);
+}
+
+/* rows 배열을 항목 하나씩 떼어 읽는다. 통째로 문자열을 만들지 않는다. */
+async function loadKeywords(file) {
+  const out = { meta: {}, rows: [] };
+  let fh; try { fh = await fsSync.promises.open(file, "r"); } catch { return out; }
+  const rs = fh.createReadStream({ encoding: "utf8", highWaterMark: 1 << 20 });
+  let buf = "", started = false;
+  const balanced = from => {
+    const open = buf[from], close = open === "[" ? "]" : "}";
+    let d = 0, str = false, esc = false;
+    for (let i = from; i < buf.length; i++) {
+      const c = buf[i];
+      if (esc) { esc = false; continue; }
+      if (c === "\\") { esc = true; continue; }
+      if (c === '"') { str = !str; continue; }
+      if (str) continue;
+      if (c === open) d++; else if (c === close) { d--; if (!d) return i; }
+    }
+    return -1;
+  };
+  const drain = () => {
+    for (;;) {
+      let i = 0;
+      while (i < buf.length && /[\s,]/.test(buf[i])) i++;
+      if (i >= buf.length) { buf = ""; return; }
+      if (buf[i] === "]") { buf = ""; return; }
+      if (buf[i] !== "{" && buf[i] !== "[") { buf = buf.slice(i); return; }
+      const end = balanced(i);
+      if (end < 0) { buf = buf.slice(i); return; }
+      out.rows.push(arrToRow(JSON.parse(buf.slice(i, end + 1))));
+      buf = buf.slice(end + 1);
+    }
+  };
+  for await (const chunk of rs) {
+    buf += chunk;
+    if (!started) {
+      const a = buf.indexOf('"rows"');
+      if (a < 0) { if (buf.length > 8000000) buf = buf.slice(-4000000); continue; }
+      const b = buf.indexOf("[", a);
+      if (b < 0) continue;
+      try { out.meta = JSON.parse(buf.slice(0, a).replace(/,\s*$/, "") + "}"); } catch {}
+      buf = buf.slice(b + 1); started = true;
+    }
+    drain();
+  }
+  if (started) drain();
+  return out;
+}
+
 async function main() {
   const args = process.argv.slice(2);
   const has = f => args.includes(f);
@@ -319,37 +417,46 @@ async function main() {
       console.error(`명단 ${onlySet.size.toLocaleString()}개만 대상으로 한다. (${val("--only")})`);
     } catch { console.error(`${val("--only")} 을 읽지 못했다.`); process.exit(1); }
   }
-  if (bidsOnly) { hints = []; console.error("입찰가만 채운다. 키워드 수집은 건너뛴다."); }
+  if (bidsOnly) {
+    /* 1단계 루프는 hints 가 아니라 plan 을 돈다. plan 을 비워야 실제로 건너뛴다.
+       hints 만 비웠던 첫 판에서는 눈덩이가 그대로 돌아 키워드가 늘어났다. */
+    hints = []; plan = [];
+    console.error("입찰가만 채운다. 키워드 수집도 눈덩이 확장도 하지 않는다.");
+  }
 
   /* 이어하기 */
   await fs.mkdir(OUTDIR, { recursive: true });
   const byKw = new Map(); const failed = []; const doneHints = new Set();
   let calls = 0, started = new Date().toISOString();
   try {
-    const prev = JSON.parse(await fs.readFile(OUT, "utf8"));
-    for (const r of prev.rows || []) byKw.set(r.kw, r);
-    (prev.doneHints || []).forEach(h => doneHints.add(h));
-    started = prev.startedAt || started;
-    console.error(`이어하기: 키워드 ${byKw.size}개 · 끝난 품종 ${doneHints.size}개를 불러왔다.`);
-  } catch {}
+    const prev = await loadKeywords(OUT);
+    for (const r of prev.rows) byKw.set(r.kw, r);
+    (prev.meta.doneHints || []).forEach(h => doneHints.add(h));
+    started = prev.meta.startedAt || started;
+    if (byKw.size) console.error(`이어하기: 키워드 ${byKw.size.toLocaleString()}개 · 끝난 품종 ${doneHints.size}개를 불러왔다.`);
+  } catch (e) { console.error(`기존 ${OUT} 을 읽지 못했다: ${e.message}`); }
 
   const save = async phase => {
     const rows = [...byKw.values()].sort((a, b) => b.total - a.total);
-    await fs.writeFile(OUT, JSON.stringify({
+    await saveKeywords(OUT, {
       startedAt: started, savedAt: new Date().toISOString(), phase,
       rule: "키워드는 합치거나 버리지 않는다. 철자가 다르면 다른 시장이다.",
       bidMode: BID_MODE, hints: hints.length, doneHints: [...doneHints],
-      calls, keywords: rows.length, withBid: rows.filter(r => r.bid).length,
+      calls, withBid: rows.filter(r => r.bid).length,
       byTier: [1,2,3,4].map(t => ({ tier: t, keywords: rows.filter(r => r.tier === t).length,
                                     withBid: rows.filter(r => r.tier === t && r.bid).length })),
-      failed, rows
-    }, null, 1), "utf8");
+      failed
+    }, rows);
   };
 
   /* 1단계 — 연관 키워드. 철자가 다르면 다른 키워드로 전부 남긴다 */
   console.error("");
   plan.forEach(t => console.error(`  ${t.tier}단계  ${t.name.padEnd(12)} 시드 ${t.seeds.length}개`));
-  const snowRounds = parseInt(val("--snowball") ?? "2", 10);
+  /* 입찰가만 채울 때는 눈덩이도 돌면 안 된다.
+     2026-09-14 실행에서 이걸 안 막아 --bids-only 인데도 키워드가
+     419,049 -> 566,276 으로 늘었다. 1,932회면 될 일에 4,332회를 썼다.
+     받은 키워드가 늘어난 게 손해는 아니지만 시킨 일이 아니었다. */
+  const snowRounds = bidsOnly ? 0 : parseInt(val("--snowball") ?? "2", 10);
   const snowTop = parseInt(val("--snowball-top") || "300", 10);
   if (snowRounds > 0) console.error(`  눈덩이 확장 ${snowRounds}바퀴 · 바퀴당 상위 ${snowTop}개`);
   if (maxCalls) console.error(`  호출 상한 ${maxCalls.toLocaleString()}회`);
@@ -377,7 +484,7 @@ async function main() {
       else {
         if (!prev.hints.includes(hint)) prev.hints.push(hint);
         if (prev.tier == null || tier < prev.tier) prev.tier = tier;
-        if (prev.total !== m.total) (prev.seenAlso ||= []).push({ hint, total: m.total, at: m.fetchedAt });
+        if (prev.total !== m.total) (prev.seenAlso ||= []).push({ hint, total: m.total, at: new Date().toISOString() });
       }
     }
     doneHints.add(hint); doneHints.add(rawHint);

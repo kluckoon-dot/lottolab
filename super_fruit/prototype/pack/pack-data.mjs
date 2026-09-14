@@ -85,9 +85,68 @@ if (SEC) {
 }
 
 /* ── 1. 키워드 ── */
-const kj = read("keywords.json");
-if (!kj) { console.error("naver-out/keywords.json 을 못 읽었다."); process.exit(1); }
-const rows = kj.rows || [];
+/* keywords.json 도 흘려 읽는다. 566,276개에 252 MB 고 계속 큰다.
+   줄이 배열인 새 형식과 객체인 옛 형식을 둘 다 받는다. */
+const KW_KEYS = "kw,pc,mo,total,tier,masked,clickPc,clickMo,ctrPc,ctrMo,depth,compIdx,hints,bid,seenAlso".split(",");
+async function loadKeywords(file) {
+  const out = { meta: {}, rows: [] };
+  let fh; try { fh = await fs.promises.open(file, "r"); } catch { return out; }
+  const rs = fh.createReadStream({ encoding: "utf8", highWaterMark: 1 << 20 });
+  let buf = "", started = false;
+  const balanced = from => {
+    const open = buf[from], close = open === "[" ? "]" : "}";
+    let d = 0, str = false, esc = false;
+    for (let i = from; i < buf.length; i++) {
+      const c = buf[i];
+      if (esc) { esc = false; continue; }
+      if (c === "\\") { esc = true; continue; }
+      if (c === '"') { str = !str; continue; }
+      if (str) continue;
+      if (c === open) d++; else if (c === close) { d--; if (!d) return i; }
+    }
+    return -1;
+  };
+  const conv = a => {
+    if (!Array.isArray(a)) return a;
+    const o = {}; KW_KEYS.forEach((k, i) => { o[k] = a[i]; });
+    o.masked = !!o.masked; o.hints = o.hints || [];
+    o.bid = o.bid ? { pc: o.bid[0], mo: o.bid[1] } : null;
+    return o;
+  };
+  const drain = () => {
+    for (;;) {
+      let i = 0;
+      while (i < buf.length && /[\s,]/.test(buf[i])) i++;
+      if (i >= buf.length) { buf = ""; return; }
+      if (buf[i] === "]") { buf = ""; return; }
+      if (buf[i] !== "{" && buf[i] !== "[") { buf = buf.slice(i); return; }
+      const end = balanced(i);
+      if (end < 0) { buf = buf.slice(i); return; }
+      out.rows.push(conv(JSON.parse(buf.slice(i, end + 1))));
+      buf = buf.slice(end + 1);
+    }
+  };
+  for await (const chunk of rs) {
+    buf += chunk;
+    if (!started) {
+      const a = buf.indexOf('"rows"');
+      if (a < 0) { if (buf.length > 8000000) buf = buf.slice(-4000000); continue; }
+      const b = buf.indexOf("[", a);
+      if (b < 0) continue;
+      try { out.meta = JSON.parse(buf.slice(0, a).replace(/,\s*$/, "") + "}"); } catch {}
+      buf = buf.slice(b + 1); started = true;
+    }
+    drain();
+  }
+  if (started) drain();
+  return out;
+}
+const kwFile = path.join(OUT, "keywords.json");
+if (!fs.existsSync(kwFile)) { console.error("naver-out/keywords.json 이 없다."); process.exit(1); }
+const kwLoaded = await loadKeywords(kwFile);
+const kj = kwLoaded.meta;
+const rows = kwLoaded.rows;
+if (!rows.length) { console.error("naver-out/keywords.json 에서 줄을 하나도 읽지 못했다."); process.exit(1); }
 console.log(`키워드 ${rows.length.toLocaleString()}개  (원본 ${MB(size("keywords.json"))})`);
 
 const num = x => (x == null || x === "" ? 0 : (typeof x === "number" ? x : Number(x) || 0));
