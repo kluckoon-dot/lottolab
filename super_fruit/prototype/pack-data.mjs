@@ -43,6 +43,17 @@ const A = "0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz!#$%&()
 const enc = v => A[Math.max(0, Math.min(A.length - 1, Math.round((v || 0) / 100 * (A.length - 1))))];
 
 fs.mkdirSync(DST, { recursive: true });
+/* 지난번에 만든 조각을 먼저 지운다.
+   안 지우면 전에 담은 kw-001 ~ kw-004 가 그대로 남아 폴더가 90 MB 가 된다.
+   더 나쁜 건 화면이 옛 조각과 새 조각을 같이 읽어 키워드가 뒤섞인다는 것이다. */
+{
+  let n = 0;
+  for (const f of fs.readdirSync(DST))
+    if (/^(kw|trend|shop)[-.].*\.js$/.test(f) || f === "meta.json" || f === "kw.js") {
+      fs.unlinkSync(path.join(DST, f)); n++;
+    }
+  if (n) console.log(`지난번 조각 ${n}개를 지웠다.`);
+}
 const meta = { builtAt: new Date().toISOString(), alphabet: A };
 let total = 0;
 
