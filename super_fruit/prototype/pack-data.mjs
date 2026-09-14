@@ -182,7 +182,7 @@ const bidOf = (r, dev, i) => { const b = r.bid && r.bid[dev]; return b ? num(b[i
    품목명 단독(멜론 · 사과 · 납작복숭아)은 제일 좋은 판매 키워드라 따로 센다.
 
    섹션에 걸렸다고 쇼핑성으로 올리던 규칙(secBits)은 뺐다. 그게 쏠림의 원인이었다. */
-const RE_HOWTO = /(법|방법)$|만들기|만드는|하는법|끓이는|삶는|데치는|찌는|굽는|볶는|까는|씻는|고르는|손질|세척|보관|해동|숙성|키우기|재배|심는|수확|파종|효능|효과|칼로리|부작용|성분|영양소|유래|뜻$|차이$|시기$|철$|언제|어디|왜|증상|좋은음식|먹으면|주의사항|맛집|가볼만한곳/;
+const RE_HOWTO = /(법|방법)$|만들기|만드는|하는법|끓이는|삶는|데치는|찌는|굽는|볶는|까는|씻는|고르는|해동하는|숙성하는|키우기|재배|심는시기|심는법|수확시기|파종|효능|효과|칼로리|부작용|성분|영양소|유래|뜻$|차이$|시기$|철$|언제|어디|왜|증상|좋은음식|먹으면|주의사항|맛집|가볼만한곳/;
 const RE_DISH  = /볶음|무침|조림|찜$|구이|튀김|부침|전$|전골|찌개|탕$|국$|죽$|샐러드|스무디|주스|반찬|요리|레시피|양념장|소스$|밥$|면$|국수|수제비|만두|김밥|샌드위치|피자|파스타|그라탕|버무림|겉절이|물김치|찜닭|백숙|샤브|덮밥|비빔/;
 const RE_SHOP  = /선물세트|선물|세트$|\d+\s*(kg|KG|g|G|개|구|알|통|캔|장|줄|박스|팩|입|호|과|봉|병|수|미|마리|근|말|되|인분)|가격|시세|도매|소매|판매|구매|주문|배송|택배|특가|할인|최저가|산지직송|직거래|공구|무료배송|모종|씨앗|묘목|추천$|후기|리뷰|순위|비교|제철|답례품|주문제작/;
 const RE_BRAND = /[A-Za-z]{3,}/;
@@ -204,11 +204,13 @@ const want = (() => {
 /* 상품수. 21단계(아이템스카우트 내보내기)가 있으면 싣는다.
    쇼핑검색 API 가 없어져서 이게 유일한 원본이다. 없으면 0 으로 둔다.
    0 은 "없음"이지 "상품이 0개"가 아니다. 화면이 그렇게 읽는다. */
-let SHOPCNT = {};
+let SHOPCNT = {}, SHOPCMP = {}, SHOPCAT = {};
 try {
   const j = JSON.parse(fs.readFileSync(path.join("naver-out", "shopcount.json"), "utf8"));
   SHOPCNT = j.data || {};
-  console.log(`상품수 ${Object.keys(SHOPCNT).length.toLocaleString()}개를 함께 담는다 (출처 ${j.source || "수집"}).`);
+  SHOPCMP = j.comp || {};
+  for (const [k, m] of Object.entries(j.meta || {})) if (m && m.cat) SHOPCAT[k] = m.cat;
+  console.log(`상품수 ${Object.keys(SHOPCNT).length.toLocaleString()}개 · 경쟁강도 ${Object.keys(SHOPCMP).length.toLocaleString()}개 · 대표카테고리 ${Object.keys(SHOPCAT).length.toLocaleString()}개를 함께 담는다 (출처 ${j.source || "수집"}).`);
 } catch { console.log("상품수 파일이 없다. 경쟁강도 칸은 '미수집'으로 나간다."); }
 
 const secCount = new Array(SEC ? SEC.length : 0).fill(0);
@@ -221,7 +223,7 @@ const packedAll = rows.map(r => {
     bidOf(r, "pc", 0), bidOf(r, "pc", 1), bidOf(r, "pc", 2),
     bidOf(r, "mo", 0), bidOf(r, "mo", 1), bidOf(r, "mo", 2),
     r.masked ? 1 : 0, intentOf(r.kw), (r.hints && r.hints[0]) || "", sec,
-    SHOPCNT[r.kw] || 0
+    SHOPCNT[r.kw] || 0, SHOPCMP[r.kw] || 0, SHOPCAT[r.kw] || ""
   ];
 });
 { /* 제대로 담겼는지 바로 확인한다. 전부 0 이면 또 이름을 잘못 짚은 것이다. */
@@ -271,7 +273,7 @@ if (want) console.log(`  걸러낸 뒤 ${packed.length.toLocaleString()}개를 �
    kw.js 가 27 MB 가 됐다. 키워드도 똑같이 나눈다. */
 const CAP = 10 * 1048576;   // 실측 103 bytes/키워드. 16 MB 한도에 여유를 둔다
 const head = { fetchedAt: kj.fetchedAt || "", calls: kj.calls || 0, failed: (kj.failed || []).length,
-  cols: "kw,pc,mo,depth,comp,clickPc,clickMo,ctrPc,ctrMo,bp1,bp2,bp3,bm1,bm2,bm3,masked,intent,hint,sec,prod",
+  cols: "kw,pc,mo,depth,comp,clickPc,clickMo,ctrPc,ctrMo,bp1,bp2,bp3,bm1,bm2,bm3,masked,intent,hint,sec,prod,icomp,icat",
   intentNames: INTENT_NAMES,
   sections: SEC ? SEC.map(x => ({ id: x.id, name: x.name, naver: x.naver })) : [] };
 fs.writeFileSync(path.join(DST, "kw-head.js"), "window.KWHEAD=" + JSON.stringify(head) + ";", "utf8");

@@ -30,9 +30,13 @@ if (!files.length) {
 /* 열 이름 후보. 아이템스카우트가 이름을 바꿔도 대개 이 안에 든다. */
 const COL = {
   kw:    ["키워드", "keyword", "검색어", "연관키워드", "keywords"],
-  count: ["상품수", "총상품수", "product", "productcount", "total", "상품 수"],
+  count: ["상품수", "총상품수", "product", "productcount", "상품 수"],
   comp:  ["경쟁강도", "경쟁률", "competition", "compidx"],
-  vol:   ["검색수", "총검색수", "한달검색수", "monthlysearch", "search", "검색량"]
+  vol:   ["총 검색수", "총검색수", "한달검색수", "monthlysearch", "검색량"],
+  cat:   ["대표 카테고리", "대표카테고리", "category", "카테고리"],
+  cls:   ["키워드 분류", "키워드분류", "분류", "type"],
+  shop:  ["쇼핑성 지수", "쇼핑성지수"],
+  info:  ["정보성 지수", "정보성지수"]
 };
 const norm = s => String(s || "").replace(/[\s_\-()]/g, "").toLowerCase();
 const findCol = (head, names) => {
@@ -64,10 +68,11 @@ const num = v => {
   return isFinite(n) ? n : null;
 };
 
-let done = {}, comp = {}, prevN = 0;
+let done = {}, comp = {}, meta = {}, prevN = 0;
 try {
   const prev = JSON.parse(fs.readFileSync(OUT, "utf8"));
-  done = prev.data || {}; comp = prev.comp || {}; prevN = Object.keys(done).length;
+  done = prev.data || {}; comp = prev.comp || {}; meta = prev.meta || {};
+  prevN = Object.keys(done).length;
   console.log(`이미 있던 ${prevN.toLocaleString()}개에 더한다.`);
 } catch {}
 
@@ -92,6 +97,8 @@ for (const f of files) {
   }
   const head = rows[hi];
   const iKw = findCol(head, COL.kw), iCt = findCol(head, COL.count), iCp = findCol(head, COL.comp);
+  const iCa = findCol(head, COL.cat), iCl = findCol(head, COL.cls),
+        iSh = findCol(head, COL.shop), iIn = findCol(head, COL.info);
   if (iCt < 0 && iCp < 0) {
     console.error(`  ${f} 에 상품수도 경쟁강도도 없다. 열: ${head.join(" | ")}`);
     continue;
@@ -105,9 +112,20 @@ for (const f of files) {
     if (ct == null && cp == null) { skipped++; continue; }
     if (ct != null) { if (done[kw] == null) added++; else updated++; done[kw] = ct; }
     if (cp != null) comp[kw] = cp;
+    /* 대표 카테고리와 키워드 분류도 챙긴다.
+       분류는 아이템스카우트가 직접 매긴 값이라 우리 낱말 규칙보다 낫다. */
+    const cat = iCa >= 0 ? String(r[iCa] ?? "").trim() : "";
+    const cls = iCl >= 0 ? String(r[iCl] ?? "").trim() : "";
+    const sh  = iSh >= 0 ? num(r[iSh]) : null;
+    if (cat || cls || sh != null) {
+      const m = meta[kw] || (meta[kw] = {});
+      if (cat) m.cat = cat;
+      if (cls) m.cls = cls;
+      if (sh != null) m.shop = sh;
+    }
     n++;
   }
-  console.log(`  ${path.basename(f)}  ${n.toLocaleString()}행  (상품수 열 ${iCt >= 0 ? head[iCt] : "없음"} · 경쟁강도 열 ${iCp >= 0 ? head[iCp] : "없음"})`);
+  console.log(`  ${path.basename(f)}  ${n.toLocaleString()}행  (상품수 ${iCt >= 0 ? "O" : "X"} · 경쟁강도 ${iCp >= 0 ? "O" : "X"} · 대표카테고리 ${iCa >= 0 ? "O" : "X"} · 분류 ${iCl >= 0 ? "O" : "X"})`);
 }
 
 if (!added && !updated) { console.error("\n  가져온 게 없다. 위 메시지를 보내주면 열 이름을 맞춰준다.\n"); process.exit(1); }
@@ -116,11 +134,17 @@ fs.mkdirSync(OUTDIR, { recursive: true });
 fs.writeFileSync(OUT, JSON.stringify({
   source: "itemscout-export", files: files.map(f => path.basename(f)),
   savedAt: new Date().toISOString(),
-  keywords: Object.keys(done).length, data: done, comp
+  keywords: Object.keys(done).length, data: done, comp, meta
 }), "utf8");
 
 console.log(`\n  새로 ${added.toLocaleString()}개 · 덮어쓴 것 ${updated.toLocaleString()}개 · 값 없어 건너뜀 ${skipped.toLocaleString()}개`);
 console.log(`  이제 상품수가 있는 키워드 ${Object.keys(done).length.toLocaleString()}개`);
+{
+  const withCat = Object.values(meta).filter(m => m.cat).length;
+  const withCls = Object.values(meta).filter(m => m.cls).length;
+  if (withCat || withCls)
+    console.log(`  대표 카테고리 ${withCat.toLocaleString()}개 · 아이템스카우트 분류 ${withCls.toLocaleString()}개도 함께 받았다.`);
+}
 
 /* 몇 개를 넣었느냐보다 "화면에 있는 것 중 몇 개가 채워졌느냐" 가 중요하다.
    아이템스카우트가 주는 연관키워드가 우리가 모은 것과 겹쳐야 의미가 있다. */

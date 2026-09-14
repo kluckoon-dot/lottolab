@@ -401,6 +401,13 @@ tbody tr.sel{background:var(--brand-soft)}
 .tw-tip u{flex:1;text-decoration:none}
 .tw-tip em{font-style:normal;font-weight:700;color:var(--ink);font-variant-numeric:tabular-nums}
 .tw-note{font-size:11px;color:var(--ink-3);line-height:1.6;margin:9px 0 0}
+.relbar{display:flex;gap:11px;align-items:center;flex-wrap:wrap;margin-bottom:11px;
+  background:var(--brand-soft);border:1px solid color-mix(in srgb,var(--brand) 30%, transparent);
+  border-radius:10px;padding:10px 14px;font-size:13.5px;font-weight:700;color:var(--brand-ink)}
+.relbar b{font-size:15px}
+.relbar .rel-src{flex:1;font-size:11.5px;font-weight:500;color:var(--ink-3)}
+.relbar button{border:1px solid var(--line-strong);background:var(--surface);color:var(--ink-2);
+  border-radius:8px;padding:5px 12px;font:inherit;font-size:12px;font-weight:600;cursor:pointer}
 </style>
 <header class="top">
   <div class="top-in">
@@ -527,6 +534,7 @@ tbody tr.sel{background:var(--brand-soft)}
         <span class="count" id="count"></span>
       </div>
 
+      <div class="relbar" id="relBar" hidden></div>
       <div class="tbox">
         <div class="tscroll">
           <table>
@@ -538,6 +546,7 @@ tbody tr.sel{background:var(--brand-soft)}
                 <th class="grp" colspan="2">2위 입찰가</th>
                 <th class="grp" colspan="2">3위 입찰가</th>
                 <th rowspan="2" class="bidcell">광고<br>깊이</th>
+                <th rowspan="2">상품수</th>
                 <th rowspan="2">경쟁<br>강도</th>
                 <th rowspan="2">손익분기<br>전환율</th>
                 <th rowspan="2">황금<br>점수</th>
@@ -641,11 +650,17 @@ if (window.KWROWS && window.KWROWS.length) {
 }
 var R = DATA.rows;   // [kw,pc,mo,depth,comp,clickPc,clickMo,ctrPc,ctrMo,bp1,bp2,bp3,bm1,bm2,bm3,masked,intent,hint,sec]
 var N = R.length;
-var K={KW:0,PC:1,MO:2,DEPTH:3,COMP:4,CPC_:5,CMO:6,TPC:7,TMO:8,BP1:9,BP2:10,BP3:11,BM1:12,BM2:13,BM3:14,MASK:15,INT:16,HINT:17,SEC:18,PROD:19};
+var K={KW:0,PC:1,MO:2,DEPTH:3,COMP:4,CPC_:5,CMO:6,TPC:7,TMO:8,BP1:9,BP2:10,BP3:11,BM1:12,BM2:13,BM3:14,MASK:15,INT:16,HINT:17,SEC:18,PROD:19,ICOMP:20,ICAT:21};
 /* 상품수. 아이템스카우트 내보내기를 21단계로 넣었을 때만 값이 있다.
    0 은 "안 받았다"는 뜻이지 "상품이 0개"가 아니다. 절대 0 을 계산에 쓰지 않는다. */
 function prodOf(i){ var v=R[i][K.PROD]; return v>0?v:null; }
-function realComp(i){ var p=prodOf(i); return p==null?null:p/Math.max(S_tot[i],1); }
+function realComp(i){
+  /* 아이템스카우트가 적어준 값이 있으면 그걸 쓴다. 저쪽 화면과 같은 숫자여야 한다.
+     없으면 상품수 ÷ 우리 검색수로 직접 낸다. 식은 48/48 로 확인한 그것이다. */
+  if(R[i][K.ICOMP]>0) return R[i][K.ICOMP];
+  var p=prodOf(i); return p==null?null:p/Math.max(S_tot[i],1);
+}
+function catOf(i){ return R[i][K.ICAT]||""; }
 var INTENT=["쇼핑성","정보성","브랜드성","요리·조리","품목"];
 var NCOMP=["낮음","중간","높음"];
 
@@ -703,8 +718,35 @@ function recalc(){
 
 /* 필터 상태 */
 var F={ intent:{0:true,1:false,2:false,3:false,4:true}, v:{"린정":true,"반린정":true,"패스":false},
-        vol:100, comp:10, q:"", hint:"", sec:0 };
+        vol:100, comp:10, q:"", hint:"", sec:0, rel:null };
 var LIMIT=100, CUR=0;
+
+/* ── 연관 키워드 ──
+   검색광고 /keywordstool 은 씨앗 하나를 주면 그 씨앗의 연관키워드를 돌려준다.
+   아이템스카우트의 연관키워드 탭이 보여주는 것과 같은 자료다.
+   우리는 그 응답을 hint 로 적어뒀으면서 화면에서 안 쓰고 있었다.
+   그래서 아리수사과를 검색해도 목록에는 피땅콩가격이 떠 있었다.
+
+   같은 hint 를 공유하면 같은 응답에서 나온 것 = 서로 연관키워드다.
+   홍로사과 묶음 상위 25개 중 22개가 아이템스카우트 목록과 일치하는 것을 확인했다. */
+var HG={};
+for(var hi=0;hi<N;hi++){ var hh=R[hi][K.HINT]; if(hh) (HG[hh]||(HG[hh]=[])).push(hi); }
+function relGroup(i){
+  /* 두 갈래를 다 본다.
+     (1) 이 키워드가 씨앗이었을 때 물고 온 것들
+     (2) 이 키워드를 물고 온 씨앗이 함께 물고 온 형제들
+     아리수사과는 (1)이 3개뿐이고 (2)가 326개다. 둘 중 하나만 보면 틀린다.
+     둘을 합쳐 검색수 순으로 내놓는다. */
+  var seen={}, g=[];
+  var push=function(arr){ if(!arr) return;
+    for(var x=0;x<arr.length;x++) if(!seen[arr[x]]){ seen[arr[x]]=1; g.push(arr[x]); } };
+  push([i]); push(HG[R[i][K.KW]]); push(HG[R[i][K.HINT]]);
+  return g;
+}
+function relName(i){
+  var a=(HG[R[i][K.KW]]||[]).length, b=(HG[R[i][K.HINT]]||[]).length;
+  return a>=b ? R[i][K.KW] : (R[i][K.HINT]||R[i][K.KW]);
+}
 
 /* ── 내가 고친 의도 ──
    규칙은 규칙일 뿐이다. 틀린 걸 봤을 때 그 자리에서 고치고, 고친 게 남아야 한다.
@@ -731,6 +773,10 @@ function exportIntent(){
 }
 
 function passes(i){
+  /* 연관 보기일 때는 의도·판정 필터를 걸지 않는다.
+     아이템스카우트 연관키워드 탭은 그 씨앗이 물고 온 것을 그대로 보여준다.
+     여기서 또 거르면 "왜 저기 있는 게 여기 없냐" 가 된다. */
+  if(F.rel){ return F.rel.has(i) && (!F.q || R[i][K.KW].indexOf(F.q)>=0); }
   if(!F.intent[intentOf(i)]) return false;
   if(!F.v[VN[C_v[i]]]) return false;
   if(S_tot[i]<F.vol) return false;
@@ -744,6 +790,12 @@ function passes(i){
 function countPass(){ var c=0; for(var i=0;i<N;i++) if(passes(i)) c++; return c; }
 /* 상위 K개만 고른다. 전부 정렬한 결과와 같다는 것을 실측으로 확인했다. */
 function topN(K2){
+  if(F.rel){
+    var out=[];
+    for(var r0=0;r0<N;r0++) if(passes(r0)) out.push(r0);
+    out.sort(function(a,b){ return S_tot[b]-S_tot[a]; });
+    return out.slice(0,K2);
+  }
   var idx=new Int32Array(K2), n=0, floor=-Infinity;
   for(var i=0;i<N;i++){
     if(!passes(i)) continue;
@@ -836,19 +888,36 @@ function renderTable(){
   var shown=topN(LIMIT), body=document.getElementById("kwBody"); body.innerHTML="";
   var total=countPass();
   var mg=marginOf();
-  document.getElementById("count").innerHTML="<b>"+fmt(total)+"</b>개 / 전체 "+fmt(N)+"개";
+  document.getElementById("count").innerHTML= F.rel
+    ? '<b>'+fmt(total)+'</b>개 연관 키워드'
+    : "<b>"+fmt(total)+"</b>개 / 전체 "+fmt(N)+"개";
+  var rb=document.getElementById("relBar");
+  if(F.rel){
+    rb.hidden=false;
+    rb.innerHTML='<b>'+F.relSeed+'</b> 의 연관 키워드 '+fmt(total)+'개 · 검색수 큰 순'
+      +'<span class="rel-src">NAVER 검색광고 연관검색 · 씨앗 '+F.relName+'</span>'
+      +'<button type="button" id="relOff">전체 목록으로 →</button>';
+    document.getElementById("relOff").onclick=function(){ clearRel(); LIMIT=100; refresh(); };
+  } else rb.hidden=true;
   var mb=document.getElementById("moreBtn");
   mb.style.display=total<=LIMIT?"none":"block";
   mb.textContent="더 보기 (남은 "+fmt(total-LIMIT)+"개)";
   if(!shown.length){
     var tr=el("tr"), td=el("td","empty","조건에 맞는 키워드가 없다. 필터를 넓히거나 목표 전환율을 올려봐라.");
-    td.colSpan=13; tr.appendChild(td); body.appendChild(tr); return;
+    td.colSpan=15; tr.appendChild(td); body.appendChild(tr); return;
   }
   var frag=document.createDocumentFragment();
   shown.forEach(function(i){
     var a=R[i], s=ST(i), c=CA(i), tr=el("tr");
     if(i===CUR) tr.className="sel";
-    tr.onclick=function(){ CUR=i; renderHero(); renderBuy(); drawTrend(R[i][K.KW]); setTab("detail"); window.scrollTo({top:0,behavior:"smooth"}); };
+    tr.onclick=function(){
+      CUR=i; document.getElementById("exact").value=R[i][K.KW];
+      /* 연관 보기 중이면 그 자리를 지키고, 아니면 하나 파고든다 */
+      if(F.rel) setRel(i);
+      renderHero(); renderBuy(); drawTrend(R[i][K.KW]);
+      if(F.rel){ LIMIT=100; renderTable(); renderHintChips(); }
+      setTab("detail"); window.scrollTo({top:0,behavior:"smooth"});
+    };
     var c1=el("td");
     var top=el("div"); top.appendChild(el("span","kw",a[K.KW]));
     top.appendChild(document.createTextNode(" "));
@@ -865,7 +934,11 @@ function renderTable(){
       tr.appendChild(el("td","num",fmt(a[p[1]])));
     });
     tr.appendChild(el("td","num bidcell dim",String(a[K.DEPTH])));
-    tr.appendChild(el("td","num",s.compScore.toFixed(1)));
+    var pv=prodOf(i), rc=realComp(i);
+    tr.appendChild(el("td","num"+(pv==null?" dim":""), pv==null?"—":fmt(pv)));
+    var rcTd=el("td","num"+(rc==null?" dim":""), rc==null?"—":rc.toFixed(2));
+    rcTd.title = rc==null ? "상품수 원본이 없다. 21단계로 넣으면 계산된다." : "상품수 ÷ 검색수";
+    tr.appendChild(rcTd);
     var cc=el("td","num");
     cc.innerHTML = isFinite(c.cvr)
       ? '<span class="'+(c.adOk?"cvr-ok":"cvr-no")+'">'+(c.cvr*100).toFixed(1)+'%</span>'
@@ -1263,11 +1336,12 @@ function renderHintChips(){
       }
       var b=el("button","hchip");
       b.type="button";
-      b.setAttribute("aria-pressed", F.hint===h.name ? "true":"false");
+      b.setAttribute("aria-pressed", (F.relSeed && F.relSeed===R[h.top][K.KW]) ? "true":"false");
       b.innerHTML=emojiFor(h.name,h.name)+' <span>'+h.name+'</span> <span class="n">'+ok+'/'+h.all+'</span>';
       b.onclick=function(){
-        F.hint = (F.hint===h.name) ? "" : h.name;
-        if(F.hint) CUR=h.top;
+        var on = F.relSeed !== R[h.top][K.KW];
+        if(on){ CUR=h.top; F.hint=""; setRel(CUR); document.getElementById("exact").value=R[h.top][K.KW]; }
+        else { clearRel(); }
         CURPAGE(); refresh();
       };
       box.appendChild(b);
@@ -1280,6 +1354,13 @@ function renderHintChips(){
   }
 }
 function CURPAGE(){ LIMIT=100; }
+function setRel(i){
+  var g=relGroup(i);
+  F.rel = g.length>1 ? new Set(g) : null;
+  F.relName = F.rel ? relName(i) : "";
+  F.relSeed = F.rel ? R[i][K.KW] : "";
+}
+function clearRel(){ F.rel=null; F.relName=""; F.relSeed=""; }
 
 function hcard(k,src,v,split,foot,na){
   return '<div class="hc"><div class="hc-top"><span class="hc-k">'+k+'</span>'
@@ -1305,11 +1386,17 @@ function renderHero(){
    +(a[K.MASK]?'<span class="htag">일부 가림값</span>':'')
    +'</div><div class="hero-btns">'
    +'<button class="hbtn" type="button" data-go="detail">키워드 상세 →</button>'
+   +'<button class="hbtn alt" type="button" id="relGo">'+(F.relSeed===a[K.KW]?"전체 목록으로":"이 키워드의 연관 "+fmt(relGroup(CUR).length)+"개")+'</button>'
    +'<button class="hbtn alt" type="button" data-go="margin">마진 · 광고효율 →</button>'
    +'</div></div>';
   document.getElementById("hero").querySelectorAll("[data-go]").forEach(function(b){
     b.onclick=function(){ setTab(b.dataset.go); };
   });
+  var rg=document.getElementById("relGo");
+  if(rg) rg.onclick=function(){
+    if(F.relSeed===R[CUR][K.KW]) clearRel(); else setRel(CUR);
+    LIMIT=100; setTab("gold"); refresh();
+  };
 
   var moP=Math.round(st.moShare*100);
   var clicks=(a[K.CPC_]||0)+(a[K.CMO]||0);
@@ -1374,7 +1461,8 @@ function exactFind(){
   if(!v){ note.textContent="키워드를 정확히 입력해라. 철자가 다르면 다른 시장으로 본다."; return; }
   if(v in BYKW){
     CUR=BYKW[v]; F.q=""; document.getElementById("q").value="";
-    note.innerHTML=v+' NAVER 정확 원본을 확인했다.';
+    setRel(CUR);
+    note.innerHTML=v+' NAVER 정확 원본을 확인했다. 아래 목록을 <b>'+v+'의 연관 키워드</b>로 좁혔다.';
     CURPAGE(); refresh(); return;
   }
   var near=[];
@@ -1454,7 +1542,7 @@ function renderSecBar(){
   var all=el("button","schip"); all.type="button";
   all.setAttribute("aria-pressed", F.sec===0?"true":"false");
   all.innerHTML='전체 <span class="n">'+fmt(N)+'</span>';
-  all.onclick=function(){ F.sec=0; F.hint=""; LIMIT=100; HINTS=buildHints();
+  all.onclick=function(){ F.sec=0; F.hint=""; clearRel(); LIMIT=100; HINTS=buildHints();
                           var t=topN(1); if(t.length) CUR=t[0]; refresh(); };
   box.appendChild(all);
   SECS.forEach(function(sec){
@@ -1464,7 +1552,7 @@ function renderSecBar(){
     b.title=sec.naver||"";
     b.onclick=function(){
       F.sec = (F.sec&sec.bit) ? (F.sec & ~sec.bit) : (F.sec|sec.bit);
-      F.hint=""; LIMIT=100; HINTS=buildHints();
+      F.hint=""; clearRel(); LIMIT=100; HINTS=buildHints();
       var t=topN(1); if(t.length) CUR=t[0];
       refresh();
     };
