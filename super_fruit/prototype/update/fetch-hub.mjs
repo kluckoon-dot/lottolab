@@ -293,6 +293,118 @@ async function probe() {
 /* ── 3년 주간 추세 수집 ──
    한 번 호출에 키워드 그룹을 최대 5개까지 넣는다. 156주가 통째로 온다.
    키워드는 합치지도 버리지도 않는다. 철자가 다르면 각각 따로 받는다. */
+/* ── 큰 추세 파일 읽고 쓰기 ──
+   2026-09-14 터졌다.  RangeError: Invalid string length  at JSON.stringify
+   trend.json 이 512 MB 를 넘으면서 JSON.stringify 가 한 덩어리 문자열을 못 만든다.
+   Node 의 최대 문자열이 536,870,888 글자다.
+
+   왜 그렇게 커졌나. 키워드마다 주 날짜를 통째로 같이 적고 있었다.
+     "샤인머스캣": [ [ "2023-09-11", 75.51758 ], [ "2023-09-18", 100 ], ... 156번 ]
+   날짜 156개는 모든 키워드가 똑같다. 그걸 20만 번 반복해 적었으니 커질 수밖에 없다.
+
+   고친 방식
+     1. 날짜를 맨 위로 한 번만 뺀다 (periods)
+     2. 값만 남긴다.  "샤인머스캣": [75.5,100,82.3, ...]
+     3. 들여쓰기를 없앤다
+     4. 저장할 때 한 덩어리로 만들지 않고 조각내어 파일에 흘려 쓴다
+     5. 읽을 때도 통째로 안 읽는다. 항목을 하나씩 떼어 읽는다
+   예전 형식(날짜가 같이 들어있는 파일)도 그대로 읽어서 새 형식으로 옮긴다.
+   메모리에는 값들을 쉼표로 이은 문자열 하나로 들고 있는다. */
+const TREND_TMP = ".tmp";
+
+async function saveTrendFile(OUT, meta, done) {
+  const tmp = OUT + TREND_TMP;
+  const fh = await fs.open(tmp, "w");
+  try {
+    await fh.write('{"startDate":' + JSON.stringify(meta.startDate)
+      + ',"endDate":' + JSON.stringify(meta.endDate)
+      + ',"timeUnit":"week"'
+      + ',"periods":' + JSON.stringify(meta.periods || [])
+      + ',"savedAt":' + JSON.stringify(new Date().toISOString())
+      + ',"calls":' + (meta.calls || 0)
+      + ',"keywords":' + Object.keys(done).length
+      + ',"failed":' + JSON.stringify(meta.failed || [])
+      + ',"data":{');
+    let first = true, buf = "";
+    for (const k of Object.keys(done)) {
+      buf += (first ? "" : ",") + JSON.stringify(k) + ":[" + done[k] + "]";
+      first = false;
+      if (buf.length > 4000000) { await fh.write(buf); buf = ""; }
+    }
+    if (buf) await fh.write(buf);
+    await fh.write("}}");
+  } finally { await fh.close(); }
+  await fs.rename(tmp, OUT);
+}
+
+/* 옛 형식이든 새 형식이든 읽어서 { kw: "값,값,..." } 로 돌려준다 */
+async function loadTrendFile(file) {
+  const done = {}; let periods = null, meta = {};
+  let fh; try { fh = await fs.open(file, "r"); } catch { return { done, periods, meta }; }
+  const rs = fh.createReadStream({ encoding: "utf8", highWaterMark: 1 << 20 });
+  let buf = "", started = false, head = "";
+  const balanced = from => {
+    let d = 0, str = false, esc = false;
+    for (let i = from; i < buf.length; i++) {
+      const c = buf[i];
+      if (esc) { esc = false; continue; }
+      if (c === "\\") { esc = true; continue; }
+      if (c === '"') { str = !str; continue; }
+      if (str) continue;
+      if (c === "[") d++; else if (c === "]") { d--; if (!d) return i; }
+    }
+    return -1;
+  };
+  const take = (key, arr) => {
+    if (!arr.length) { done[key] = ""; return; }
+    if (Array.isArray(arr[0])) {                       // 옛 형식 [["2023-09-11",75.5],...]
+      if (!periods) periods = arr.map(x => x[0]);
+      done[key] = arr.map(x => Math.round((x[1] || 0) * 10) / 10).join(",");
+    } else if (typeof arr[0] === "object" && arr[0]) { // 혹시 {period,ratio}
+      if (!periods) periods = arr.map(x => x.period);
+      done[key] = arr.map(x => Math.round((x.ratio || 0) * 10) / 10).join(",");
+    } else {
+      done[key] = arr.join(",");                        // 새 형식 [75.5,100,...]
+    }
+  };
+  const drain = () => {
+    for (;;) {
+      let i = 0;
+      while (i < buf.length && /[\s,]/.test(buf[i])) i++;
+      if (i >= buf.length) { buf = buf.slice(i); return; }
+      if (buf[i] === "}") { buf = ""; return; }
+      if (buf[i] !== '"') { buf = buf.slice(i); return; }
+      let j = i + 1, esc = false;
+      while (j < buf.length) { const c = buf[j]; if (esc) esc = false; else if (c === "\\") esc = true; else if (c === '"') break; j++; }
+      if (j >= buf.length) { buf = buf.slice(i); return; }
+      const key = JSON.parse(buf.slice(i, j + 1));
+      let k = j + 1;
+      while (k < buf.length && /[\s:]/.test(buf[k])) k++;
+      if (k >= buf.length || buf[k] !== "[") { buf = buf.slice(i); return; }
+      const end = balanced(k);
+      if (end < 0) { buf = buf.slice(i); return; }
+      take(key, JSON.parse(buf.slice(k, end + 1)));
+      buf = buf.slice(end + 1);
+    }
+  };
+  for await (const chunk of rs) {
+    buf += chunk;
+    if (!started) {
+      const a = buf.indexOf('"data"');
+      if (a < 0) { if (buf.length > 4000000) buf = buf.slice(-2000000); continue; }
+      const b = buf.indexOf("{", a);
+      if (b < 0) continue;
+      head = buf.slice(0, a);
+      try { meta = JSON.parse(head.replace(/,\s*$/, "") + "}"); } catch {}
+      if (meta.periods && meta.periods.length) periods = meta.periods;
+      buf = buf.slice(b + 1); started = true;
+    }
+    drain();
+  }
+  if (started) drain();
+  return { done, periods, meta };
+}
+
 async function collectTrend(args) {
   const val = f => { const i = args.indexOf(f); return i >= 0 ? args[i + 1] : null; };
   const src = val("--from") || path.join(OUTDIR, "keywords.json");
@@ -306,8 +418,10 @@ async function collectTrend(args) {
 
   const OUT = path.join(OUTDIR, "trend.json");
   await fs.mkdir(OUTDIR, { recursive: true });
-  const done = {};
-  try { Object.assign(done, JSON.parse(await fs.readFile(OUT, "utf8")).data || {}); } catch {}
+  const loaded = await loadTrendFile(OUT);
+  const done = loaded.done;
+  let periods = loaded.periods;
+  if (Object.keys(done).length) console.error(`이어하기: 이미 받은 ${Object.keys(done).length.toLocaleString()}개를 불러왔다.`);
   const todo = targets.filter(k => !done[k]);
   console.error(`3년 주간 추세 — 대상 ${targets.length.toLocaleString()}개 · 남은 ${todo.length.toLocaleString()}개`);
   if (!todo.length) { console.error("이미 다 받았다."); return; }
@@ -318,9 +432,7 @@ async function collectTrend(args) {
   const { startDate, endDate } = threeYears();
   const GROUP = 5;
   let calls = 0, failed = [];
-  const save = async () => fs.writeFile(OUT, JSON.stringify({
-    startDate, endDate, timeUnit: "week", savedAt: new Date().toISOString(),
-    calls, keywords: Object.keys(done).length, failed, data: done }, null, 1), "utf8");
+  const save = () => saveTrendFile(OUT, { startDate, endDate, periods, calls, failed }, done);
 
   for (let i = 0; i < todo.length; i += GROUP) {
     const batch = todo.slice(i, i + GROUP);
@@ -333,7 +445,11 @@ async function collectTrend(args) {
       console.error(`  ${i + batch.length}/${todo.length} 실패 ${r.raw} ${safe(r.text).slice(0, 90)}`);
       if (r.raw === 429) { console.error("  한도 도달. 저장하고 멈춘다."); break; }
     } else {
-      for (const res of (r.json?.results || [])) done[res.title] = (res.data || []).map(d => [d.period, d.ratio]);
+      for (const res of (r.json?.results || [])) {
+        const d = res.data || [];
+        if (!periods && d.length) periods = d.map(x => x.period);
+        done[res.title] = d.map(x => Math.round((x.ratio || 0) * 10) / 10).join(",");
+      }
       if ((i / GROUP) % 20 === 0 || i + GROUP >= todo.length)
         console.error(`  ${Math.min(i + GROUP, todo.length)}/${todo.length} · 확보 ${Object.keys(done).length.toLocaleString()}개`);
     }

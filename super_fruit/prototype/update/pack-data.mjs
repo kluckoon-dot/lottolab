@@ -277,7 +277,12 @@ const trendPath = path.join(OUT, "trend.json");
 if (fs.existsSync(trendPath)) {
   console.log(`3년 추세 (원본 ${MB(size("trend.json"))}) — 흘려 읽는다`);
   const keep = new Set(packed.map(r => r[0]));
-  const enc1 = arr => (arr || []).map(pt => enc(Array.isArray(pt) ? pt[1] : pt.ratio)).join("");
+  /* 세 가지 모양을 다 받는다.
+       옛 형식  [["2023-09-11",75.5], ...]
+       객체     [{period,ratio}, ...]
+       새 형식  [75.5, 100, ...]     날짜는 맨 위 periods 에 한 번만 있다 */
+  const enc1 = arr => (arr || []).map(pt =>
+    enc(typeof pt === "number" ? pt : Array.isArray(pt) ? pt[1] : (pt && pt.ratio))).join("");
   let shard = {}, tbytes = 0, n = 0, files = [], kept = 0;
   const flush = () => {
     if (!Object.keys(shard).length) return;
