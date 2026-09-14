@@ -169,15 +169,15 @@ svg{display:block; width:100%; height:auto; overflow:visible}
 .vlabel{fill:var(--ink-2); font-size:10.5px; font-family:"IBM Plex Mono",monospace; font-weight:600}
 
 .verdict{border:1px solid var(--line); border-radius:10px; overflow:hidden; background:var(--surface); box-shadow:var(--shadow); margin-bottom:13px}
-.v-top{display:flex; align-items:center; gap:12px; padding:13px 15px; border-bottom:1px solid var(--line)}
+.v-top{display:flex; align-items:center; gap:12px; padding:16px 20px; border-bottom:1px solid var(--line)}
 .v-top h3{margin:0; font-size:17px; font-family:Hahmlet,serif; flex:1}
 .v-body{display:grid; grid-template-columns:repeat(auto-fit,minmax(150px,1fr))}
-.v-cell{padding:12px 15px; border-right:1px solid var(--line); border-bottom:1px solid var(--line)}
+.v-cell{padding:15px 20px; border-right:1px solid var(--line); border-bottom:1px solid var(--line)}
 .v-cell:last-child{border-right:0}
 .v-k{font-size:10.5px; letter-spacing:.06em; text-transform:uppercase; color:var(--ink-3); font-weight:700; margin-bottom:3px}
 .v-v{font-size:18px; font-weight:600; letter-spacing:-.02em}
 .v-s{font-size:11.5px; color:var(--ink-3); margin-top:2px}
-.why{padding:12px 15px; border-bottom:1px solid var(--line)}
+.why{padding:14px 20px; border-bottom:1px solid var(--line)}
 .why:last-child{border-bottom:0}
 .why-k{font-size:10.5px; letter-spacing:.06em; text-transform:uppercase; font-weight:700; margin-bottom:4px}
 .why-good{color:var(--good)} .why-warn{color:var(--warn)}
@@ -376,6 +376,28 @@ tbody tr.sel{background:var(--brand-soft)}
 .bidrow span i{display:block;font-style:normal;font-size:9.5px;font-weight:600;color:var(--ink-3)}
 .bidrow span.over{background:var(--warn-bg);color:var(--warn)}
 .bidrow span.over i{color:var(--warn)}
+
+/* ── 주간 추세 차트 (아이템스카우트 배치를 따랐다) ── */
+.tw{margin-top:2px}
+.tw-bar{display:flex;gap:6px;align-items:center;flex-wrap:wrap;margin-bottom:11px}
+.tw-seg{display:inline-flex;border:1px solid var(--line-strong);border-radius:8px;overflow:hidden}
+.tw-seg button{font:inherit;font-size:12.5px;font-weight:600;padding:5px 14px;border:0;background:var(--surface);
+  color:var(--ink-2);cursor:pointer;border-right:1px solid var(--line)}
+.tw-seg button:last-child{border-right:0}
+.tw-seg button[aria-pressed="true"]{background:var(--brand);color:#fff}
+.tw-legend{display:flex;gap:14px;flex-wrap:wrap;font-size:12px;margin-bottom:6px}
+.tw-legend span{display:inline-flex;align-items:center;gap:5px;color:var(--ink-2)}
+.tw-legend i{width:9px;height:9px;border-radius:50%;display:inline-block}
+.tw-legend span.off{color:var(--ink-3);text-decoration:line-through;text-decoration-thickness:1px}
+.tw-wrap{position:relative}
+.tw-tip{position:absolute;pointer-events:none;background:var(--surface);border:1px solid var(--line-strong);
+  border-radius:9px;padding:9px 11px;font-size:12px;box-shadow:var(--shadow);min-width:186px;z-index:5;opacity:0;transition:opacity .08s}
+.tw-tip b{display:block;font-size:12px;margin-bottom:6px;color:var(--ink)}
+.tw-tip div{display:flex;align-items:center;gap:6px;padding:2px 0;color:var(--ink-2)}
+.tw-tip i{width:8px;height:8px;border-radius:50%;flex:none}
+.tw-tip u{flex:1;text-decoration:none}
+.tw-tip em{font-style:normal;font-weight:700;color:var(--ink);font-variant-numeric:tabular-nums}
+.tw-note{font-size:11px;color:var(--ink-3);line-height:1.6;margin:9px 0 0}
 </style>
 <header class="top">
   <div class="top-in">
@@ -549,10 +571,10 @@ tbody tr.sel{background:var(--brand-soft)}
           <p class="note">검색광고 월평균 · 클릭률은 노출 대비 클릭이며 전환율과 다른 지표다</p>
           <div id="clickChart"></div>
         </div>
-        <div class="card">
-          <h3>3년 주간 추세</h3>
-          <p class="note">NAVER API HUB 검색어트렌드 · 주간 상대지수</p>
-          <div class="na" id="hubNa">
+        <div class="card" style="grid-column:1/-1">
+          <h3>주간 추세</h3>
+          <p class="note">NAVER 검색어트렌드 · 주간</p>
+          <div class="tw" id="hubNa">
             아직 안 받아왔다.<br>
             연령 · 성별 · 기기는 <b>맨 위 쇼핑 구매층 띠</b>에 이미 들어가 있다.<br>
             3년 주간 추세만 남았다. 검색어트렌드 수집이 끝나면 이 자리에 들어온다.
@@ -1406,30 +1428,119 @@ function trendOf(kw){
   for(var i=0;i<t.length;i++){ var k=TA.indexOf(t[i]); out[i]= k<0?0 : k/(TA.length-1)*100; }
   return out;
 }
+var TW_RANGE=52;   /* 기본 1년 */
+function weekDate(i){
+  /* periods 가 오면 그걸 그대로 쓴다. 없으면 시작일에서 7일씩 되살린다.
+     주간 데이터는 정확히 7일 간격이다. 실측으로 확인했다 (2023-09-11 · 09-18 · 09-25). */
+  if(TW.periods && TW.periods[i]) return new Date(TW.periods[i]+"T00:00:00Z");
+  if(!TW.start) return null;
+  return new Date(new Date(TW.start+"T00:00:00Z").getTime()+i*7*86400000);
+}
+/* 날짜를 모를 때는 물음표 대신 몇 주 전인지로 말한다 */
+function weekLabel(i,n){
+  var d=weekDate(i);
+  if(d) return ymdShort(d);
+  var ago=n-1-i;
+  return ago===0 ? "이번 주" : ago+"주 전";
+}
+function ymdShort(d){ return d ? (d.getUTCFullYear()+"."+String(d.getUTCMonth()+1).padStart(2,"0")+"."+String(d.getUTCDate()).padStart(2,"0")) : ""; }
+
 function drawTrend(kw){
   var box=document.getElementById("hubNa"); if(!box) return;
   var v=trendOf(kw);
-  if(!v){ box.className="na";
-    box.innerHTML="이 키워드는 3년 추세를 아직 안 받아왔다.<br>지금까지 "
-      +fmt(Object.keys(window.TRENDDATA||{}).length)+"개를 확보했다."; return; }
-  box.className="";
-  var W=440,H=180,L=30,T=12,B=26, iw=W-L-10, ih=H-T-B;
-  var n=v.length, mx=Math.max.apply(null,v)||1;
-  var x=function(i){ return L+i/(n-1)*iw; }, y=function(val){ return T+ih-val/mx*ih; };
-  var d=""; for(var i=0;i<n;i++) d+=(i?"L":"M")+x(i).toFixed(1)+" "+y(v[i]).toFixed(1);
-  /* 1년 눈금 */
-  var ticks="";
-  for(var t2=0;t2<n;t2+=52){ ticks+='<line class="gl" x1="'+x(t2)+'" y1="'+T+'" x2="'+x(t2)+'" y2="'+(T+ih)+'"/>'
-    +'<text class="ax" x="'+x(t2)+'" y="'+(H-8)+'" text-anchor="middle">'+Math.round((n-t2)/52*10)/10+'년 전</text>'; }
-  var peak=v.indexOf(mx);
-  box.innerHTML='<svg viewBox="0 0 '+W+' '+H+'" role="img" aria-label="3년 주간 검색 추세">'
-   +ticks
-   +'<path d="'+d+'" fill="none" stroke="var(--brand)" stroke-width="1.6"/>'
-   +'<circle cx="'+x(peak)+'" cy="'+y(mx)+'" r="3.5" fill="var(--up)"/>'
-   +'<text class="vlabel" x="'+Math.min(W-40,x(peak)+6)+'" y="'+Math.max(12,y(mx)-5)+'">가장 높았던 주</text>'
-   +'</svg><p class="note" style="margin-top:8px">'
-   +(TW.start||"")+' ~ '+(TW.end||"")+' · '+n+'주 · 네이버 검색어트렌드 상대지수. '
-   +'한 주를 한 글자로 접어 저장했고 최대 오차는 0.56 포인트다.</p>';
+  if(!v){
+    box.className="na";
+    box.innerHTML="이 키워드는 주간 추세를 아직 안 받아왔다.<br>지금까지 "
+      +fmt(Object.keys(window.TRENDDATA||{}).length)+"개를 확보했다. 검색어트렌드 월 한도를 다 써서 다음 달에 이어받는다.";
+    return;
+  }
+  box.className="tw";
+  var a=R[CUR];
+  var n=v.length, take=Math.min(TW_RANGE,n), off=n-take;
+  var seg=v.slice(off);
+
+  /* 상대지수를 주간 검색수로 환산한다.
+     네이버가 주는 건 0~100 상대지수뿐이다. 우리가 아는 절대값은 '최근 30일 검색수' 하나다.
+     그래서 마지막 4주 평균이 월 검색수 ÷ 4.345 가 되도록 맞춘다. 추정이며 화면에도 그렇게 적는다. */
+  var last4=v.slice(-4), base=last4.reduce(function(x,y){return x+y;},0)/last4.length;
+  var monthly=a[K.PC]+a[K.MO];
+  var scale = base>0 ? (monthly/4.345)/base : 0;
+  var est=function(x){ return Math.round(x*scale); };
+
+  var W=980,H=300,L=58,Rr=16,T=16,B=34, iw=W-L-Rr, ih=H-T-B;
+  var mx=Math.max.apply(null,seg)||1;
+  var X=function(i){ return L + (take<2?0:i/(take-1)*iw); };
+  var Y=function(val){ return T+ih - val/mx*ih; };
+
+  var path=""; for(var i=0;i<take;i++) path+=(i?"L":"M")+X(i).toFixed(1)+" "+Y(seg[i]).toFixed(1);
+  /* 가로 눈금 */
+  var grid="", ylab="";
+  for(var g=0;g<=4;g++){
+    var yy=T+ih-g/4*ih;
+    grid+='<line class="gl" x1="'+L+'" y1="'+yy.toFixed(1)+'" x2="'+(L+iw)+'" y2="'+yy.toFixed(1)+'"/>';
+    ylab+='<text class="ax" x="'+(L-8)+'" y="'+(yy+3.5).toFixed(1)+'" text-anchor="end">'+fmt(est(mx*g/4))+'</text>';
+  }
+  /* 날짜 눈금 — 6등분 */
+  var xlab="";
+  for(var t2=0;t2<6;t2++){
+    var idx=Math.round(t2/5*(take-1)), d=weekDate(off+idx);
+    xlab+='<text class="ax" x="'+X(idx).toFixed(1)+'" y="'+(H-10)+'" text-anchor="middle">'+(d?ymdShort(d).slice(2):weekLabel(off+idx,n))+'</text>';
+  }
+  var C={vol:"#3b6be0", clk:"#22a06b", prod:"#e0a92b", comp:"#e2564c"};
+  box.innerHTML=
+   '<div class="tw-bar"><div class="tw-seg" id="twSeg">'
+    +[[156,"3년"],[52,"1년"],[4,"1개월"]].map(function(o){
+       return '<button type="button" data-w="'+o[0]+'" aria-pressed="'+(TW_RANGE===o[0])+'">'+o[1]+'</button>'; }).join("")
+   +'</div></div>'
+   +'<div class="tw-legend">'
+    +'<span><i style="background:'+C.vol+'"></i>검색수</span>'
+    +'<span class="off" title="주간 클릭량은 네이버가 주지 않는다. 최근 한 달 평균만 있다."><i style="background:'+C.clk+'"></i>클릭량(%)</span>'
+    +'<span class="off" title="쇼핑검색 API 가 2026-07-31 종료되어 상품수 원본이 없다."><i style="background:'+C.prod+'"></i>상품수</span>'
+    +'<span class="off" title="경쟁강도는 상품수가 있어야 주간으로 그릴 수 있다."><i style="background:'+C.comp+'"></i>경쟁강도</span>'
+   +'</div>'
+   +'<div class="tw-wrap"><div class="tw-tip" id="twTip"></div>'
+   +'<svg id="twSvg" viewBox="0 0 '+W+' '+H+'" role="img" aria-label="주간 검색 추세">'
+   +grid+ylab+xlab
+   +'<path d="'+path+'" fill="none" stroke="'+C.vol+'" stroke-width="1.8"/>'
+   +'<line id="twX" x1="0" y1="'+T+'" x2="0" y2="'+(T+ih)+'" stroke="var(--line-strong)" stroke-width="1" opacity="0"/>'
+   +'<circle id="twDot" r="4" fill="'+C.vol+'" opacity="0"/>'
+   +'<rect id="twHit" x="'+L+'" y="'+T+'" width="'+iw+'" height="'+ih+'" fill="transparent"/>'
+   +'</svg></div>'
+   +'<p class="tw-note"><b>검색수는 추정값이다.</b> 네이버 검색어트렌드는 0~100 상대지수만 준다. '
+   +'우리가 아는 절대값은 최근 30일 검색수 '+fmt(monthly)+'회 하나뿐이라, 마지막 4주 평균이 그 값의 4.345분의 1이 되도록 맞췄다. '
+   +'모양은 실데이터고 눈금은 환산값이다.<br>'
+   +'<b>나머지 세 줄은 아직 못 그린다.</b> 주간 클릭량은 네이버가 주지 않고, 상품수는 쇼핑검색 API 가 2026-07-31 종료되어 원본이 없다. '
+   +'경쟁강도는 상품수가 있어야 계산된다.</p>';
+
+  document.querySelectorAll("#twSeg button").forEach(function(b){
+    b.onclick=function(){ TW_RANGE=parseInt(b.dataset.w,10); drawTrend(kw); };
+  });
+
+  var svg=document.getElementById("twSvg"), tip=document.getElementById("twTip"),
+      xl=document.getElementById("twX"), dot=document.getElementById("twDot"),
+      hit=document.getElementById("twHit"), wrap=svg.parentNode;
+  function at(ev){
+    var r=svg.getBoundingClientRect();
+    var px=(ev.clientX-r.left)/r.width*W;
+    var i=Math.max(0,Math.min(take-1, Math.round((px-L)/iw*(take-1))));
+    var d0=weekDate(off+i), d1=d0?new Date(d0.getTime()+6*86400000):null;
+    var head = d0 ? (ymdShort(d0)+' ~ '+ymdShort(d1)) : weekLabel(off+i,n);
+    xl.setAttribute("x1",X(i)); xl.setAttribute("x2",X(i)); xl.setAttribute("opacity","1");
+    dot.setAttribute("cx",X(i)); dot.setAttribute("cy",Y(seg[i])); dot.setAttribute("opacity","1");
+    tip.innerHTML='<b>'+head+'</b>'
+      +'<div><i style="background:'+C.vol+'"></i><u>검색수</u><em>'+fmt(est(seg[i]))+'</em></div>'
+      +'<div><i style="background:'+C.clk+'"></i><u>클릭량(%)</u><em>—</em></div>'
+      +'<div><i style="background:'+C.prod+'"></i><u>상품수</u><em>—</em></div>'
+      +'<div><i style="background:'+C.comp+'"></i><u>경쟁강도</u><em>—</em></div>';
+    tip.style.opacity="1";
+    var wr=wrap.getBoundingClientRect();
+    var left=(X(i)/W)*wr.width+14;
+    if(left+200>wr.width) left=(X(i)/W)*wr.width-200;
+    tip.style.left=Math.max(0,left)+"px";
+    tip.style.top=Math.max(0,(Y(seg[i])/H)*wr.height-20)+"px";
+  }
+  hit.addEventListener("mousemove",at);
+  hit.addEventListener("mouseleave",function(){ tip.style.opacity="0"; xl.setAttribute("opacity","0"); dot.setAttribute("opacity","0"); });
 }
 
 /* ── 갱신 ── */

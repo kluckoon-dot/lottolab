@@ -338,7 +338,9 @@ async function streamTrend(file, onEntry) {
   }
   if (started) drain();
   let meta = {};
-  try { meta = JSON.parse((head || "{") + "}"); } catch {}
+  /* head 는 "data" 앞까지라 끝에 쉼표가 남는다. 그대로 붙이면 JSON.parse 가 실패해
+     startDate 가 통째로 사라진다. 실제로 trendWeeks 에 unit 만 남아 있었다. */
+  try { meta = JSON.parse((head || "{").replace(/,\s*$/, "") + "}"); } catch (e) { console.log(`  추세 머리말을 못 읽었다: ${e.message}`); }
   return { n, meta };
 }
 
@@ -373,7 +375,9 @@ if (fs.existsSync(trendPath)) {
   flush();
   console.log(`  파일 안 ${seen.toLocaleString()}개 중 ${kept.toLocaleString()}개를 담았다`);
   meta.trend = kept; meta.trendFiles = files;
-  meta.trendWeeks = { start: tmeta.startDate, end: tmeta.endDate, unit: tmeta.timeUnit || "week" };
+  /* periods 가 있으면 그대로 넘긴다. 없으면 시작일에서 7일씩 되살린다. */
+  meta.trendWeeks = { start: tmeta.startDate, end: tmeta.endDate, unit: tmeta.timeUnit || "week",
+                      periods: Array.isArray(tmeta.periods) ? tmeta.periods : null };
 } else console.log("3년 추세 trend.json 없음 — 건너뛴다");
 
 meta.totalBytes = total;
