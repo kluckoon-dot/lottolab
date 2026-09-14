@@ -10,12 +10,12 @@ echo.
 echo  Run 6-raw-check.bat first and make sure auth is working.
 echo  5 keywords per call, 156 weeks each. Resumable.
 
- 2026-09-14: the save crashed once the file passed 512 MB.
- The dates were being written out again for every single keyword.
- They are the same 156 dates every time, so they now sit at the top once
- and each keyword keeps only its values. About 6x smaller.
- The file is also written in pieces now instead of one huge string.
- An old trend.json is read and converted automatically - nothing is lost.
+echo  2026-09-14: the save crashed once the file passed 512 MB.
+echo  The dates were being written out again for every single keyword.
+echo  They are the same 156 dates every time, so they now sit at the top once
+echo  and each keyword keeps only its values. About 6x smaller.
+echo  The file is also written in pieces now instead of one huge string.
+echo  An old trend.json is read and converted automatically - nothing is lost.
 echo.
 node --max-old-space-size=8192 fetch-hub.mjs --trend --min-vol 100
 echo.
