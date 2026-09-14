@@ -1051,6 +1051,112 @@ async function findShopCount() {
   }
 }
 
+/* ── 정보성/쇼핑성 판별 시험 ──
+   상품수가 없어졌으니 "이 키워드로 물건이 팔리나" 를 다른 걸로 재야 한다.
+   지금까지 네 개를 재봤고 네 개 다 실패했다.
+     광고 유무            정보성 7/7 에도 광고가 붙는다. 오탐 100%
+     입찰가 수준          920원 대 1,230원. 1.3배로는 못 가른다
+     쇼핑인사이트 잡힘     검색량 보정하면 90% 대 100%. 차이 없다
+     쇼핑클릭÷검색량       방향이 뒤집힌다. 추석선물세트 0.007 < 콜라비효능 1.150
+
+   다섯 번째 후보: 지식iN 문서수.
+   "콜라비효능" 은 사람들이 묻는 말이고 "한우선물세트" 는 묻는 말이 아니다.
+   지식iN 문서수 ÷ 검색수 가 그 차이를 잡아줄 것이라는 가설이다.
+
+   가설일 뿐이다. 42,000번 붓기 전에 80개로 먼저 잰다. */
+const TEST_INFO = ["고구마효능","단호박효능","토마토효능","블루베리효능","양파효능","마늘효능",
+  "무화과효능","콜라비효능","레몬밤효능","모로오렌지효능","아보카도먹는법","콩나물무침","오징어볶음",
+  "닭볶음탕","가지볶음","시금치무침","애호박볶음","감자조림","연근조림","우엉조림",
+  "브로콜리데치는법","고구마삶는법","단호박찌는법","밤까는법","마늘까는법","생강보관법",
+  "바나나보관법","양배추보관법","대파보관법","깻잎장아찌만드는법","오이지담그는법","총각김치담그는법",
+  "호박죽만드는법","단호박수프레시피","토마토스파게티레시피","망고스무디레시피","블루베리스무디레시피",
+  "아스파라거스요리","비트효능","여주효능"];
+const TEST_SHOP = ["추석선물세트","한우선물세트","곶감선물세트","사과선물세트","포도선물세트",
+  "제주갈치선물세트","마장동소고기선물세트","구포국수선물세트","쌀10KG","쌀20KG","햇반20개",
+  "샤인머스캣선물세트","한라봉5kg","제주감귤10kg","블루베리1kg","대추방울토마토5kg","성주참외10kg",
+  "밤고구마10kg","단감10kg","자두5kg","복숭아5kg","사과10kg","배5kg","고구마10kg",
+  "빵택배","여수간장게장택배","전복1kg","새우10kg","닭가슴살1kg","삼겹살1kg",
+  "한돈선물세트","굴비선물세트","멸치선물세트","견과류선물세트","건조과일선물세트",
+  "산지직송사과","산지직송감자","햇양파10kg","제철과일박스","과일선물세트"];
+
+async function intentTest(args) {
+  const val = f => { const i = args.indexOf(f); return i >= 0 ? args[i + 1] : null; };
+  const NCP = { "X-NCP-APIGW-API-KEY-ID": ID, "X-NCP-APIGW-API-KEY": SECRET };
+  const WHICH = (val("--api") || "kin").toLowerCase();
+  const PATHS = { kin: "/search/v1/kin", blog: "/search/v1/blog", cafe: "/search/v1/cafearticle",
+                  webkr: "/search/v1/webkr", news: "/search/v1/news" };
+  const p2 = PATHS[WHICH];
+  if (!p2) { console.error("--api 는 kin / blog / cafe / webkr / news 중 하나다."); return; }
+
+  console.log(`\n── 정보성 판별 시험   ${WHICH} 문서수를 쓴다   ${HUB}${p2}`);
+  console.log(`   정보성 ${TEST_INFO.length}개 · 쇼핑성 ${TEST_SHOP.length}개, 총 ${TEST_INFO.length + TEST_SHOP.length}번 부른다\n`);
+
+  const one = async kw => {
+    for (let t = 0; t < 3; t++) {
+      try {
+        const res = await fetch(HUB + p2 + "?query=" + encodeURIComponent(kw) + "&display=1", { headers: NCP });
+        const text = await res.text();
+        if (res.status === 401) return { err: "401 " + safe(text).replace(/\s+/g, " ").slice(0, 90) };
+        if (res.status === 404) return { err: "404 이 경로가 없다" };
+        if (res.status === 429) return { err: "429 한도" };
+        let j = null; try { j = JSON.parse(text); } catch {}
+        if (j && j.total != null) return { total: Number(j.total) };
+        if (res.status >= 500) { await sleep(500 * (t + 1)); continue; }
+        return { err: String(res.status) + " " + safe(text).replace(/\s+/g, " ").slice(0, 70) };
+      } catch (e) { await sleep(500 * (t + 1)); }
+    }
+    return { err: "연결 실패" };
+  };
+
+  const probe = await one(TEST_INFO[0]);
+  if (probe.err) {
+    console.log(`  첫 호출부터 막혔다: ${probe.err}\n`);
+    if (/401/.test(probe.err)) {
+      console.log("  NCP 콘솔 > API HUB > Application 에서 그 Application 을 수정하고");
+      console.log(`  "${WHICH === "kin" ? "지식iN" : WHICH === "blog" ? "블로그" : WHICH}" 를 체크해서 저장한 뒤 다시 돌려라.`);
+      console.log("  키는 그대로 쓴다. 새로 받을 필요 없다.\n");
+    }
+    return;
+  }
+
+  const run = async list => {
+    const out = [];
+    for (const kw of list) { const r = await one(kw); await sleep(120); if (r.total != null) out.push([kw, r.total]); }
+    return out;
+  };
+  const A = await run(TEST_INFO), B = await run(TEST_SHOP);
+  if (!A.length || !B.length) { console.log("  표본을 못 모았다.\n"); return; }
+
+  const med = a => { const s = a.slice().sort((x, y) => x - y); return s.length ? s[s.length >> 1] : 0; };
+  const mA = med(A.map(x => x[1])), mB = med(B.map(x => x[1]));
+  console.log(`  정보성 ${A.length}개 문서수 중앙값 ${mA.toLocaleString()}`);
+  console.log(`  쇼핑성 ${B.length}개 문서수 중앙값 ${mB.toLocaleString()}`);
+  console.log(`  차이 ${(Math.max(mA, mB) / Math.max(Math.min(mA, mB), 1)).toFixed(1)}배  (${mA > mB ? "정보성이 많다 = 방향 맞음" : "쇼핑성이 더 많다 = 가설과 반대"})\n`);
+
+  console.log("  문턱으로 갈라보면");
+  console.log("    문턱          정보성 잡음   쇼핑성 오탐   차이");
+  const all = A.concat(B).map(x => x[1]).sort((a, b) => a - b);
+  const cuts = [...new Set([1, 2, 3, 5, 8, 12, 20, 35, 60, 100].map(p => all[Math.floor(all.length * p / 100)] || 0))];
+  let best = { gap: -1 };
+  for (const t of cuts.sort((a, b) => a - b)) {
+    const tp = A.filter(x => x[1] >= t).length / A.length * 100;
+    const fp = B.filter(x => x[1] >= t).length / B.length * 100;
+    if (tp - fp > best.gap) best = { gap: tp - fp, t, tp, fp };
+    console.log(`    ${String(t.toLocaleString()).padStart(10)}  ${tp.toFixed(0).padStart(8)}%  ${fp.toFixed(0).padStart(9)}%  ${(tp - fp).toFixed(0).padStart(5)}%p`);
+  }
+  console.log(`\n  제일 잘 갈리는 문턱 ${best.t.toLocaleString()} → 차이 ${best.gap.toFixed(0)}%p`);
+  console.log(best.gap >= 60
+    ? "  쓸 만하다. 42,000개 전체에 붓자.\n"
+    : best.gap >= 40
+      ? "  애매하다. 보조 지표로는 쓰되 단독 판정에는 못 쓴다.\n"
+      : "  못 쓴다. 이것도 버린다.\n");
+
+  await fs.mkdir(OUTDIR, { recursive: true });
+  await fs.writeFile(path.join(OUTDIR, `intent-test-${WHICH}.json`),
+    JSON.stringify({ api: WHICH, path: p2, info: A, shop: B, best, at: new Date().toISOString() }, null, 1), "utf8");
+  console.log(`  → ${OUTDIR}/intent-test-${WHICH}.json\n`);
+}
+
 /* ── 상품수 전체 수집 ──
    18단계가 자리를 찾아 hub-shopcount.json 을 만든 뒤에만 돌아간다.
    호스트와 경로를 그 파일에서 읽는다. 내가 주소를 외워둘 필요가 없다. */
@@ -1293,6 +1399,7 @@ async function main() {
   console.error(`API HUB 인증 정보 확인. Client ID ${String(ID).slice(0, 4)}***\n`);
   if (args.includes("--find")) return findPath();
   if (args.includes("--trend")) return collectTrend(args);
+  if (args.includes("--intent-test")) return intentTest(args);
   if (args.includes("--shop-count-all")) return collectShopCount(args);
   if (args.includes("--shop-count")) return findShopCount();
   if (args.includes("--shop-stat")) return shopStat(args);
@@ -1300,6 +1407,6 @@ async function main() {
   if (args.includes("--shop")) return collectShop(args);
   if (args.includes("--cat")) return checkCat(args);
   if (args.includes("--probe") || args.length === 0) return probe();
-  console.error("--probe / --find / --trend / --shop / --shop-stat / --shop-count / --shop-count-all / --cat 중 하나를 써라.");
+  console.error("--probe / --find / --trend / --shop / --shop-stat / --shop-count / --shop-count-all / --intent-test / --cat 중 하나를 써라.");
 }
 main().catch(e => { console.error(e); process.exit(1); });
