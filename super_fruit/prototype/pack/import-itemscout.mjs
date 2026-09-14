@@ -121,5 +121,21 @@ fs.writeFileSync(OUT, JSON.stringify({
 
 console.log(`\n  새로 ${added.toLocaleString()}개 · 덮어쓴 것 ${updated.toLocaleString()}개 · 값 없어 건너뜀 ${skipped.toLocaleString()}개`);
 console.log(`  이제 상품수가 있는 키워드 ${Object.keys(done).length.toLocaleString()}개`);
+
+/* 몇 개를 넣었느냐보다 "화면에 있는 것 중 몇 개가 채워졌느냐" 가 중요하다.
+   아이템스카우트가 주는 연관키워드가 우리가 모은 것과 겹쳐야 의미가 있다. */
+try {
+  const want = fs.readFileSync(path.join(OUTDIR, "section-keywords.txt"), "utf8")
+                 .split(/\r?\n/).map(t => t.trim()).filter(Boolean);
+  const set = new Set(want);
+  const hit = Object.keys(done).filter(k => set.has(k)).length;
+  const miss = Object.keys(done).length - hit;
+  console.log(`\n  화면 키워드 ${want.length.toLocaleString()}개 중 ${hit.toLocaleString()}개가 채워졌다  (${(hit / want.length * 100).toFixed(1)}%)`);
+  if (miss) console.log(`  화면에 없는 키워드도 ${miss.toLocaleString()}개 받아뒀다. 나중에 수집이 넓어지면 자동으로 붙는다.`);
+  if (hit / want.length < 0.02)
+    console.log(`  ※ 겹치는 게 별로 없다. 파는 품목 위주로 몇 개 더 내보내면 빨리 오른다.`);
+} catch {
+  console.log(`\n  (16b-pack-sections.bat 을 한 번 돌리면 화면 키워드 대비 몇 %가 채워졌는지도 같이 알려준다)`);
+}
 console.log(`  → ${OUT}`);
 console.log(`\n  16b-pack-sections.bat 을 다시 돌리면 화면에 실린다.\n`);
