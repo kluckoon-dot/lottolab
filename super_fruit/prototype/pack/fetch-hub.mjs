@@ -23,7 +23,12 @@ const OUTDIR = "naver-out";
 /* ── 키 ── */
 const ALIAS = {
   naver_hub_id:"ID", hub_client_id:"ID", clientid:"ID", client_id:"ID", 허브id:"ID", 허브아이디:"ID",
-  naver_hub_secret:"SECRET", hub_client_secret:"SECRET", clientsecret:"SECRET", client_secret:"SECRET", 허브시크릿:"SECRET"
+  naver_hub_secret:"SECRET", hub_client_secret:"SECRET", clientsecret:"SECRET", client_secret:"SECRET", 허브시크릿:"SECRET",
+  /* 검색 API(개발자센터)는 키가 따로다. 허브 키로는 401 이 난다. */
+  search_id:"SEARCH_ID", searchid:"SEARCH_ID", naver_search_id:"SEARCH_ID",
+  dev_client_id:"SEARCH_ID", 검색id:"SEARCH_ID", 검색아이디:"SEARCH_ID",
+  search_secret:"SEARCH_SECRET", searchsecret:"SEARCH_SECRET", naver_search_secret:"SEARCH_SECRET",
+  dev_client_secret:"SEARCH_SECRET", 검색시크릿:"SEARCH_SECRET"
 };
 function loadKeys() {
   const here = path.dirname(new URL(import.meta.url).pathname.replace(/^\/([A-Za-z]:)/, "$1"));
@@ -37,13 +42,15 @@ function loadKeys() {
       const v = t.slice(i + 1).trim().replace(/^["']|["']$/g, "");
       if (ALIAS[k] && v && !/여기에|붙여넣|paste|<|>/.test(v)) out[ALIAS[k]] = v;
     }
-    if (out.ID || out.SECRET) return out;
+    if (out.ID || out.SECRET || out.SEARCH_ID) return out;
   }
   return {};
 }
 const K = loadKeys();
 const ID = process.env.NAVER_HUB_ID || K.ID;
 const SECRET = process.env.NAVER_HUB_SECRET || K.SECRET;
+const SEARCH_ID = process.env.NAVER_SEARCH_ID || K.SEARCH_ID;
+const SEARCH_SECRET = process.env.NAVER_SEARCH_SECRET || K.SEARCH_SECRET;
 
 /* ── 호출 주소 후보.
    이관하면서 주소가 바뀌었는데 문서를 직접 확인하지 못했다.
@@ -136,7 +143,7 @@ function trendBody(keywords) {
   return { startDate, endDate, timeUnit: "week",
            keywordGroups: keywords.map(k => ({ groupName: k, keywords: [k] })) };
 }
-function safe(t) { let s = String(t ?? ""); for (const v of [ID, SECRET]) if (v && String(v).length >= 6) s = s.split(v).join("<가림>"); return s; }
+function safe(t) { let s = String(t ?? ""); for (const v of [ID, SECRET, SEARCH_ID, SEARCH_SECRET]) if (v && String(v).length >= 6) s = s.split(v).join("<가림>"); return s; }
 
 async function tryCall(host, auth, body, p) {
   try {
@@ -950,7 +957,10 @@ async function findShopCount() {
     } catch (e) { return { status: "연결실패", json: null, text: String(e.message || e) }; }
   };
   const NCP = { "X-NCP-APIGW-API-KEY-ID": ID, "X-NCP-APIGW-API-KEY": SECRET };
-  const OLD = { "X-Naver-Client-Id": ID, "X-Naver-Client-Secret": SECRET };
+  const hasDev = !!(SEARCH_ID && SEARCH_SECRET);
+  const DEV = hasDev
+    ? { "X-Naver-Client-Id": SEARCH_ID, "X-Naver-Client-Secret": SEARCH_SECRET }
+    : { "X-Naver-Client-Id": ID, "X-Naver-Client-Secret": SECRET };
   const totalOf = j => j && (j.total ?? j.totalCount ?? (j.result && j.result.total));
 
   /* 대조군부터. 없는 경로가 뭘 돌려주는지 알아야 판정할 수 있다. */
@@ -958,12 +968,18 @@ async function findShopCount() {
   console.log(`  대조군 ${ctl.status}  ${safe(ctl.text).replace(/\s+/g, " ").slice(0, 90)}`);
   console.log(`  → 이것과 다른 응답만 의미가 있다.\n`);
 
+  console.log(hasDev
+    ? "  검색 API 키가 따로 있다. 개발자센터 주소에는 그 키를 쓴다.\n"
+    : "  검색 API 키가 없다. 개발자센터 주소에도 허브 키를 써본다.\n"
+      + "  거기서 401(인증 실패)이 나오면 그건 '주소는 살아있고 키만 다르다'는 뜻이다.\n");
+
   const hits = [];
+  let sawAuthFail = false;
   const plan = [
-    [HUB, NCP, "API HUB", HUB_PATHS],
-    ["https://openapi.naver.com", OLD, "옛 개발자센터 주소", OLD_PATHS]
+    [HUB, NCP, "API HUB", HUB_PATHS, "ncp"],
+    [(process.env.NAVER_DEV_HOST || "https://openapi.naver.com"), DEV, hasDev ? "개발자센터 (검색 API 키)" : "개발자센터 (허브 키로 시험)", OLD_PATHS, hasDev ? "dev" : "ncp"]
   ];
-  for (const [host, headers, label, list] of plan) {
+  for (const [host, headers, label, list, auth] of plan) {
     console.log(`  [${label}] ${host}`);
     for (const p2 of list) {
       const r = await get(host, p2, headers);
@@ -971,9 +987,10 @@ async function findShopCount() {
       const total = totalOf(r.json);
       if (total != null) {
         console.log(`    *** 상품수 나옴 *** ${p2}   total=${Number(total).toLocaleString()}`);
-        hits.push({ host, path: p2, total: Number(total), label });
+        hits.push({ host, path: p2, total: Number(total), label, auth });
         continue;
       }
+      if (r.status === 401 || r.status === 403) sawAuthFail = true;
       const sameAsCtl = host === HUB && String(r.status) === String(ctl.status);
       const mark = sameAsCtl ? "    " : "  ? ";
       console.log(`  ${mark}${String(r.status).padEnd(6)} ${p2.padEnd(24)} ${safe(r.text).replace(/\s+/g, " ").slice(0, 80)}`);
@@ -990,6 +1007,16 @@ async function findShopCount() {
     console.log(`  "${q}" 상품수 ${h.total.toLocaleString()}개`);
     console.log(`  → ${OUTDIR}/hub-shopcount.json 에 저장했다.`);
     console.log(`  이 파일을 보내주면 전체 수집기를 붙인다.\n`);
+  } else if (!hasDev && sawAuthFail) {
+    console.log("  자리는 찾았다. 키가 다를 뿐이다.");
+    console.log("  openapi.naver.com 이 404 가 아니라 401(인증 실패)을 줬다.");
+    console.log("  = 주소는 살아있고, 허브 키로는 못 들어간다는 뜻이다.\n");
+    console.log("  할 일: developers.naver.com 에서 애플리케이션을 하나 만들고");
+    console.log("         '검색' API 를 추가한 뒤, 거기서 나온 Client ID / Secret 을");
+    console.log("         key.txt 에 두 줄 더 적어라. 무료고 하루 25,000번이다.\n");
+    console.log("           SEARCH_ID=받은Client ID");
+    console.log("           SEARCH_SECRET=받은Client Secret\n");
+    console.log("  적고 나서 이 파일을 다시 더블클릭하면 된다.\n");
   } else {
     console.log("  상품수를 주는 자리를 못 찾았다.");
     console.log("  위 응답을 통째로 보내주면 다음 후보를 정한다.\n");
@@ -1007,9 +1034,16 @@ async function collectShopCount(args) {
   catch { console.error(`\n  ${FOUND} 이 없다. 18단계(18-find-shopcount.bat)부터 돌려라.\n`); return; }
   const hit = (cfg.hits || [])[0];
   if (!hit) { console.error("\n  찾은 자리가 없다. 18단계 결과를 먼저 보내줘라.\n"); return; }
+  /* 18단계가 어떤 키로 뚫었는지 적어둔다. 그대로 따라 쓴다. */
+  const useDev = hit.auth === "dev";
+  if (useDev && !(SEARCH_ID && SEARCH_SECRET)) {
+    console.error("\n  검색 API 키(SEARCH_ID / SEARCH_SECRET)가 key.txt 에 없다. 18단계 안내를 보라.\n"); return;
+  }
   const headers = hit.host === HUB
     ? { "X-NCP-APIGW-API-KEY-ID": ID, "X-NCP-APIGW-API-KEY": SECRET }
-    : { "X-Naver-Client-Id": ID, "X-Naver-Client-Secret": SECRET };
+    : useDev
+      ? { "X-Naver-Client-Id": SEARCH_ID, "X-Naver-Client-Secret": SEARCH_SECRET }
+      : { "X-Naver-Client-Id": ID, "X-Naver-Client-Secret": SECRET };
 
   const listFile = val("--only") || path.join(OUTDIR, "section-keywords.txt");
   let want;
@@ -1056,6 +1090,7 @@ async function collectShopCount(args) {
         const text = await res.text();
         calls++;
         if (res.status === 429) { stop = "하루/한달 한도에 걸렸다"; return; }
+        if (res.status === 401 || res.status === 403) { stop = `키가 거부됐다 (${res.status}). ${safe(text).slice(0, 120)}`; return; }
         let j = null; try { j = JSON.parse(text); } catch {}
         const total = j && (j.total ?? j.totalCount ?? (j.result && j.result.total));
         if (total != null) { done[kw] = Number(total); ok++; return; }

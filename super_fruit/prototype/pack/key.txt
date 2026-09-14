@@ -46,3 +46,11 @@ NAVER_HUB_ID=
 
 # B-2. Client Secret
 NAVER_HUB_SECRET=
+
+# ── 검색 API (상품수) 키 ──
+# 검색 API 는 API HUB 와 키가 다릅니다. 허브 키로는 401 이 납니다.
+# https://developers.naver.com/apps/#/register 에서 앱을 하나 만들고
+# "검색" 을 체크한 뒤, 나온 Client ID / Secret 을 아래 두 줄에 적으세요.
+# 무료이고 하루 25,000번입니다.
+# SEARCH_ID=
+# SEARCH_SECRET=
