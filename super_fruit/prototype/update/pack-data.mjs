@@ -173,15 +173,23 @@ const bidOf = (r, dev, i) => { const b = r.bid && r.bid[dev]; return b ? num(b[i
 /* 의도 분류. 옛 수집분 13,662개의 라벨과 대조해 77.7% 일치하는 규칙이다.
    완벽하지 않다. 특히 브랜드성이 약하다(26.6%). 화면에서 칩으로 켜고 끄는 용도라
    이 정도면 쓴다. 어느 것도 삭제하지 않는다. */
-const RE_INFO = /효능|레시피|만드는법|만들기|보관법|보관방법|먹는법|손질법|손질방법|맛집|가볼만한곳|증상|좋은음식|좋은차|부작용|칼로리|키우기|재배|심는시기|수확시기|차이|뜻|유래|빨리낫는법|하는법|하는방법|어디|언제|왜/;
+/* ── 의도 다섯 칸 ──
+   넷으로는 안 됐다. 97.1% 가 쇼핑성으로 쏠려서 사실상 분류를 안 하는 상태였고,
+   그래서 황금키워드에 고구마줄기볶음 · 콩나물무침이 올라왔다.
+
+   요리명은 쇼핑성도 정보성도 아니다. 밀키트를 팔 수도 있고 레시피를 찾는 것일
+   수도 있다. 억지로 한쪽에 밀지 말고 제 칸을 준다. 그래야 사람이 껐다 켰다 한다.
+   품목명 단독(멜론 · 사과 · 납작복숭아)은 제일 좋은 판매 키워드라 따로 센다.
+
+   섹션에 걸렸다고 쇼핑성으로 올리던 규칙(secBits)은 뺐다. 그게 쏠림의 원인이었다. */
+const RE_HOWTO = /(법|방법)$|만들기|만드는|하는법|끓이는|삶는|데치는|찌는|굽는|볶는|까는|씻는|고르는|손질|세척|보관|해동|숙성|키우기|재배|심는|수확|파종|효능|효과|칼로리|부작용|성분|영양소|유래|뜻$|차이$|시기$|철$|언제|어디|왜|증상|좋은음식|먹으면|주의사항|맛집|가볼만한곳/;
+const RE_DISH  = /볶음|무침|조림|찜$|구이|튀김|부침|전$|전골|찌개|탕$|국$|죽$|샐러드|스무디|주스|반찬|요리|레시피|양념장|소스$|밥$|면$|국수|수제비|만두|김밥|샌드위치|피자|파스타|그라탕|버무림|겉절이|물김치|찜닭|백숙|샤브|덮밥|비빔/;
+const RE_SHOP  = /선물세트|선물|세트$|\d+\s*(kg|KG|g|G|개|구|알|통|캔|장|줄|박스|팩|입|호|과|봉|병|수|미|마리|근|말|되|인분)|가격|시세|도매|소매|판매|구매|주문|배송|택배|특가|할인|최저가|산지직송|직거래|공구|무료배송|모종|씨앗|묘목|추천$|후기|리뷰|순위|비교|제철|답례품|주문제작/;
 const RE_BRAND = /[A-Za-z]{3,}/;
-const RE_SHOP = /선물세트|선물|세트|\d+\s*(kg|KG|g|개|박스|팩|입|호|과|봉|병)|가격|시세|도매|소매|판매|구매|주문|배송|특가|할인|최저가|산지직송|택배/;
-const intentOf = (kw, secBits) => {
-  if (RE_INFO.test(kw)) return 1;
-  if (RE_BRAND.test(kw)) return 2;
-  if (secBits || RE_SHOP.test(kw)) return 0;
-  return 3;
-};
+const INTENT_NAMES = ["쇼핑성", "정보성", "브랜드성", "요리·조리", "품목"];
+const intentOf = kw =>
+  RE_HOWTO.test(kw) ? 1 : RE_DISH.test(kw) ? 3 : RE_SHOP.test(kw) ? 0 : RE_BRAND.test(kw) ? 2 : 4;
+
 const want = (() => {
   const i = process.argv.indexOf("--section");
   if (i < 0 || !SEC) return null;
@@ -202,7 +210,7 @@ const packedAll = rows.map(r => {
     num(r.clickPc), num(r.clickMo), num(r.ctrPc), num(r.ctrMo),
     bidOf(r, "pc", 0), bidOf(r, "pc", 1), bidOf(r, "pc", 2),
     bidOf(r, "mo", 0), bidOf(r, "mo", 1), bidOf(r, "mo", 2),
-    r.masked ? 1 : 0, intentOf(r.kw, sec), (r.hints && r.hints[0]) || "", sec
+    r.masked ? 1 : 0, intentOf(r.kw), (r.hints && r.hints[0]) || "", sec
   ];
 });
 { /* 제대로 담겼는지 바로 확인한다. 전부 0 이면 또 이름을 잘못 짚은 것이다. */
@@ -210,6 +218,12 @@ const packedAll = rows.map(r => {
   const withComp = packedAll.filter(r => r[4]).length;
   console.log(`  입찰가 있는 키워드 ${withBid.toLocaleString()} · 경쟁도 있는 키워드 ${withComp.toLocaleString()}`);
   if (!withBid) console.log("  *** 입찰가가 하나도 없다. keywords.json 에 bid 가 안 들어있거나 이름이 또 다르다. 알려줘라. ***");
+  const byI = new Array(INTENT_NAMES.length).fill(0);
+  for (const r of packedAll) byI[r[16]]++;
+  console.log("  의도 분포  " + INTENT_NAMES.map((n, i) =>
+    `${n} ${(byI[i] / packedAll.length * 100).toFixed(1)}%`).join(" · "));
+  const top = Math.max(...byI) / packedAll.length;
+  if (top > 0.90) console.log("  *** 한 칸에 90% 넘게 쏠렸다. 규칙이 사실상 분류를 안 하고 있다. ***");
 }
 if (SEC) {
   for (const row of packedAll) {
@@ -244,6 +258,7 @@ if (want) console.log(`  걸러낸 뒤 ${packed.length.toLocaleString()}개를 �
 const CAP = 10 * 1048576;   // 실측 103 bytes/키워드. 16 MB 한도에 여유를 둔다
 const head = { fetchedAt: kj.fetchedAt || "", calls: kj.calls || 0, failed: (kj.failed || []).length,
   cols: "kw,pc,mo,depth,comp,clickPc,clickMo,ctrPc,ctrMo,bp1,bp2,bp3,bm1,bm2,bm3,masked,intent,hint,sec",
+  intentNames: INTENT_NAMES,
   sections: SEC ? SEC.map(x => ({ id: x.id, name: x.name, naver: x.naver })) : [] };
 fs.writeFileSync(path.join(DST, "kw-head.js"), "window.KWHEAD=" + JSON.stringify(head) + ";", "utf8");
 total += Buffer.byteLength("window.KWHEAD=" + JSON.stringify(head) + ";");

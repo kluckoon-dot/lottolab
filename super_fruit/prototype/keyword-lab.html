@@ -249,7 +249,10 @@ svg{display:block; width:100%; height:auto; overflow:visible}
 .intent0{background:var(--brand-soft); color:var(--brand-ink)}
 .intent1{background:color-mix(in srgb,var(--s1) 14%, transparent); color:var(--s1)}
 .intent2{background:color-mix(in srgb,var(--s2) 16%, transparent); color:var(--s2)}
-.intent3{background:var(--surface-3); color:var(--ink-3)}
+.intent3{background:color-mix(in srgb,#b45309 15%, transparent); color:#b45309}
+.intent4{background:var(--surface-3); color:var(--ink-3)}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]) .intent3{color:#fbbf24}}
+:root[data-theme="dark"] .intent3{color:#fbbf24}
 .na{background:var(--surface-2); border:1px dashed var(--line-strong); border-radius:9px; padding:16px;
   text-align:center; color:var(--ink-3); font-size:12.5px; line-height:1.7}
 tbody tr.sel{background:var(--brand-soft)}
@@ -494,9 +497,10 @@ tbody tr.sel{background:var(--brand-soft)}
           <label>의도</label>
           <div class="chips" id="fIntent">
             <button class="chip" data-i="0" aria-pressed="true">쇼핑성</button>
+            <button class="chip" data-i="4" aria-pressed="true">품목</button>
+            <button class="chip" data-i="3" aria-pressed="false">요리·조리</button>
             <button class="chip" data-i="1" aria-pressed="false">정보성</button>
             <button class="chip" data-i="2" aria-pressed="false">브랜드성</button>
-            <button class="chip" data-i="3" aria-pressed="false">기타</button>
           </div>
         </div>
         <div class="f" style="min-width:auto">
@@ -512,7 +516,7 @@ tbody tr.sel{background:var(--brand-soft)}
           <div class="f-row"><input type="range" id="fVol" min="0" max="3000" step="50" value="100"><span class="f-val num" id="fVolV"></span></div>
         </div>
         <div class="f">
-          <label for="fComp">최대 경쟁강도</label>
+          <label for="fComp">최대 광고경쟁도</label>
           <div class="f-row"><input type="range" id="fComp" min="1" max="10" step="0.5" value="10"><span class="f-val num" id="fCompV"></span></div>
         </div>
         <div class="f" style="min-width:200px">
@@ -637,8 +641,12 @@ if (window.KWROWS && window.KWROWS.length) {
 }
 var R = DATA.rows;   // [kw,pc,mo,depth,comp,clickPc,clickMo,ctrPc,ctrMo,bp1,bp2,bp3,bm1,bm2,bm3,masked,intent,hint,sec]
 var N = R.length;
-var K={KW:0,PC:1,MO:2,DEPTH:3,COMP:4,CPC_:5,CMO:6,TPC:7,TMO:8,BP1:9,BP2:10,BP3:11,BM1:12,BM2:13,BM3:14,MASK:15,INT:16,HINT:17,SEC:18};
-var INTENT=["쇼핑성","정보성","브랜드성","기타"];
+var K={KW:0,PC:1,MO:2,DEPTH:3,COMP:4,CPC_:5,CMO:6,TPC:7,TMO:8,BP1:9,BP2:10,BP3:11,BM1:12,BM2:13,BM3:14,MASK:15,INT:16,HINT:17,SEC:18,PROD:19};
+/* 상품수. 아이템스카우트 내보내기를 21단계로 넣었을 때만 값이 있다.
+   0 은 "안 받았다"는 뜻이지 "상품이 0개"가 아니다. 절대 0 을 계산에 쓰지 않는다. */
+function prodOf(i){ var v=R[i][K.PROD]; return v>0?v:null; }
+function realComp(i){ var p=prodOf(i); return p==null?null:p/Math.max(S_tot[i],1); }
+var INTENT=["쇼핑성","정보성","브랜드성","요리·조리","품목"];
 var NCOMP=["낮음","중간","높음"];
 
 /* 기준 — docs/08-verdict-rules.md 확정본 */
@@ -694,12 +702,36 @@ function recalc(){
 }
 
 /* 필터 상태 */
-var F={ intent:{0:true,1:false,2:false,3:false}, v:{"린정":true,"반린정":true,"패스":false},
+var F={ intent:{0:true,1:false,2:false,3:false,4:true}, v:{"린정":true,"반린정":true,"패스":false},
         vol:100, comp:10, q:"", hint:"", sec:0 };
 var LIMIT=100, CUR=0;
 
+/* ── 내가 고친 의도 ──
+   규칙은 규칙일 뿐이다. 틀린 걸 봤을 때 그 자리에서 고치고, 고친 게 남아야 한다.
+   브라우저에만 저장되므로 내보내서 다음 팩에 반영한다. */
+var MYINT={};
+try{ MYINT=JSON.parse(localStorage.getItem("kwlab.intent")||"{}"); }catch(e){ MYINT={}; }
+function intentOf(i){ var m=MYINT[R[i][K.KW]]; return m==null?R[i][K.INT]:m; }
+function setIntent(kw,v){
+  try{
+    if(v==null) delete MYINT[kw]; else MYINT[kw]=v;
+    localStorage.setItem("kwlab.intent",JSON.stringify(MYINT));
+  }catch(e){}
+}
+function myIntentCount(){ return Object.keys(MYINT).length; }
+function exportIntent(){
+  var lines=Object.keys(MYINT).map(function(k){ return k+"\t"+INTENT[MYINT[k]]; });
+  var t=lines.join("\n");
+  var ta=document.createElement("textarea");
+  ta.value=t; ta.style.cssText="position:fixed;left:8px;right:8px;bottom:8px;height:40vh;z-index:99;font:12px ui-monospace,monospace";
+  document.body.appendChild(ta); ta.select();
+  try{ document.execCommand("copy"); }catch(e){}
+  ta.onblur=function(){ ta.remove(); };
+  return lines.length;
+}
+
 function passes(i){
-  if(!F.intent[R[i][K.INT]]) return false;
+  if(!F.intent[intentOf(i)]) return false;
   if(!F.v[VN[C_v[i]]]) return false;
   if(S_tot[i]<F.vol) return false;
   if(S_cs[i]>F.comp) return false;
@@ -820,7 +852,7 @@ function renderTable(){
     var c1=el("td");
     var top=el("div"); top.appendChild(el("span","kw",a[K.KW]));
     top.appendChild(document.createTextNode(" "));
-    top.appendChild(el("span","pill mini intent"+a[K.INT], INTENT[a[K.INT]]));
+    var _ti=intentOf(i); top.appendChild(el("span","pill mini intent"+_ti, INTENT[_ti]));
     c1.appendChild(top);
     c1.appendChild(el("div","sub", NCOMP[a[K.COMP]]+" 경쟁 · 모바일 "+Math.round(s.moShare*100)+"%"+(a[K.MASK]?" · 검색량 가려짐":"")));
     tr.appendChild(c1);
@@ -852,8 +884,8 @@ function renderTable(){
     "황금점수 = 수요 ÷ (경쟁 + 0.2) × 26 × (0.5 + 0.5 × 광고감당)<br>"+
     "수요 = log10(월검색수 ÷ 100) ÷ 2  (100에서 0, 10만에서 1.5) · 경쟁 = 광고깊이/15 × 0.55 + 1위입찰가/2500 × 0.45<br>"+
     "손익분기 전환율 = 3위 입찰가 × "+roasMult().toFixed(1)+" ÷ 마진 · 광고감당 = 목표 전환율 ÷ 손익분기 전환율<br>"+
-    "<b>린정</b> = 검색 "+fmt(RULE.minVol)+"↑ · 마진율 "+(RULE.marginMin*100)+"%↑ · 광고 감당 · 경쟁강도 "+RULE.maxComp.toFixed(1)+"↓ 전부 충족 &nbsp;|&nbsp; "+
-    "<b>반린정</b> = 광고 감당과 경쟁강도 중 하나만 충족 &nbsp;|&nbsp; 지금 감당 CPC 상한 <b>"+fmt(Math.max(0,mg.margin*SET.tgtCvr/roasMult()))+"원</b>";
+    "<b>린정</b> = 검색 "+fmt(RULE.minVol)+"↑ · 마진율 "+(RULE.marginMin*100)+"%↑ · 광고 감당 · 광고경쟁도 "+RULE.maxComp.toFixed(1)+"↓ 전부 충족 &nbsp;|&nbsp; "+
+    "<b>반린정</b> = 광고 감당과 광고경쟁도 중 하나만 충족 &nbsp;|&nbsp; 지금 감당 CPC 상한 <b>"+fmt(Math.max(0,mg.margin*SET.tgtCvr/roasMult()))+"원</b>";
 }
 
 /* ── KPI · 경고 ── */
@@ -884,12 +916,12 @@ function renderDetail(){
   var cls=c.v==="린정"?"good":c.v==="반린정"?"warn":"skip";
   var why, care;
   if(c.v==="린정"){
-    why="월 검색 "+fmt(s.tot)+" · 경쟁강도 "+s.compScore.toFixed(1)+" · 3위 광고 필요 전환율 "+(c.cvr*100).toFixed(1)+"% 로 목표 "+(SET.tgtCvr*100).toFixed(1)+"% 안에 들어온다";
+    why="월 검색 "+fmt(s.tot)+" · 광고경쟁도 "+s.compScore.toFixed(1)+" · 3위 광고 필요 전환율 "+(c.cvr*100).toFixed(1)+"% 로 목표 "+(SET.tgtCvr*100).toFixed(1)+"% 안에 들어온다";
     care = s.moShare>0.8 ? "모바일 검색이 "+Math.round(s.moShare*100)+"%다. PC 입찰은 줄이고 모바일에 몰아라."
       : "1위 입찰가 "+fmt(a[K.BM1])+"원이면 필요 전환율이 "+(beCvr(a[K.BM1],mg.margin)*100).toFixed(1)+"%다. 3위부터 시험해라.";
   } else if(c.v==="반린정"){
     why=(c.adOk?"광고는 감당된다":"광고 필요 전환율 "+(c.cvr*100).toFixed(1)+"% 로 목표를 넘는다")
-      +" / "+(c.cmpOk?"경쟁강도 "+s.compScore.toFixed(1)+" 는 기준 안":"경쟁강도 "+s.compScore.toFixed(1)+" 로 기준 초과");
+      +" / "+(c.cmpOk?"광고경쟁도 "+s.compScore.toFixed(1)+" 는 기준 안":"광고경쟁도 "+s.compScore.toFixed(1)+" 로 기준 초과");
     care = !c.adOk ? "광고로는 본전이 안 나온다. 상세페이지와 자연 순위로 먹어라." 
       : "광고 깊이 "+a[K.DEPTH]+"단이다. 상위 노출 비용이 빠르게 오른다.";
   } else {
@@ -899,18 +931,36 @@ function renderDetail(){
     care="지금은 넘어가라.";
   }
   document.getElementById("vCard").innerHTML=
-   '<div class="v-top"><h3>'+a[K.KW]+'</h3><span class="pill mini intent'+a[K.INT]+'">'+INTENT[a[K.INT]]+'</span>'
+   '<div class="v-top"><h3>'+a[K.KW]+'</h3><span class="pill mini intent'+intentOf(CUR)+'">'+INTENT[intentOf(CUR)]+'</span>'
    +'<span class="pill '+cls+'" style="font-size:13px;padding:4px 13px">'+c.v+'</span></div>'
   +'<div class="v-body">'
   +cell("월 검색수", fmt(s.tot), "PC "+fmt(a[K.PC])+" · 모바일 "+fmt(a[K.MO])+(a[K.MASK]?" · 가려진 값 포함":""))
   +cell("1위 입찰가", fmt(a[K.BM1])+"원", "모바일 · PC "+fmt(a[K.BP1])+"원")
-  +cell("경쟁강도", s.compScore.toFixed(1), "광고 "+a[K.DEPTH]+"단 · NAVER "+NCOMP[a[K.COMP]])
+  +cell("광고경쟁도", s.compScore.toFixed(1), "광고 "+a[K.DEPTH]+"단 · NAVER "+NCOMP[a[K.COMP]]+" · 상품수 기반 아님")
+  +cell("경쟁강도", realComp(CUR)==null?"미수집":realComp(CUR).toFixed(2),
+        realComp(CUR)==null?"상품수 원본 없음 · 21단계로 넣으면 계산된다"
+                           :"상품수 "+fmt(prodOf(CUR))+" ÷ 검색수 "+fmt(s.tot)+" · 아이템스카우트와 같은 식")
   +cell("손익분기 전환율", isFinite(c.cvr)?(c.cvr*100).toFixed(1)+"%":"불가", "3위 기준 · 목표 "+(SET.tgtCvr*100).toFixed(1)+"%")
   +cell("황금점수", String(c.gold), "100점 만점")
   +cell("발견 경로", a[K.HINT]||"—", "이 키워드를 데려온 시드")
   +'</div>'
   +'<div class="why"><div class="why-k why-'+(c.v==="린정"?"good":"warn")+'">왜 '+c.v+'</div><p>'+why+'</p></div>'
-  +'<div class="why"><div class="why-k why-warn">주의</div><p>'+care+'</p></div>';
+  +'<div class="why"><div class="why-k why-warn">주의</div><p>'+care+'</p></div>'
+  +'<div class="why"><div class="why-k">의도 판정</div>'
+    +'<p style="margin-bottom:8px">규칙이 매긴 값은 <b>'+INTENT[a[K.INT]]+'</b>'
+    +(MYINT[a[K.KW]]!=null?' · 내가 <b>'+INTENT[MYINT[a[K.KW]]]+'</b> 로 고쳤다':'')
+    +'. 틀렸으면 여기서 바로 고쳐라. 고친 건 이 브라우저에 남는다.</p>'
+    +'<div class="chips" id="myInt">'
+    +INTENT.map(function(n,i){ return '<button class="chip" data-v="'+i+'" aria-pressed="'+(intentOf(CUR)===i)+'">'+n+'</button>'; }).join("")
+    +(MYINT[a[K.KW]]!=null?'<button class="chip" data-v="x">되돌리기</button>':'')
+    +'</div></div>';
+  var mi=document.getElementById("myInt");
+  if(mi) mi.querySelectorAll(".chip").forEach(function(b){
+    b.onclick=function(){
+      setIntent(a[K.KW], b.dataset.v==="x"?null:+b.dataset.v);
+      renderDetail(); renderHero(); renderTable(); renderStatus();
+    };
+  });
   drawDevice(a,s); drawCvr(a,c,mg); drawClick(a);
 }
 
@@ -1055,8 +1105,8 @@ function renderMargin(){
 
 /* ── 수집 현황 ── */
 function renderStatus(){
-  var masked=0, byI=[0,0,0,0];
-  for(var i=0;i<R.length;i++){ if(R[i][K.MASK])masked++; byI[R[i][K.INT]]++; }
+  var masked=0, byI=[0,0,0,0,0];
+  for(var i=0;i<R.length;i++){ if(R[i][K.MASK])masked++; byI[intentOf(i)]++; }
   document.getElementById("haveList").innerHTML=
     row("키워드", fmt(R.length)+"개", "검색광고 API")
    +row("1~3위 입찰가", fmt(R.length)+"개 · 100%", "PC · 모바일 각각")
@@ -1069,10 +1119,19 @@ function renderStatus(){
    +row("연령 · 성별 · 기기", "미연결", "API HUB 쇼핑인사이트 · 카테고리 ID 필요")
    +row("도매 시세", "미연결", "KAMIS")
    +row("공급가 실연동", "미연결", "공급사 API")
-   +row("상품수 · 상품 순위", "원본 없음", "쇼핑검색 API 2026-07-31 종료");
+   +row("상품수 · 경쟁강도", (function(){var n=0;for(var i=0;i<R.length;i++)if(prodOf(i))n++;
+        return n?fmt(n)+"개 · "+(n/R.length*100).toFixed(1)+"%":"원본 없음";})(),
+        "쇼핑검색 API 2026-07-31 종료 · 21단계 아이템스카우트 내보내기로만 채운다")
+   +row("내가 고친 의도", myIntentCount()+"개", "이 브라우저에 저장됨")
+   +'<div style="padding:10px 0"><button class="chip" id="expInt">고친 판정 내보내기</button>'
+   +'<span class="sub" style="margin-left:8px">눌러서 복사한 뒤 보내주면 다음 팩에 규칙으로 넣는다</span></div>';
+  setTimeout(function(){
+    var b=document.getElementById("expInt");
+    if(b) b.onclick=function(){ var n=exportIntent(); b.textContent=n?n+"개 복사됨":"고친 게 없다"; };
+  },0);
 
   var W=760,H=120,L=10,iw=W-20,tot=R.length,x=L;
-  var col=["var(--brand)","var(--s1)","var(--s2)","var(--line-strong)"];
+  var col=["var(--brand)","var(--s1)","var(--s2)","#b45309","var(--line-strong)"];
   var out='<svg viewBox="0 0 '+W+' '+H+'" role="img" aria-label="의도별 분포">';
   byI.forEach(function(n,i){
     var w=(n/tot)*iw;
@@ -1082,9 +1141,9 @@ function renderStatus(){
   });
   out+='<text class="vlabel" x="'+L+'" y="12">전체 '+fmt(tot)+'개</text>';
   byI.forEach(function(n,i){
-    out+='<rect x="'+(L+i*186)+'" y="68" width="9" height="9" rx="2" fill="'+col[i]+'"/>'
-       +'<text class="ax" x="'+(L+i*186+14)+'" y="76">'+INTENT[i]+'</text>'
-       +'<text class="vlabel" x="'+(L+i*186)+'" y="94">'+fmt(n)+'개 · '+(n/tot*100).toFixed(1)+'%</text>';
+    out+='<rect x="'+(L+i*150)+'" y="68" width="9" height="9" rx="2" fill="'+col[i]+'"/>'
+       +'<text class="ax" x="'+(L+i*150+14)+'" y="76">'+INTENT[i]+'</text>'
+       +'<text class="vlabel" x="'+(L+i*150)+'" y="94">'+fmt(n)+'개 · '+(n/tot*100).toFixed(1)+'%</text>';
   });
   var ic=document.getElementById("intentChart"); ic.innerHTML=out+'</svg>'; bindTips(ic);
 }
@@ -1238,7 +1297,7 @@ function renderHero(){
     '<div class="hero-em">'+emojiFor(a[K.KW],GRP[CUR].join(""))+'</div>'
    +'<div class="hero-mid"><div class="hero-eyebrow">EXACT KEYWORD INTELLIGENCE</div>'
    +'<div class="hero-kw">'+a[K.KW]+'</div>'
-   +'<div class="hero-sub">품목 '+(GRP[CUR].join(" · "))+' · 의도 '+INTENT[a[K.INT]]
+   +'<div class="hero-sub">품목 '+(GRP[CUR].join(" · "))+' · 의도 '+INTENT[intentOf(CUR)]
    +' <span style="opacity:.6">· 수집 경로 '+(a[K.HINT]||"—")+'</span></div></div>'
    +'<div class="hero-right"><div class="hero-tags">'
    +'<span class="htag '+cls+'">'+c.v+'</span>'
@@ -1274,7 +1333,7 @@ function renderHero(){
         "목표 "+(SET.tgtCvr*100).toFixed(1)+"% 보다 낮아야 광고가 남는다. "
         +(ok?"<b style=\'color:var(--good)\'>3위는 남는다.</b>":"<b>3위도 목표를 넘는다 — 이 설정으로는 안 남는다.</b>"));
     })()
-  +hcard("경쟁강도","광고 기반 추정", st.compScore.toFixed(2),
+  +hcard("광고경쟁도","상품수 아님 · 광고 기반", st.compScore.toFixed(2),
      sp("광고 깊이",a[K.DEPTH]+"단")+sp("네이버 경쟁정도",NCOMP[a[K.COMP]]||"—"),
      "상품수가 없어 광고 깊이와 1위 입찰가로 대신 잰다. 광고를 안 도는 시장은 실제보다 낮게 잡힌다.")
   +hcard("월평균 클릭수","NAVER 검색광고", clicks.toFixed(1)+"회",
@@ -1558,8 +1617,12 @@ document.getElementById("fCompV").textContent=F.comp.toFixed(1);
 document.getElementById("foot").innerHTML=
   "<b>실데이터</b> · 월 검색수 · 클릭수 · CTR · 광고 깊이 · 경쟁정도 · 1~3위 입찰가(PC·모바일)는 NAVER 검색광고 API 에서 받은 값이다. "
  +"수확 캘린더 202품종과 마진 공식은 업로드한 시트에서 왔다.<br>"
- +"<b>경쟁강도는 광고 기반 추정이다.</b> 쇼핑검색 API 가 2026-07-31 종료되어 상품수 원본이 없다. "
- +"광고 깊이와 1위 입찰가로 대신 재므로 광고를 돌지 않는 시장은 실제보다 낮게 잡힌다.<br>"
+ +"<b>경쟁강도와 광고경쟁도는 다른 값이다.</b> 아이템스카우트의 경쟁강도는 상품수 ÷ 검색수이고, 48개 키워드로 대조해 식을 확인했다. "
+ +"쇼핑검색 API 가 2026-07-31 종료되어 상품수 원본이 없으므로 그 칸은 <b>미수집</b>으로 비워둔다 — 비슷한 값으로 채우지 않는다. "
+ +"<b>광고경쟁도</b>는 광고 깊이와 1위 입찰가로 만든 별개의 지표다. 이름이 다른 이유가 이것이다. "
+ +"상품수는 21단계(내 아이템스카우트 내보내기 가져오기)로만 채워진다.<br>"
+ +"<b>의도는 다섯 칸이다.</b> 넷일 때 97.1%가 쇼핑성으로 쏠려 사실상 분류가 안 됐다. "
+ +"요리·조리를 따로 뒀고, 규칙이 틀리면 상세 화면에서 직접 고칠 수 있다.<br>"
  +"<b>클릭률과 전환율은 다른 지표다.</b> 클릭률은 노출 대비 클릭이고, 손익분기 계산에 들어가는 것은 클릭 대비 구매인 전환율이다. "
  +"네이버 0.5% · 쿠팡 0.1% 는 참고선으로만 표시하며 판정에 쓰지 않는다.<br>"
  +"<b>키워드는 하나도 버리지 않았다.</b> 철자가 다르면 다른 시장으로 본다. 의도 분류는 필터일 뿐 삭제가 아니다.";
