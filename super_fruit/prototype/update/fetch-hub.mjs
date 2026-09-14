@@ -911,6 +911,184 @@ async function checkCat(args) {
   console.log(`\n  → ${OUTDIR}/hub-categories.json\n`);
 }
 
+/* ── 상품수 찾기 ──
+   이게 막힌 곳의 전부다. 상품수만 있으면 세 가지가 한 번에 풀린다.
+     1. 경쟁강도를 아이템스카우트와 같은 식으로 계산한다 (상품수 ÷ 검색수).
+        PDF 48개를 역산해 이 식을 확인했다. 100% 일치했다.
+     2. 대표카테고리를 추정한다.
+     3. 요리 키워드를 걸러낸다. 검색수에 비해 상품수가 터무니없이 적은 것들이다.
+
+   옛 쇼핑검색 API 는 openapi.naver.com/v1/search/shop.json 이었고 응답의 total 이 상품수다.
+   2026-07-31 종료됐지만 다른 것들이 API HUB 로 옮겨간 전례가 있다.
+     검색어트렌드  /search-trend/v1/search    (확인됨)
+     쇼핑인사이트  /shopping/v1/...           (확인됨)
+   이관 규칙은 v1 이 뒤로 가고 .json 이 빠지는 것이었다.
+     /v1/search/news.json  ->  /search/v1/news
+   그러면 쇼핑검색은 /search/v1/shop 이 된다. 그 자리를 때려본다. */
+async function findShopCount() {
+  const q = process.argv.includes("--kw") ? process.argv[process.argv.indexOf("--kw") + 1] : "고구마";
+  console.log(`\n── 상품수를 주는 자리를 찾는다   시험 키워드 "${q}"\n`);
+
+  const qs = "?query=" + encodeURIComponent(q) + "&display=1";
+  /* 이관 규칙은 /v1/search/shop.json → /search/v1/shop 이었다.
+     그 규칙대로 만든 것과, 옛 주소 그대로인 것을 둘 다 찔러본다. */
+  const HUB_PATHS = [
+    "/search/v1/shop", "/search/v1/shop.json", "/search/v1/shopping",
+    "/shopping/v1/search", "/shop/v1/search", "/shopping-search/v1/search",
+    "/shopping/v1/shop", "/search-shop/v1/search", "/commerce/v1/search",
+    "/v1/search/shop.json"
+  ];
+  const OLD_PATHS = ["/v1/search/shop.json", "/v1/search/shop"];
+  const CTRL = "/zzz-not-real/v1/nothing";
+
+  const get = async (host, p2, headers) => {
+    try {
+      const res = await fetch(host + p2 + qs, { headers });
+      const text = await res.text();
+      let json = null; try { json = JSON.parse(text); } catch {}
+      return { status: res.status, json, text };
+    } catch (e) { return { status: "연결실패", json: null, text: String(e.message || e) }; }
+  };
+  const NCP = { "X-NCP-APIGW-API-KEY-ID": ID, "X-NCP-APIGW-API-KEY": SECRET };
+  const OLD = { "X-Naver-Client-Id": ID, "X-Naver-Client-Secret": SECRET };
+  const totalOf = j => j && (j.total ?? j.totalCount ?? (j.result && j.result.total));
+
+  /* 대조군부터. 없는 경로가 뭘 돌려주는지 알아야 판정할 수 있다. */
+  const ctl = await get(HUB, CTRL, NCP);
+  console.log(`  대조군 ${ctl.status}  ${safe(ctl.text).replace(/\s+/g, " ").slice(0, 90)}`);
+  console.log(`  → 이것과 다른 응답만 의미가 있다.\n`);
+
+  const hits = [];
+  const plan = [
+    [HUB, NCP, "API HUB", HUB_PATHS],
+    ["https://openapi.naver.com", OLD, "옛 개발자센터 주소", OLD_PATHS]
+  ];
+  for (const [host, headers, label, list] of plan) {
+    console.log(`  [${label}] ${host}`);
+    for (const p2 of list) {
+      const r = await get(host, p2, headers);
+      await sleep(200);
+      const total = totalOf(r.json);
+      if (total != null) {
+        console.log(`    *** 상품수 나옴 *** ${p2}   total=${Number(total).toLocaleString()}`);
+        hits.push({ host, path: p2, total: Number(total), label });
+        continue;
+      }
+      const sameAsCtl = host === HUB && String(r.status) === String(ctl.status);
+      const mark = sameAsCtl ? "    " : "  ? ";
+      console.log(`  ${mark}${String(r.status).padEnd(6)} ${p2.padEnd(24)} ${safe(r.text).replace(/\s+/g, " ").slice(0, 80)}`);
+    }
+    console.log("");
+  }
+
+  if (hits.length) {
+    await fs.mkdir(OUTDIR, { recursive: true });
+    await fs.writeFile(path.join(OUTDIR, "hub-shopcount.json"),
+      JSON.stringify({ kw: q, hits, at: new Date().toISOString() }, null, 1), "utf8");
+    const h = hits[0];
+    console.log(`  찾았다.  ${h.host}${h.path}`);
+    console.log(`  "${q}" 상품수 ${h.total.toLocaleString()}개`);
+    console.log(`  → ${OUTDIR}/hub-shopcount.json 에 저장했다.`);
+    console.log(`  이 파일을 보내주면 전체 수집기를 붙인다.\n`);
+  } else {
+    console.log("  상품수를 주는 자리를 못 찾았다.");
+    console.log("  위 응답을 통째로 보내주면 다음 후보를 정한다.\n");
+  }
+}
+
+/* ── 상품수 전체 수집 ──
+   18단계가 자리를 찾아 hub-shopcount.json 을 만든 뒤에만 돌아간다.
+   호스트와 경로를 그 파일에서 읽는다. 내가 주소를 외워둘 필요가 없다. */
+async function collectShopCount(args) {
+  const val = f => { const i = args.indexOf(f); return i >= 0 ? args[i + 1] : null; };
+  const FOUND = path.join(OUTDIR, "hub-shopcount.json");
+  let cfg;
+  try { cfg = JSON.parse(await fs.readFile(FOUND, "utf8")); }
+  catch { console.error(`\n  ${FOUND} 이 없다. 18단계(18-find-shopcount.bat)부터 돌려라.\n`); return; }
+  const hit = (cfg.hits || [])[0];
+  if (!hit) { console.error("\n  찾은 자리가 없다. 18단계 결과를 먼저 보내줘라.\n"); return; }
+  const headers = hit.host === HUB
+    ? { "X-NCP-APIGW-API-KEY-ID": ID, "X-NCP-APIGW-API-KEY": SECRET }
+    : { "X-Naver-Client-Id": ID, "X-Naver-Client-Secret": SECRET };
+
+  const listFile = val("--only") || path.join(OUTDIR, "section-keywords.txt");
+  let want;
+  try { want = (await fs.readFile(listFile, "utf8")).split(/\r?\n/).map(t => t.trim()).filter(Boolean); }
+  catch { console.error(`\n  ${listFile} 이 없다. 16b-pack-sections.bat 을 먼저 돌리면 만들어진다.\n`); return; }
+
+  const OUT = path.join(OUTDIR, "shopcount.json");
+  let done = {}, calls = 0;
+  try { const prev = JSON.parse(await fs.readFile(OUT, "utf8")); done = prev.data || {}; calls = prev.calls || 0; } catch {}
+  const todo = want.filter(k => done[k] == null);
+  const MAX = parseInt(val("--max") ?? "24000", 10);
+  const plan = todo.slice(0, MAX);
+
+  console.log(`\n── 상품수 수집   ${hit.host}${hit.path}`);
+  console.log(`  목표 ${want.length.toLocaleString()}개 · 이미 받은 것 ${Object.keys(done).length.toLocaleString()}개`);
+  console.log(`  이번에 ${plan.length.toLocaleString()}개를 채운다 (하루 한도 ${MAX.toLocaleString()})\n`);
+  if (!plan.length) { console.log("  더 받을 게 없다. 끝.\n"); return; }
+
+  const save = async () => {
+    const tmp = OUT + ".tmp";
+    const fh = await fs.open(tmp, "w");
+    try {
+      await fh.write('{"host":' + JSON.stringify(hit.host) + ',"path":' + JSON.stringify(hit.path)
+        + ',"savedAt":' + JSON.stringify(new Date().toISOString())
+        + ',"calls":' + calls + ',"keywords":' + Object.keys(done).length + ',"data":{');
+      let first = true, buf = "";
+      for (const k of Object.keys(done)) {
+        buf += (first ? "" : ",") + JSON.stringify(k) + ":" + done[k];
+        first = false;
+        if (buf.length > 4000000) { await fh.write(buf); buf = ""; }
+      }
+      if (buf) await fh.write(buf);
+      await fh.write("}}");
+    } finally { await fh.close(); }
+    await fs.rename(tmp, OUT);
+  };
+
+  let i = 0, ok = 0, bad = 0, stop = "";
+  const one = async kw => {
+    const url = hit.host + hit.path + "?query=" + encodeURIComponent(kw) + "&display=1";
+    for (let t = 0; t < 3; t++) {
+      try {
+        const res = await fetch(url, { headers });
+        const text = await res.text();
+        calls++;
+        if (res.status === 429) { stop = "하루/한달 한도에 걸렸다"; return; }
+        let j = null; try { j = JSON.parse(text); } catch {}
+        const total = j && (j.total ?? j.totalCount ?? (j.result && j.result.total));
+        if (total != null) { done[kw] = Number(total); ok++; return; }
+        if (res.status >= 500 || res.status === 0) { await sleep(600 * (t + 1)); continue; }
+        bad++; return;
+      } catch { await sleep(600 * (t + 1)); }
+    }
+    bad++;
+  };
+
+  const WORKERS = 4;
+  const worker = async () => {
+    while (!stop) {
+      const n = i++;
+      if (n >= plan.length) return;
+      await one(plan[n]);
+      await sleep(120);
+      if (n % 500 === 499) {
+        await save();
+        console.log(`  ${(n + 1).toLocaleString()} / ${plan.length.toLocaleString()}   받음 ${ok.toLocaleString()} · 실패 ${bad.toLocaleString()}`);
+      }
+    }
+  };
+  await Promise.all(Array.from({ length: WORKERS }, worker));
+  await save();
+
+  console.log(`\n  끝.  받음 ${ok.toLocaleString()} · 실패 ${bad.toLocaleString()} · 호출 누적 ${calls.toLocaleString()}`);
+  if (stop) console.log(`  ${stop}. 내일 같은 파일을 다시 돌리면 이어서 채운다.`);
+  const left = want.length - Object.keys(done).length;
+  console.log(`  남은 키워드 ${left.toLocaleString()}개`);
+  console.log(`  → ${OUT}\n`);
+}
+
 /* ── 경로 찾기 ──
    대조군으로 확인됐다.  404 = 없는 경로 · 210 = 있는데 구독 안 됨 · 200 = 정답
    그래서 404 가 아닌 것만 걸러내면 된다.
@@ -1052,11 +1230,13 @@ async function main() {
   console.error(`API HUB 인증 정보 확인. Client ID ${String(ID).slice(0, 4)}***\n`);
   if (args.includes("--find")) return findPath();
   if (args.includes("--trend")) return collectTrend(args);
+  if (args.includes("--shop-count-all")) return collectShopCount(args);
+  if (args.includes("--shop-count")) return findShopCount();
   if (args.includes("--shop-stat")) return shopStat(args);
   if (args.includes("--shop-fix")) return shopFix(args);
   if (args.includes("--shop")) return collectShop(args);
   if (args.includes("--cat")) return checkCat(args);
   if (args.includes("--probe") || args.length === 0) return probe();
-  console.error("--probe / --find / --trend / --shop / --shop-stat / --cat 중 하나를 써라.");
+  console.error("--probe / --find / --trend / --shop / --shop-stat / --shop-count / --shop-count-all / --cat 중 하나를 써라.");
 }
 main().catch(e => { console.error(e); process.exit(1); });

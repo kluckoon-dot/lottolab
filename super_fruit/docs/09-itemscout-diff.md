@@ -79,3 +79,41 @@ PDF 에서 공식을 역산했다.
 쇼핑검색 API 가 종료됐지만 API HUB 로 이관됐을 가능성이 남아 있다.
 검색어트렌드가 `/search-trend/v1/search`, 쇼핑인사이트가 `/shopping/v1/...` 로 살아 있었다.
 쇼핑검색도 같은 게이트웨이에 있는지 확인해야 한다. → 확인 필요
+
+## 상품수 확보 시도 (2026-09-14)
+
+경쟁강도 = 상품수 ÷ 한달 검색수. 48/48 키워드로 아이템스카우트와 대조해
+식을 확정했다. 검색수는 우리가 이미 갖고 있으니 남은 건 상품수 하나다.
+
+### 18단계 — 자리 찾기 (`fetch-hub.mjs --shop-count`)
+없는 경로가 뭘 돌려주는지 대조군으로 먼저 재고, 그것과 다른 응답만 본다.
+두 호스트에 12개 후보를 시험 키워드 하나로 훑는다.
+
+- API HUB (`naverapihub.apigw.ntruss.com`, NCP 헤더)
+  `/search/v1/shop` · `/search/v1/shop.json` · `/search/v1/shopping` ·
+  `/shopping/v1/search` · `/shop/v1/search` · `/shopping-search/v1/search` ·
+  `/shopping/v1/shop` · `/search-shop/v1/search` · `/commerce/v1/search` ·
+  `/v1/search/shop.json`
+- 옛 개발자센터 (`openapi.naver.com`, X-Naver-Client-Id/Secret)
+  `/v1/search/shop.json` · `/v1/search/shop`
+
+이관 규칙이 `/v1/search/news.json` → `/search/v1/news` 였으니
+`/search/v1/shop` 이 제일 유력하다. 응답에 `total`/`totalCount`/`result.total`
+중 하나라도 있으면 적중으로 보고 `naver-out/hub-shopcount.json` 에 적는다.
+
+주의: 이 세션의 키는 NCP API HUB 키다. 옛 주소 쪽이 200을 주려면
+developers.naver.com 애플리케이션 키가 따로 있어야 한다.
+
+### 19단계 — 전부 채우기 (`--shop-count-all`)
+주소를 `hub-shopcount.json` 에서 읽는다. 목표 목록은 16b 가 떨구는
+`naver-out/section-keywords.txt` — 화면이 실제로 쓰는 키워드만, 검색량 큰 순.
+동시 4, 하루 24,000 (검색 API 한도 25,000/일), 500개마다 저장, 이어하기 있음.
+429 를 만나면 깨끗하게 멈추고 저장한다.
+
+모의 서버로 적중 탐지·저장·이어하기 셋 다 확인했다.
+
+### 상품수가 들어오면 바뀌는 것
+1. 경쟁강도를 추정치가 아니라 실측으로 바꾼다
+2. 상품수 0~수십인 키워드 = 아직 아무도 안 파는 자리
+3. 레시피·효능 같은 정보성 키워드가 상품수로 자연히 걸러진다
+   (지금은 낱말 규칙으로만 거른다 → 황금키워드가 정보성으로 기우는 원인)

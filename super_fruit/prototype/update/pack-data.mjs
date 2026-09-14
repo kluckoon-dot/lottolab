@@ -225,6 +225,19 @@ if (SEC) {
 }
 const packed = want ? packedAll.filter(r => r[18] & want) : packedAll;
 if (want) console.log(`  걸러낸 뒤 ${packed.length.toLocaleString()}개를 담는다`);
+
+/* 18단계(상품수)가 쓸 목표 목록을 같이 떨궈둔다.
+   화면이 실제로 쓰는 키워드만, 검색량 큰 순서로. 위에서부터 채우다 멈춰도
+   중요한 것부터 채워진 상태가 된다. */
+{
+  const list = packed.map(r => [r[0], (r[1] || 0) + (r[2] || 0)])
+                     .sort((a, b) => b[1] - a[1]).map(r => r[0]);
+  try {
+    fs.mkdirSync("naver-out", { recursive: true });
+    fs.writeFileSync(path.join("naver-out", "section-keywords.txt"), list.join("\n"), "utf8");
+    console.log(`  naver-out/section-keywords.txt 에 ${list.length.toLocaleString()}개를 적어뒀다 (18단계용)`);
+  } catch (e) { console.log("  목표 목록은 못 적었다: " + e.message); }
+}
 /* 12 MB 씩 나눠 담는다. 한 파일이 16 MB 를 넘으면 아티팩트가 안 받는다.
    처음엔 추세만 나누고 키워드는 한 파일로 뒀는데, 419,049개가 나오니
    kw.js 가 27 MB 가 됐다. 키워드도 똑같이 나눈다. */
