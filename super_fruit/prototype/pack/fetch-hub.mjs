@@ -1030,6 +1030,10 @@ async function findShopCount() {
     console.log(`  "${q}" 상품수 ${h.total.toLocaleString()}개`);
     console.log(`  → ${OUTDIR}/hub-shopcount.json 에 저장했다.`);
     console.log(`  이 파일을 보내주면 전체 수집기를 붙인다.\n`);
+  } else if (liveOk) {
+    console.log("  상품수를 주는 자리가 없다. 그리고 그건 설정 문제가 아니다.");
+    console.log("  블로그·뉴스 검색은 같은 키로 살아있는데 쇼핑만 404 다.");
+    console.log("  = 쇼핑 검색 API 는 실제로 없어진 것이다. 공식 경로는 막혔다.\n");
   } else if (!hasDev && sawAuthFail) {
     console.log("  자리는 찾았다. 키가 다를 뿐이다.");
     console.log("  openapi.naver.com 이 404 가 아니라 401(인증 실패)을 줬다.");
@@ -1040,10 +1044,6 @@ async function findShopCount() {
     console.log("           SEARCH_ID=받은Client ID");
     console.log("           SEARCH_SECRET=받은Client Secret\n");
     console.log("  적고 나서 이 파일을 다시 더블클릭하면 된다.\n");
-  } else if (liveOk) {
-    console.log("  상품수를 주는 자리가 없다. 그리고 그건 설정 문제가 아니다.");
-    console.log("  블로그·뉴스 검색은 같은 키로 살아있는데 쇼핑만 404 다.");
-    console.log("  = 쇼핑 검색 API 는 실제로 없어진 것이다. 공식 경로는 막혔다.\n");
   } else {
     console.log("  상품수를 주는 자리를 못 찾았다.");
     console.log("  다만 블로그·뉴스 검색도 똑같이 404 였다. 구독 문제일 수 있다.");
