@@ -367,6 +367,15 @@ tbody tr.sel{background:var(--brand-soft)}
 .schip[aria-pressed="true"]{background:var(--brand);border-color:var(--brand);color:#fff}
 .schip[aria-pressed="true"] .n{color:rgba(255,255,255,.75)}
 .secnote{font-size:11.5px;color:var(--ink-3);width:100%;margin:2px 0 0;line-height:1.55}
+
+.bidtab{display:flex;flex-direction:column;gap:5px;margin:9px 0 0}
+.bidrow{display:flex;align-items:center;gap:5px}
+.bidrow b{flex:none;width:44px;font-size:11px;font-weight:700;color:var(--ink-3)}
+.bidrow span{flex:1;min-width:0;background:var(--surface-2);border-radius:7px;padding:6px 4px;text-align:center;
+  font-size:13px;font-weight:700;color:var(--ink);font-variant-numeric:tabular-nums}
+.bidrow span i{display:block;font-style:normal;font-size:9.5px;font-weight:600;color:var(--ink-3)}
+.bidrow span.over{background:var(--warn-bg);color:var(--warn)}
+.bidrow span.over i{color:var(--warn)}
 </style>
 <header class="top">
   <div class="top-in">
@@ -1121,23 +1130,39 @@ for(var gi=0;gi<R.length;gi++){
   GRP[gi]=gs;
   for(var gk=0;gk<gs.length;gk++) (HIDX[gs[gk]]||(HIDX[gs[gk]]=[])).push(gi);
 }
-var HINTS=(function(){
+/* 품목 목록은 섹션이 바뀔 때마다 다시 센다.
+   수산물을 켰는데 품목 바로가기에 고구마가 남아 있으면 안 된다.
+
+   대표 키워드는 '검색량 1등' 이 아니라 '품목 이름과 똑같은 키워드' 다.
+   고구마를 눌렀는데 고구마줄기볶음(116,440)이 뜨던 이유가 이것이었다.
+   고구마(48,080)보다 검색량이 컸기 때문이다. 갈비→닭갈비, 새우→생새우도 같다.
+   이름과 똑같은 키워드가 수집분에 없을 때만 검색량 1등을 쓴다. */
+function buildHints(){
   var list=[];
   for(var k in HIDX){
-    var idx=HIDX[k], vol=0, top=idx[0], tv=-1;
-    for(var i=0;i<idx.length;i++){ var t=S_tot[idx[i]]; vol+=t; if(t>tv){ tv=t; top=idx[i]; } }
-    list.push({name:k, all:idx.length, vol:vol, top:top});
+    var idx=HIDX[k], vol=0, top=-1, tv=-1, exact=-1, n=0;
+    for(var i=0;i<idx.length;i++){
+      var j=idx[i];
+      if(F.sec && !(R[j][K.SEC] & F.sec)) continue;
+      n++; vol+=S_tot[j];
+      if(R[j][K.KW]===k) exact=j;
+      if(S_tot[j]>tv){ tv=S_tot[j]; top=j; }
+    }
+    if(!n) continue;
+    list.push({ name:k, all:n, vol:vol, top: exact>=0 ? exact : top, exact: exact>=0 });
   }
-  /* '기타'는 품목이 안 붙은 나머지다. 검색량이 커도 맨 뒤로 보낸다. */
   list.sort(function(a,b){
     if(a.name==="기타") return 1; if(b.name==="기타") return -1;
     return b.vol-a.vol;
   });
   return list;
-})();
+}
+var HINTS=buildHints();
 var HINT_OPEN=false;
 
 function renderHintChips(){
+  HINTS=buildHints();
+  if(F.hint && !HINTS.some(function(h){ return h.name===F.hint; })) F.hint="";
   var box=document.getElementById("hintChips"); box.innerHTML="";
   var show=HINT_OPEN?HINTS.length:Math.min(12,HINTS.length);
   for(var i=0;i<show;i++){
@@ -1145,14 +1170,19 @@ function renderHintChips(){
       /* 통과 수는 지금 판정 기준으로 매번 다시 센다. 마진·목표 전환율을 바꾸면 같이 움직인다.
          슬라이더를 움직일 때마다 도니까 전체를 훑지 않고 품목별 색인만 본다. */
       var idx=HIDX[h.name], ok=0;
-      for(var j=0;j<idx.length;j++) if(CA(idx[j]).v!=="패스") ok++;
+      for(var j=0;j<idx.length;j++){
+        var q=idx[j];
+        if(F.sec && !(R[q][K.SEC] & F.sec)) continue;
+        if(C_v[q]!==2) ok++;
+      }
       var b=el("button","hchip");
       b.type="button";
       b.setAttribute("aria-pressed", F.hint===h.name ? "true":"false");
-      b.innerHTML=emojiFor(h.name,h.name)+' <span>'+h.name+'</span> <span class="n">'+ok+'/'+h.all+'</span>';
+      b.innerHTML=emojiFor(h.name,h.name)+' <span>'+h.name+'</span> <span class="n">'+ok+'/'+h.all+'</span>'
+        + (h.exact ? '' : ' <span class="n" title="이 품목 이름과 똑같은 키워드는 수집분에 없다. 가장 큰 것을 대신 보여준다.">≈</span>');
       b.onclick=function(){
         F.hint = (F.hint===h.name) ? "" : h.name;
-        if(F.hint) CUR=h.top;
+        if(F.hint && h.top>=0) CUR=h.top;
         CURPAGE(); refresh();
       };
       box.appendChild(b);
@@ -1227,10 +1257,25 @@ function renderHero(){
   +hcard("광고 클릭률","NAVER 검색광고", '<span class="sm2">PC '+(a[K.TPC]||0)+"% · MO "+(a[K.TMO]||0)+"%</span>",
      sp("PC",(a[K.TPC]||0)+"%")+sp("모바일",(a[K.TMO]||0)+"%"),
      "클릭률은 노출 대비 클릭이다. 손익분기에 들어가는 전환율과 다른 지표다.")
-  +hcard("평균 입찰가 · 모바일","목표 순위 추정", fmt(a[K.BM1]||0)+"원",
-     sp("1위",fmt(a[K.BM1]||0))+sp("2위",fmt(a[K.BM2]||0))+sp("3위",fmt(a[K.BM3]||0)),
-     "감당 CPC 상한 "+fmt(cap)+"원 · 3위 최저 "+(isFinite(minCpc3)?fmt(minCpc3)+"원":"—")
-     +(isFinite(minCpc3)&&minCpc3>cap?' <b>— 상한을 넘는다</b>':''));
+  +(function(){
+      /* 전에는 모바일만 보여줬다. PC 도 같이 봐야 어느 쪽에 걸지 정할 수 있다. */
+      var pcs=[a[K.BP1],a[K.BP2],a[K.BP3]], mos=[a[K.BM1],a[K.BM2],a[K.BM3]];
+      var has = pcs.some(Boolean) || mos.some(Boolean);
+      var row=function(label,v){
+        return '<div class="bidrow"><b>'+label+'</b>'
+          + v.map(function(x,i2){
+              var over = x && x>cap;
+              return '<span'+(over?' class="over"':'')+'><i>'+(i2+1)+'위</i>'+(x?fmt(x):"—")+'</span>'; }).join("")
+          + '</div>';
+      };
+      if(!has) return hcard("평균 입찰가 · PC · 모바일","원본 없음","아직 안 받아왔다","",
+        "이 키워드는 입찰가를 아직 못 받았다. 손익분기 계산이 안 되어 판정이 패스로 나온다.", true);
+      return '<div class="hc"><div class="hc-top"><span class="hc-k">평균 입찰가 · 1~3위</span>'
+        +'<span class="hc-src">목표 순위 추정</span></div>'
+        +'<div class="bidtab">'+row("PC",pcs)+row("모바일",mos)+'</div>'
+        +'<p class="hc-foot">감당 CPC 상한 '+fmt(cap)+'원. <b>붉은 값이 상한을 넘는 자리</b>다. '
+        +'실제 결제 금액이 아니라 그 순위를 노릴 때의 추정 최대 CPC다.</p></div>';
+    })();
 
   var ipt=document.getElementById("exact");
   if(document.activeElement!==ipt) ipt.value=a[K.KW];
@@ -1324,14 +1369,20 @@ function renderSecBar(){
   var all=el("button","schip"); all.type="button";
   all.setAttribute("aria-pressed", F.sec===0?"true":"false");
   all.innerHTML='전체 <span class="n">'+fmt(N)+'</span>';
-  all.onclick=function(){ F.sec=0; LIMIT=100; refresh(); };
+  all.onclick=function(){ F.sec=0; F.hint=""; LIMIT=100; HINTS=buildHints();
+                          var t=topN(1); if(t.length) CUR=t[0]; refresh(); };
   box.appendChild(all);
   SECS.forEach(function(sec){
     var b=el("button","schip"); b.type="button";
     b.setAttribute("aria-pressed", (F.sec&sec.bit)?"true":"false");
     b.innerHTML=sec.name+' <span class="n">'+fmt(sec.n)+'</span>';
     b.title=sec.naver||"";
-    b.onclick=function(){ F.sec = (F.sec&sec.bit) ? (F.sec & ~sec.bit) : (F.sec|sec.bit); LIMIT=100; refresh(); };
+    b.onclick=function(){
+      F.sec = (F.sec&sec.bit) ? (F.sec & ~sec.bit) : (F.sec|sec.bit);
+      F.hint=""; LIMIT=100; HINTS=buildHints();
+      var t=topN(1); if(t.length) CUR=t[0];
+      refresh();
+    };
     box.appendChild(b);
   });
   var note=el("p","secnote");
