@@ -231,15 +231,6 @@ const packedAll = rows.map(r => {
   const withComp = packedAll.filter(r => r[4]).length;
   console.log(`  입찰가 있는 키워드 ${withBid.toLocaleString()} · 경쟁도 있는 키워드 ${withComp.toLocaleString()}`);
   if (!withBid) console.log("  *** 입찰가가 하나도 없다. keywords.json 에 bid 가 안 들어있거나 이름이 또 다르다. 알려줘라. ***");
-  const byI = new Array(INTENT_NAMES.length).fill(0);
-  for (const r of packedAll) byI[r[16]]++;
-  console.log("  의도 분포  " + INTENT_NAMES.map((n, i) =>
-    `${n} ${(byI[i] / packedAll.length * 100).toFixed(1)}%`).join(" · "));
-  const withProd = packedAll.filter(r => r[19]).length;
-  if (Object.keys(SHOPCNT).length)
-    console.log(`  상품수 붙은 키워드 ${withProd.toLocaleString()}개 (${(withProd / packedAll.length * 100).toFixed(1)}%)`);
-  const top = Math.max(...byI) / packedAll.length;
-  if (top > 0.90) console.log("  *** 한 칸에 90% 넘게 쏠렸다. 규칙이 사실상 분류를 안 하고 있다. ***");
 }
 if (SEC) {
   for (const row of packedAll) {
@@ -255,6 +246,28 @@ if (SEC) {
 }
 const packed = want ? packedAll.filter(r => r[18] & want) : packedAll;
 if (want) console.log(`  걸러낸 뒤 ${packed.length.toLocaleString()}개를 담는다`);
+
+{ /* 통계는 반드시 "실제로 담는 것" 기준이어야 한다.
+     전에는 566,276개 전부를 놓고 셌다. 화면에 안 들어가는 52만 개가 섞여
+     품목 85.8% 같은 숫자가 나왔고, 상품수 53개도 0.0% 로 보여 쓸모가 없었다. */
+  const byI = new Array(INTENT_NAMES.length).fill(0);
+  for (const r of packed) byI[r[16]]++;
+  console.log("  담는 것 기준 의도 분포  " + INTENT_NAMES.map((n, i) =>
+    `${n} ${(byI[i] / packed.length * 100).toFixed(1)}%`).join(" · "));
+  if (Math.max(...byI) / packed.length > 0.90)
+    console.log("  *** 한 칸에 90% 넘게 쏠렸다. 규칙이 사실상 분류를 안 하고 있다. ***");
+
+  const nImp = Object.keys(SHOPCNT).length;
+  if (nImp) {
+    const onScreen = packed.filter(r => r[19]).length;
+    const inAll = packedAll.filter(r => r[19]).length;
+    console.log(`  상품수 — 가져온 ${nImp.toLocaleString()}개 중 화면에 붙은 것 ${onScreen.toLocaleString()}개 (화면의 ${(onScreen / packed.length * 100).toFixed(1)}%)`);
+    if (inAll > onScreen)
+      console.log(`    ${(inAll - onScreen).toLocaleString()}개는 수집분에 있으나 다섯 섹션 밖이라 이번엔 안 담았다.`);
+    if (nImp > inAll)
+      console.log(`    ${(nImp - inAll).toLocaleString()}개는 우리가 아직 안 모은 키워드다 (띄어쓰기 변형이 대부분이다).`);
+  }
+}
 
 /* 18단계(상품수)가 쓸 목표 목록을 같이 떨궈둔다.
    화면이 실제로 쓰는 키워드만, 검색량 큰 순서로. 위에서부터 채우다 멈춰도
