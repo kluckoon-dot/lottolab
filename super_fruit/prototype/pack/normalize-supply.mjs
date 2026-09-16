@@ -64,6 +64,7 @@ const GRADE_WORDS = [
   ["특대", /특대|특\s*大|왕과|점보|자이언트|XL/i],
   ["중대", /중대|중\s*대/],
   ["대",   /대\s*과|大|라지|L\s*사이즈|(?<![A-Za-z])L(?![A-Za-z])/],
+  ["중소", /중소|중\s*소/],
   ["중",   /중\s*과|中|미디움|미디엄|M\s*사이즈|(?<![A-Za-z])M(?![A-Za-z])/],
   ["소",   /소\s*과|小|스몰|S\s*사이즈|(?<![A-Za-z])S(?![A-Za-z])/],
   ["혼합", /혼합|믹스|랜덤|사이즈\s*랜덤|모듬|모둠/]
@@ -179,6 +180,9 @@ export function normalize(row, match) {
     countLo: cnt ? cnt.lo : null, countHi: cnt ? cnt.hi : null,
     gradeWord: gradeWord(full), use: useWord(full),
     price, ship: num(row.ship),
+    /* 비교 열쇠. 달력이 태추단감과 대봉감을 둘 다 "감" 으로 묶어두는데,
+       파는 사람에게 그 둘은 다른 물건이다. 품종이 있으면 품종으로 묶는다. */
+    key: m ? (m.variety || m.item) : null,
     gPer, wonKg,
     wonEach: (price && cnt) ? Math.round(price / cnt.n) : null
   };

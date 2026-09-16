@@ -633,19 +633,24 @@ td.gper{font-weight:700}
       <div class="tbox" id="supBox" hidden>
         <div class="tscroll">
           <table>
-            <thead><tr>
-              <th>공급사 · 상품명</th>
-              <th>품종</th>
-              <th>중량</th>
-              <th>과수</th>
-              <th>g/과</th>
-              <th>원/kg</th>
-              <th>공급가</th>
-              <th>공급사가<br>부른 등급</th>
-              <th>우리 등급<br>(g/과 기준)</th>
-              <th>마진</th>
-              <th>마진율</th>
-            </tr></thead>
+            <thead>
+              <tr>
+                <th rowspan="2">공급사</th>
+                <th class="grp" colspan="2">공급사가 준 그대로</th>
+                <th class="grp" colspan="4">우리가 잰 값</th>
+                <th class="grp" colspan="2">이 공급가로 팔면</th>
+              </tr>
+              <tr>
+                <th class="grp">옵션명 · 공급가</th>
+                <th>부른 등급</th>
+                <th class="grp">중량</th>
+                <th>과수</th>
+                <th>g/과</th>
+                <th>원/kg</th>
+                <th class="grp">마진</th>
+                <th>마진율</th>
+              </tr>
+            </thead>
             <tbody id="supBody"></tbody>
           </table>
         </div>
@@ -1199,8 +1204,10 @@ function renderSupply(){
     document.getElementById("supFormula").innerHTML="";
     return;
   }
+  /* 품종으로 묶는다. 달력은 태추단감과 대봉감을 둘 다 "감" 으로 묶는데
+     파는 사람에게 그 둘은 다른 물건이다. 실제로 비교하는 단위는 품종이다. */
   var items={}, sups={};
-  SUP.forEach(function(r){ if(r.item) items[r.item]=(items[r.item]||0)+1;
+  SUP.forEach(function(r){ var k=r.key||r.item; if(k) items[k]=(items[k]||0)+1;
                            if(r.supplier) sups[r.supplier]=(sups[r.supplier]||0)+1; });
   var itemList=Object.keys(items).sort(function(a,b){ return items[b]-items[a]; });
   if(!SF.item && itemList.length) SF.item=itemList[0];
@@ -1217,7 +1224,7 @@ function renderSupply(){
      10kg 짜리 공급가를 2kg 판매가에 견주면 마진 -117% 같은 숫자가 나온다. 실제로 나왔다.
      그래서 한 번에 한 규격만 본다. 원/kg 은 규격을 가로질러 비교되니 그건 그대로 둔다. */
   var kgCount={};
-  SUP.forEach(function(r){ if(r.item===SF.item && r.kg) kgCount[r.kg]=(kgCount[r.kg]||0)+1; });
+  SUP.forEach(function(r){ if((r.key||r.item)===SF.item && r.kg) kgCount[r.kg]=(kgCount[r.kg]||0)+1; });
   var kgList=Object.keys(kgCount).map(Number).sort(function(a,b){ return a-b; });
   if(SF.kg==null && kgList.length){
     var top=kgList[0];
@@ -1233,7 +1240,7 @@ function renderSupply(){
   document.getElementById("supBox").hidden=false;
 
   var rows=SUP.filter(function(r){
-    if(SF.item && r.item!==SF.item) return false;
+    if(SF.item && (r.key||r.item)!==SF.item) return false;
     if(SF.kg!=null && r.kg!==SF.kg) return false;
     if(SF.band && r.band!==SF.band) return false;
     if(SF.sup && r.supplier!==SF.sup) return false;
@@ -1244,40 +1251,82 @@ function renderSupply(){
   var body=document.getElementById("supBody"); body.innerHTML="";
   if(!rows.length){
     var tr=el("tr"), td=el("td","empty","조건에 맞는 공급가가 없다.");
-    td.colSpan=11; tr.appendChild(td); body.appendChild(tr); return;
+    td.colSpan=9; tr.appendChild(td); body.appendChild(tr); return;
   }
+  /* 등급 낱말별 시장 중앙값. 지금 보고 있는 품종 안에서, 공급사를 가로질러 낸다.
+     한 공급사만 그 낱말을 쓰면 비교 대상이 없으니 배지도 안 붙인다. */
+  var GREF={};
+  (function(){
+    /* 공급사마다 먼저 하나로 접고, 그 다음에 중앙값을 낸다.
+       줄 단위로 세면 SKU 를 많이 올린 곳이 시장 기준을 독점한다.
+       온그린이 소과를 다섯 줄 올려서 143g 이 시장 소과가 돼버렸다. */
+    var per={};
+    SUP.forEach(function(x){
+      if((x.key||x.item)!==SF.item || !x.gradeWord || !x.gPer) return;
+      var g=per[x.gradeWord]||(per[x.gradeWord]={});
+      (g[x.supplier]||(g[x.supplier]=[])).push(x.gPer);
+    });
+    var mid=function(a){ var b=a.slice().sort(function(p,q){return p-q;}); return b[b.length>>1]; };
+    Object.keys(per).forEach(function(k){
+      var bySup=Object.keys(per[k]).map(function(s){ return mid(per[k][s]); });
+      GREF[k]={ med: mid(bySup), n: bySup.length };
+    });
+  })();
+
   var mg=marginOf(), best=rows[0].wonKg;
+  /* 같은 크기끼리 견줄 수 있게 g/과 최저도 따로 잡는다 */
+  var bestG=null; rows.forEach(function(r){ if(r.gPer!=null && (bestG===null||r.gPer>bestG)) bestG=r.gPer; });
   var frag=document.createDocumentFragment();
   rows.forEach(function(r,i){
     var tr=el("tr");
-    var c1=el("td"), t=el("div");
-    t.appendChild(el("span","kw",r.supplier));
-    if(i===0){ var b=el("span","best","최저 원/kg"); t.appendChild(b); }
-    c1.appendChild(t);
-    c1.appendChild(el("div","sub", r.raw.slice(0,60)));
+    /* 공급사 */
+    var c0=el("td");
+    c0.appendChild(el("div","kw",r.supplier));
+    if(i===0) c0.appendChild(el("div","sub","이 규격 최저가"));
+    tr.appendChild(c0);
+
+    /* ── 공급사가 준 그대로. 손대지 않는다. ──
+       보갬: "실제 업체가 제공해주는 기본 옵션&공급가를 기본적으로 표기하면서" */
+    var c1=el("td","bidcell");
+    c1.appendChild(el("div","kw", r.raw));
+    var line=el("div","sub");
+    line.textContent = fmt(r.price)+"원" + (r.ship? " · 배송비 "+fmt(r.ship)+"원" : "");
+    c1.appendChild(line);
     tr.appendChild(c1);
-    tr.appendChild(el("td",null,r.variety||r.item||"—"));
-    tr.appendChild(el("td","num",r.kg?r.kg+"kg":"—"));
-    tr.appendChild(el("td","num", r.count? (r.countApprox?"~":"")+r.count : "—"));
-    tr.appendChild(el("td","num gper", r.gPer?fmt(r.gPer)+"g":"—"));
-    var wk=el("td","num"); wk.appendChild(el("div",null,fmt(r.wonKg)));
+    var gw=el("td"); gw.textContent=r.gradeWord||"—";
+    /* 배지 기준.
+       처음에는 우리 사분위 등급과 낱말을 견줬는데, 우리 등급은 그 품종에 나온
+       매물들 사이의 상대값이라 거의 모든 줄에 배지가 붙었다. 뜻이 없다.
+
+       제대로 된 물음은 이것이다. "다른 공급사가 같은 낱말로 파는 것과 견주면 어떤가."
+       온그린이 소과라 부른 143 g 은, 시장의 소과 중앙값 194 g 보다 26% 작다.
+       이건 공급사를 가로질러 말이 되는 비교다. */
+    var ref=GREF[r.gradeWord];
+    if(ref && r.gPer && ref.n>=2){
+      var d=(r.gPer/ref.med-1)*100;
+      if(Math.abs(d)>=12)
+        gw.appendChild(el("span", d<0?"lie":"best",
+          "다른 곳 "+r.gradeWord+"보다 "+Math.abs(d).toFixed(0)+"% "+(d<0?"작다":"크다")));
+    }
+    tr.appendChild(gw);
+
+    /* ── 우리가 잰 값 ── */
+    tr.appendChild(el("td","num bidcell",r.kg?r.kg+"kg":"—"));
+    tr.appendChild(el("td","num", r.count? (r.countApprox?"~":"")+r.count+"과" : "—"));
+    var gp=el("td","num gper");
+    gp.appendChild(el("div",null, r.gPer?fmt(r.gPer)+"g":"—"));
+    if(r.gPer!=null && bestG && r.gPer<bestG)
+      gp.appendChild(el("div","sub","−"+((1-r.gPer/bestG)*100).toFixed(0)+"%"));
+    tr.appendChild(gp);
+    var wk=el("td","num");
+    wk.appendChild(el("div",null,fmt(r.wonKg)));
     if(r.wonKg>best) wk.appendChild(el("div","sub","+"+((r.wonKg/best-1)*100).toFixed(0)+"%"));
     tr.appendChild(wk);
-    tr.appendChild(el("td","num",fmt(r.price)+(r.ship?" +"+fmt(r.ship):"")));
-    /* 공급사가 부른 등급과 우리가 잰 등급 */
-    var gw=el("td"); gw.textContent=r.gradeWord||"—";
-    /* 낱말과 실측이 어긋나는 쪽을 짚는다. 숫자가 작을수록 큰 등급이다.
-       전에는 normGrade 가 돌려준 숫자를 BANDS.indexOf 에 다시 넣어서 늘 -1 이 나왔다.
-       그래서 "중" 이라 부른 것이 실제로는 특대인 줄에도 경고가 붙었다. */
-    var said=normGrade(r.gradeWord), real=BANDS.indexOf(r.band);
-    if(said>=0 && real>=0 && said!==real)
-      gw.appendChild(el("span", real>said?"lie":"best", real>said?"부른 값보다 작다":"부른 값보다 크다"));
-    tr.appendChild(gw);
-    tr.appendChild(el("td",null,r.band||"—"));
-    /* 마진 — 이 공급가로 지금 판매가에 팔면 */
+
+    /* ── 이 공급가로 팔면 ── */
     var m=SET.sell-r.price-SET.sell*feeRate()-SET.ship-(r.ship||0);
     var rate=SET.sell? m/SET.sell : 0;
-    tr.appendChild(el("td","num",fmt(m)+"원"));
+    tr.appendChild(el("td","num bidcell",fmt(m)+"원"));
     var mr=el("td","num"); mr.innerHTML='<span class="'+(rate>=RULE.marginMin?"cvr-ok":"cvr-no")+'">'+(rate*100).toFixed(1)+'%</span>';
     tr.appendChild(mr);
     frag.appendChild(tr);
