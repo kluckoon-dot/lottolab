@@ -401,6 +401,17 @@ tbody tr.sel{background:var(--brand-soft)}
 .tw-tip u{flex:1;text-decoration:none}
 .tw-tip em{font-style:normal;font-weight:700;color:var(--ink);font-variant-numeric:tabular-nums}
 .tw-note{font-size:11px;color:var(--ink-3);line-height:1.6;margin:9px 0 0}
+.sup-head{background:var(--surface);border:1px solid var(--line);border-top:3px solid var(--brand);
+  border-radius:12px;padding:15px 17px;margin-bottom:13px;box-shadow:var(--shadow)}
+.sup-head h3{margin:0 0 6px;font-size:14px;font-weight:700}
+.sup-head p{margin:0;font-size:12.5px;color:var(--ink-2);line-height:1.65}
+.sup-head .k{display:inline-block;font-family:"IBM Plex Mono",monospace;background:var(--surface-2);
+  border-radius:5px;padding:1px 6px;font-size:11.5px}
+.lie{background:var(--warn-bg);color:var(--warn);font-size:10.5px;font-weight:700;
+  border-radius:5px;padding:1px 6px;margin-left:5px;white-space:nowrap}
+.best{background:var(--good-bg);color:var(--good);font-size:10.5px;font-weight:700;
+  border-radius:5px;padding:1px 6px;margin-left:5px}
+td.gper{font-weight:700}
 .relbar{display:flex;gap:11px;align-items:center;flex-wrap:wrap;margin-bottom:11px;
   background:var(--brand-soft);border:1px solid color-mix(in srgb,var(--brand) 30%, transparent);
   border-radius:10px;padding:10px 14px;font-size:13.5px;font-weight:700;color:var(--brand-ink)}
@@ -494,6 +505,7 @@ tbody tr.sel{background:var(--brand-soft)}
     <div class="tabs" role="tablist">
       <button class="tab" role="tab" aria-selected="true" data-tab="gold">황금키워드</button>
       <button class="tab" role="tab" aria-selected="false" data-tab="detail">키워드 상세</button>
+      <button class="tab" role="tab" aria-selected="false" data-tab="supply">공급가 비교</button>
       <button class="tab" role="tab" aria-selected="false" data-tab="margin">마진 · 광고효율</button>
       <button class="tab" role="tab" aria-selected="false" data-tab="status">수집 현황</button>
     </div>
@@ -596,6 +608,51 @@ tbody tr.sel{background:var(--brand-soft)}
       </div>
     </section>
 
+    <section id="panel-supply" hidden>
+      <div class="sup-head" id="supHead"></div>
+      <div class="filters" id="supFilters" hidden>
+        <div class="f" style="min-width:auto">
+          <label>품목</label>
+          <div class="chips" id="supItems"></div>
+        </div>
+        <div class="f" style="min-width:auto">
+          <label>중량 · 같은 규격끼리 봐야 마진이 맞는다</label>
+          <div class="chips" id="supKg"></div>
+        </div>
+        <div class="f" style="min-width:auto">
+          <label>크기대 · g/과로 우리가 다시 매긴 것</label>
+          <div class="chips" id="supBands"></div>
+        </div>
+        <div class="f" style="min-width:auto">
+          <label>공급사</label>
+          <div class="chips" id="supSuppliers"></div>
+        </div>
+        <span class="f-sp"></span>
+        <span class="count" id="supCount"></span>
+      </div>
+      <div class="tbox" id="supBox" hidden>
+        <div class="tscroll">
+          <table>
+            <thead><tr>
+              <th>공급사 · 상품명</th>
+              <th>품종</th>
+              <th>중량</th>
+              <th>과수</th>
+              <th>g/과</th>
+              <th>원/kg</th>
+              <th>공급가</th>
+              <th>공급사가<br>부른 등급</th>
+              <th>우리 등급<br>(g/과 기준)</th>
+              <th>마진</th>
+              <th>마진율</th>
+            </tr></thead>
+            <tbody id="supBody"></tbody>
+          </table>
+        </div>
+      </div>
+      <div class="formula" id="supFormula"></div>
+    </section>
+
     <section id="panel-margin" hidden>
       <div class="mbox" id="marginBox" style="margin-bottom:14px"></div>
       <div class="card" style="margin-bottom:13px">
@@ -639,6 +696,7 @@ tbody tr.sel{background:var(--brand-soft)}
 <script src="data-shop.js"></script>
 <script src="data-trend.js"></script>
 <script src="data-meta.js"></script>
+<script src="data-supply.js"></script>
 <script>
 (function(){
 "use strict";
@@ -872,13 +930,14 @@ var qt; document.getElementById("q").addEventListener("input",function(e){
 document.getElementById("moreBtn").onclick=function(){ LIMIT+=200; renderTable(); };
 
 /* 탭 */
-var PANELS={gold:"panel-gold",detail:"panel-detail",margin:"panel-margin",status:"panel-status"};
+var PANELS={gold:"panel-gold",detail:"panel-detail",supply:"panel-supply",margin:"panel-margin",status:"panel-status"};
 var TAB="gold";
 document.querySelectorAll(".tab").forEach(function(t){ t.onclick=function(){ setTab(t.dataset.tab); }; });
 function setTab(n){ TAB=n;
   document.querySelectorAll(".tab").forEach(function(t){ t.setAttribute("aria-selected",t.dataset.tab===n); });
   for(var k in PANELS) document.getElementById(PANELS[k]).hidden=(k!==n);
   if(n==="detail") renderDetail();
+  if(n==="supply") renderSupply();
   if(n==="margin") renderMargin();
   if(n==="status") renderStatus();
 }
@@ -1107,6 +1166,142 @@ function drawClick(a){
       +'<text class="vlabel" x="'+(L+(ctrs[j]/maxT)*iw+7)+'" y="'+(y2+13)+'">'+ctrs[j].toFixed(2)+'%</text>';
   }
   var box=document.getElementById("clickChart"); box.innerHTML=out+'</svg>'; bindTips(box);
+}
+
+/* ── 공급가 비교 ──
+   공급사마다 같은 물건을 다르게 적는다. 낱말을 믿으면 당한다.
+   실측으로 확인한 것: 어떤 공급사는 250 g/과를 "특대" 라 하고
+   다른 공급사는 385 g/과를 "중" 이라 한다. 비싼 쪽이 더 작았다.
+
+   그래서 두 숫자만 본다.
+     원/kg = 공급가 ÷ 중량    ← 진짜 단가
+     g/과  = 중량 ÷ 과수      ← 진짜 크기
+   등급 낱말은 옆에 적어만 두고 판정에는 쓰지 않는다. */
+var SUP=(window.SUPPLYDATA&&window.SUPPLYDATA.rows)||[];
+var SUPMETA=window.SUPPLYDATA||{};
+var SF={ item:"", band:"", sup:"", kg:null };
+var BANDS=["특대","대","중","소"];
+
+function renderSupply(){
+  var head=document.getElementById("supHead");
+  if(!SUP.length){
+    document.getElementById("supFilters").hidden=true;
+    document.getElementById("supBox").hidden=true;
+    head.innerHTML='<h3>공급가 비교 — 아직 파일이 없다</h3>'
+     +'<p>공급사에서 받은 엑셀을 <span class="k">supply</span> 폴더에 넣고 '
+     +'<span class="k">22-parse-supply.bat</span> 을 돌리면 여기가 채워진다.<br>'
+     +'파일 이름 앞을 공급사 이름으로 쓴다 — <span class="k">온그린_20260916.xlsx</span> → 온그린.<br><br>'
+     +'<b>무엇을 하는가.</b> 공급사마다 상품명 적는 방식이 달라도 같은 물건으로 묶는다. '
+     +'"홍옥" · "홍옥사과" · "사과(홍옥)" 은 모두 사과/홍옥이다. 산지가 앞에 붙어도 찾는다.<br>'
+     +'<b>등급 낱말은 믿지 않는다.</b> 2kg 6과를 대과라 부르는 곳과 2kg 8과를 대과라 부르는 곳이 같이 있다. '
+     +'중량과 과수의 숫자로 <span class="k">g/과</span> 를 직접 계산해 크기를 다시 매긴다.<br>'
+     +'<b>비교는 원/kg 으로 한다.</b> 포장 단위가 달라도 이 값이면 가로질러 비교된다.</p>';
+    document.getElementById("supFormula").innerHTML="";
+    return;
+  }
+  var items={}, sups={};
+  SUP.forEach(function(r){ if(r.item) items[r.item]=(items[r.item]||0)+1;
+                           if(r.supplier) sups[r.supplier]=(sups[r.supplier]||0)+1; });
+  var itemList=Object.keys(items).sort(function(a,b){ return items[b]-items[a]; });
+  if(!SF.item && itemList.length) SF.item=itemList[0];
+
+  head.innerHTML='<h3>공급가 비교 · '+fmt(SUP.length)+'건 · 공급사 '+Object.keys(sups).length+'곳</h3>'
+   +'<p>등급 낱말이 아니라 <b>g/과</b> 로 크기를 다시 매기고 <b>원/kg</b> 으로 줄 세운다. '
+   +'공급사가 부른 등급과 우리가 잰 등급이 어긋나면 <span class="lie">부른 값보다 작음</span> 이 붙는다. '
+   +'마진은 위쪽 판매 설정의 판매가 '+fmt(SET.sell)+'원 · 수수료 '+(feeRate()*100).toFixed(2)+'% 로 계산한다. '
+   +'<b>한 번에 한 규격만 본다</b> — 10kg 공급가를 2kg 판매가에 견주면 마진이 말이 안 된다.</p>';
+
+  chips("supItems", itemList, SF.item, function(v){ SF.item=v; SF.kg=null; SF.band=""; renderSupply(); }, items);
+
+  /* 중량. 2kg 과 10kg 을 한 표에 섞으면 마진이 말이 안 된다.
+     10kg 짜리 공급가를 2kg 판매가에 견주면 마진 -117% 같은 숫자가 나온다. 실제로 나왔다.
+     그래서 한 번에 한 규격만 본다. 원/kg 은 규격을 가로질러 비교되니 그건 그대로 둔다. */
+  var kgCount={};
+  SUP.forEach(function(r){ if(r.item===SF.item && r.kg) kgCount[r.kg]=(kgCount[r.kg]||0)+1; });
+  var kgList=Object.keys(kgCount).map(Number).sort(function(a,b){ return a-b; });
+  if(SF.kg==null && kgList.length){
+    var top=kgList[0];
+    kgList.forEach(function(k){ if(kgCount[k]>kgCount[top]) top=k; });
+    SF.kg=top;
+  }
+  chips("supKg", kgList.map(function(k){ return k+"kg"; }), SF.kg!=null?SF.kg+"kg":"",
+        function(v){ var k=parseFloat(v); SF.kg=(SF.kg===k?null:k); renderSupply(); },
+        kgList.reduce(function(o,k){ o[k+"kg"]=kgCount[k]; return o; },{}));
+  chips("supBands", BANDS, SF.band, function(v){ SF.band=(SF.band===v?"":v); renderSupply(); }, null);
+  chips("supSuppliers", Object.keys(sups).sort(), SF.sup, function(v){ SF.sup=(SF.sup===v?"":v); renderSupply(); }, sups);
+  document.getElementById("supFilters").hidden=false;
+  document.getElementById("supBox").hidden=false;
+
+  var rows=SUP.filter(function(r){
+    if(SF.item && r.item!==SF.item) return false;
+    if(SF.kg!=null && r.kg!==SF.kg) return false;
+    if(SF.band && r.band!==SF.band) return false;
+    if(SF.sup && r.supplier!==SF.sup) return false;
+    return r.wonKg;
+  }).sort(function(a,b){ return a.wonKg-b.wonKg; });
+
+  document.getElementById("supCount").innerHTML="<b>"+fmt(rows.length)+"</b>건 · 원/kg 싼 순";
+  var body=document.getElementById("supBody"); body.innerHTML="";
+  if(!rows.length){
+    var tr=el("tr"), td=el("td","empty","조건에 맞는 공급가가 없다.");
+    td.colSpan=11; tr.appendChild(td); body.appendChild(tr); return;
+  }
+  var mg=marginOf(), best=rows[0].wonKg;
+  var frag=document.createDocumentFragment();
+  rows.forEach(function(r,i){
+    var tr=el("tr");
+    var c1=el("td"), t=el("div");
+    t.appendChild(el("span","kw",r.supplier));
+    if(i===0){ var b=el("span","best","최저 원/kg"); t.appendChild(b); }
+    c1.appendChild(t);
+    c1.appendChild(el("div","sub", r.raw.slice(0,60)));
+    tr.appendChild(c1);
+    tr.appendChild(el("td",null,r.variety||r.item||"—"));
+    tr.appendChild(el("td","num",r.kg?r.kg+"kg":"—"));
+    tr.appendChild(el("td","num", r.count? (r.countApprox?"~":"")+r.count : "—"));
+    tr.appendChild(el("td","num gper", r.gPer?fmt(r.gPer)+"g":"—"));
+    var wk=el("td","num"); wk.appendChild(el("div",null,fmt(r.wonKg)));
+    if(r.wonKg>best) wk.appendChild(el("div","sub","+"+((r.wonKg/best-1)*100).toFixed(0)+"%"));
+    tr.appendChild(wk);
+    tr.appendChild(el("td","num",fmt(r.price)+(r.ship?" +"+fmt(r.ship):"")));
+    /* 공급사가 부른 등급과 우리가 잰 등급 */
+    var gw=el("td"); gw.textContent=r.gradeWord||"—";
+    /* 낱말과 실측이 어긋나는 쪽을 짚는다. 숫자가 작을수록 큰 등급이다.
+       전에는 normGrade 가 돌려준 숫자를 BANDS.indexOf 에 다시 넣어서 늘 -1 이 나왔다.
+       그래서 "중" 이라 부른 것이 실제로는 특대인 줄에도 경고가 붙었다. */
+    var said=normGrade(r.gradeWord), real=BANDS.indexOf(r.band);
+    if(said>=0 && real>=0 && said!==real)
+      gw.appendChild(el("span", real>said?"lie":"best", real>said?"부른 값보다 작다":"부른 값보다 크다"));
+    tr.appendChild(gw);
+    tr.appendChild(el("td",null,r.band||"—"));
+    /* 마진 — 이 공급가로 지금 판매가에 팔면 */
+    var m=SET.sell-r.price-SET.sell*feeRate()-SET.ship-(r.ship||0);
+    var rate=SET.sell? m/SET.sell : 0;
+    tr.appendChild(el("td","num",fmt(m)+"원"));
+    var mr=el("td","num"); mr.innerHTML='<span class="'+(rate>=RULE.marginMin?"cvr-ok":"cvr-no")+'">'+(rate*100).toFixed(1)+'%</span>';
+    tr.appendChild(mr);
+    frag.appendChild(tr);
+  });
+  body.appendChild(frag);
+
+  var lo=rows[0], hi=rows[rows.length-1];
+  document.getElementById("supFormula").innerHTML=
+    "원/kg = 공급가 ÷ 중량 &nbsp;·&nbsp; g/과 = 중량 ÷ 과수 &nbsp;·&nbsp; 마진 = 판매가 − 공급가 − (판매가 × 수수료) − 배송비<br>"
+   +"<b>"+SF.item+"</b> 최저 "+fmt(lo.wonKg)+"원/kg ("+lo.supplier+") ~ 최고 "+fmt(hi.wonKg)+"원/kg ("+hi.supplier+") · "
+   +"차이 <b>"+((hi.wonKg/lo.wonKg-1)*100).toFixed(0)+"%</b><br>"
+   +"크기대는 그 품목에 실제로 나온 매물의 g/과 분포를 넷으로 잘라 매긴다. 공급사가 뭐라 부르든 숫자로만 판정한다.";
+}
+function normGrade(w){ return w==="특대"?0 : w==="대"?1 : (w==="중대"||w==="중")?2 : w==="소"?3 : -1; }
+function chips(id,list,cur,cb,counts){
+  var box=document.getElementById(id); if(!box) return;
+  box.innerHTML="";
+  list.forEach(function(v){
+    var b=el("button","chip"); b.type="button";
+    b.setAttribute("aria-pressed", cur===v?"true":"false");
+    b.textContent=v+(counts?" "+counts[v]:"");
+    b.onclick=function(){ cb(v); };
+    box.appendChild(b);
+  });
 }
 
 /* ── 마진 · 광고효율 ── */
@@ -1693,7 +1888,7 @@ function drawTrend(kw){
 /* ── 갱신 ── */
 function refresh(){ readSet(); recalc(); renderSecBar(); renderHero(); renderBuy(); renderKpi(); renderTable();
   drawTrend(R[CUR][K.KW]);
-  if(TAB==="detail") renderDetail(); if(TAB==="margin") renderMargin(); if(TAB==="status") renderStatus(); }
+  if(TAB==="detail") renderDetail(); if(TAB==="supply") renderSupply(); if(TAB==="margin") renderMargin(); if(TAB==="status") renderStatus(); }
 
 /* 처음 열었을 때 1번 행이 아니라 지금 기준에서 제일 좋은 키워드를 보여준다 */
 recalc();

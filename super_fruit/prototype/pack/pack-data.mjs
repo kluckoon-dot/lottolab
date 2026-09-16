@@ -439,6 +439,18 @@ if (fs.existsSync(trendPath)) {
 
 meta.totalBytes = total;
 fs.writeFileSync(path.join(DST, "meta.json"), JSON.stringify(meta, null, 1), "utf8");
+/* 공급가표도 함께 싣는다. 22단계가 만들어두면 그대로 따라간다. */
+{
+  try {
+    const raw = fs.readFileSync(path.join("naver-out", "supply.json"), "utf8");
+    const j = JSON.parse(raw);
+    const js = "window.SUPPLYDATA=" + raw + ";";
+    fs.writeFileSync(path.join(DST, "supply.js"), js, "utf8");
+    total += Buffer.byteLength(js);
+    console.log(`공급가 ${(j.rows || []).length.toLocaleString()}건 · 공급사 ${(j.suppliers || []).length}곳  → pack/supply.js  ${(Buffer.byteLength(js) / 1048576).toFixed(2)} MB`);
+  } catch { console.log("공급가 파일이 없다. 공급가 비교 탭은 안내문만 나간다. (22단계로 만든다)"); }
+}
+
 console.log(`\n합계 ${MB(total)}  →  ${DST}`);
 console.log(total > 60 * 1048576
   ? "60 MB 를 넘는다. 이 상태로는 화면 한 장에 다 못 넣는다. 어디를 자를지 정해야 한다."
