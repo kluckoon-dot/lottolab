@@ -1,3 +1,4 @@
+<meta charset="utf-8">
 <title>슈퍼프룻 키워드랩</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -436,8 +437,24 @@ td.gper{font-weight:700}
 .live-dot{display:inline-block;width:8px;height:8px;border-radius:50%;background:var(--good);
   box-shadow:0 0 0 3px color-mix(in srgb,var(--good) 25%,transparent);vertical-align:1px}
 .hs-note b.live-k{color:var(--good)}
+.live-fail{display:inline-block;font-weight:700;color:#fff;background:var(--up);border-radius:5px;padding:1px 7px;font-size:11.5px}
 .sample.live{color:var(--good);background:var(--good-bg);border-color:color-mix(in srgb,var(--good) 30%,transparent)}
 .sample.live::before{background:var(--good)}
+.isf{background:var(--surface);border:1px solid var(--line);border-radius:10px;margin-bottom:13px;overflow:hidden}
+.isf-row{display:flex;align-items:stretch;border-bottom:1px solid var(--line)}
+.isf-row.isf-last{border-bottom:0}
+.isf-k{flex:none;width:132px;padding:11px 15px;font-size:12.5px;font-weight:700;color:var(--ink);
+  background:var(--surface-2);display:flex;align-items:center}
+.isf-v{flex:1;min-width:0;display:flex;align-items:center;gap:8px;flex-wrap:wrap;padding:9px 13px}
+.isf-sub{font-size:11.5px;color:var(--ink-3);font-weight:600}
+.isf-sep{width:1px;height:18px;background:var(--line);margin:0 4px}
+.isf-in{width:96px}
+.isf-dash{color:var(--ink-3)}
+#fType .chip[aria-pressed="true"]{background:var(--brand);border-color:var(--brand);color:#fff}
+th.srt{cursor:pointer;user-select:none}
+th.srt:hover{color:var(--ink)}
+th.srt[data-dir]::after{content:attr(data-dir);margin-left:3px;color:var(--brand)}
+@media (max-width:640px){ .isf-row{flex-direction:column} .isf-k{width:auto;padding:8px 13px} }
 .relbar{display:flex;gap:11px;align-items:center;flex-wrap:wrap;margin-bottom:11px;
   background:var(--brand-soft);border:1px solid color-mix(in srgb,var(--brand) 30%, transparent);
   border-radius:10px;padding:10px 14px;font-size:13.5px;font-weight:700;color:var(--brand-ink)}
@@ -538,39 +555,68 @@ td.gper{font-weight:700}
     </div>
 
     <section id="panel-gold">
-      <div class="filters">
-        <div class="f" style="min-width:auto">
-          <label>의도</label>
-          <div class="chips" id="fIntent">
-            <button class="chip" data-i="0" aria-pressed="true">쇼핑성</button>
-            <button class="chip" data-i="4" aria-pressed="true">품목</button>
-            <button class="chip" data-i="3" aria-pressed="false">요리·조리</button>
-            <button class="chip" data-i="1" aria-pressed="false">정보성</button>
-            <button class="chip" data-i="2" aria-pressed="false">브랜드성</button>
+      <div class="isf">
+        <div class="isf-row">
+          <div class="isf-k">키워드 유형</div>
+          <div class="isf-v">
+            <div class="chips" id="fType">
+              <button class="chip" data-t="all">전체</button>
+              <button class="chip" data-t="shop">쇼핑성</button>
+              <button class="chip" data-t="info">정보성</button>
+            </div>
+            <span class="isf-sep"></span>
+            <span class="isf-sub">세부</span>
+            <div class="chips" id="fIntent">
+              <button class="chip" data-i="0" aria-pressed="true">쇼핑성</button>
+              <button class="chip" data-i="4" aria-pressed="true">품목</button>
+              <button class="chip" data-i="3" aria-pressed="false">요리·조리</button>
+              <button class="chip" data-i="1" aria-pressed="false">정보성</button>
+              <button class="chip" data-i="2" aria-pressed="false">브랜드성</button>
+            </div>
           </div>
         </div>
-        <div class="f" style="min-width:auto">
-          <label>판정</label>
-          <div class="chips" id="fVerdict">
-            <button class="chip" data-v="린정" aria-pressed="true">린정</button>
-            <button class="chip" data-v="반린정" aria-pressed="true">반린정</button>
-            <button class="chip" data-v="패스" aria-pressed="false">패스</button>
+        <div class="isf-row">
+          <div class="isf-k">검색수</div>
+          <div class="isf-v">
+            <div class="chips" id="fVolP">
+              <button class="chip" data-lo="" data-hi="">전체</button>
+              <button class="chip" data-lo="0" data-hi="5000">0~5,000</button>
+              <button class="chip" data-lo="500" data-hi="5000">500~5,000</button>
+              <button class="chip" data-lo="0" data-hi="10000">0~10,000</button>
+              <button class="chip" data-lo="5000" data-hi="10000">5,000~10,000</button>
+              <button class="chip" data-lo="10000" data-hi="">10,000 이상</button>
+            </div>
+            <span class="f-sp"></span>
+            <input type="number" id="fVolLo" class="isf-in" placeholder="최소 입력" min="0">
+            <span class="isf-dash">-</span>
+            <input type="number" id="fVolHi" class="isf-in" placeholder="최대 입력" min="0">
           </div>
         </div>
-        <div class="f">
-          <label for="fVol">최소 월 검색수</label>
-          <div class="f-row"><input type="range" id="fVol" min="0" max="3000" step="50" value="100"><span class="f-val num" id="fVolV"></span></div>
+        <div class="isf-row" id="goldOnly">
+          <div class="isf-k">황금키워드 기준</div>
+          <div class="isf-v">
+            <span class="isf-sub">판정</span>
+            <div class="chips" id="fVerdict">
+              <button class="chip" data-v="린정" aria-pressed="true">린정</button>
+              <button class="chip" data-v="반린정" aria-pressed="true">반린정</button>
+              <button class="chip" data-v="패스" aria-pressed="false">패스</button>
+            </div>
+            <span class="isf-sep"></span>
+            <label for="fComp" class="isf-sub">최대 광고경쟁도</label>
+            <input type="range" id="fComp" min="1" max="10" step="0.5" value="10" style="width:120px">
+            <span class="f-val num" id="fCompV"></span>
+          </div>
         </div>
-        <div class="f">
-          <label for="fComp">최대 광고경쟁도</label>
-          <div class="f-row"><input type="range" id="fComp" min="1" max="10" step="0.5" value="10"><span class="f-val num" id="fCompV"></span></div>
+        <div class="isf-row isf-last">
+          <div class="isf-k">키워드 안에서 찾기</div>
+          <div class="isf-v">
+            <input type="search" id="q" placeholder="예: 5kg" autocomplete="off" style="min-width:200px">
+            <span class="f-sp"></span>
+            <span class="count" id="count"></span>
+            <button type="button" class="chip" id="xCopy" title="지금 걸러진 전부를 표 형식으로 복사한다. 엑셀에 붙여넣으면 된다.">복사</button>
+            <button type="button" class="chip" id="xCsv" hidden>엑셀 다운로드</button>
+          </div>
         </div>
-        <div class="f" style="min-width:200px">
-          <label for="q">키워드 검색</label>
-          <input type="search" id="q" placeholder="예: 샤인머스켓" autocomplete="off">
-        </div>
-        <span class="f-sp"></span>
-        <span class="count" id="count"></span>
       </div>
 
       <div class="relbar" id="relBar" hidden></div>
@@ -580,15 +626,17 @@ td.gper{font-weight:700}
             <thead>
               <tr>
                 <th rowspan="2">키워드</th>
-                <th rowspan="2">월 검색수</th>
-                <th class="grp" colspan="2">1위 입찰가</th>
+                <th rowspan="2" class="srt" data-sort="tot">월 검색수</th>
+                <th rowspan="2" class="srt" data-sort="click">월평균<br>클릭수</th>
+                <th rowspan="2" class="srt" data-sort="ctr">광고<br>클릭률</th>
+                <th class="grp srt" colspan="2" data-sort="bid1">1위 입찰가</th>
                 <th class="grp" colspan="2">2위 입찰가</th>
                 <th class="grp" colspan="2">3위 입찰가</th>
-                <th rowspan="2" class="bidcell">광고<br>깊이</th>
-                <th rowspan="2">상품수</th>
-                <th rowspan="2">경쟁<br>강도</th>
-                <th rowspan="2">손익분기<br>전환율</th>
-                <th rowspan="2">황금<br>점수</th>
+                <th rowspan="2" class="bidcell srt" data-sort="depth">광고<br>깊이</th>
+                <th rowspan="2" class="srt" data-sort="prod">상품수</th>
+                <th rowspan="2" class="srt" data-sort="comp">경쟁<br>강도</th>
+                <th rowspan="2" class="srt" data-sort="cvr">손익분기<br>전환율</th>
+                <th rowspan="2" class="srt" data-sort="gold">황금<br>점수</th>
                 <th rowspan="2">판정</th>
               </tr>
               <tr>
@@ -639,7 +687,8 @@ td.gper{font-weight:700}
       <div class="drop" id="xDrop" tabindex="0" role="button" aria-label="엑셀 파일 올리기">
         <div class="drop-ic">↓</div>
         <div class="drop-k">엑셀 파일을 여기에 끌어다 놓아라</div>
-        <p class="drop-s">공급가 비교표와 판매가 계산기를 알아서 가려낸다.<br>
+        <p class="drop-s">네이버 키워드도구 엑셀 · 공급가 비교표 · 판매가 계산기를 알아서 가려낸다.<br>
+          키워드도구 엑셀을 넣으면 화면 숫자가 그 시점 값으로 바뀐다.<br>
           파일은 이 브라우저 안에서만 읽는다. 어디로도 올라가지 않는다.</p>
         <input type="file" id="xFile" accept=".xlsx" multiple hidden>
       </div>
@@ -735,13 +784,13 @@ td.gper{font-weight:700}
   </main>
 </div>
 <div class="tip" id="tip" role="status"></div>
-<script src="data-head.js"></script>
-<script src="data-kw.js"></script>
-<script src="data-shop.js"></script>
-<script src="data-trend.js"></script>
-<script src="data-meta.js"></script>
-<script src="data-supply.js"></script>
-<script src="xlsx-lab.js"></script>
+<script src="data-head.js" charset="utf-8"></script>
+<script src="data-kw.js" charset="utf-8"></script>
+<script src="data-shop.js" charset="utf-8"></script>
+<script src="data-trend.js" charset="utf-8"></script>
+<script src="data-meta.js" charset="utf-8"></script>
+<script src="data-supply.js" charset="utf-8"></script>
+<script src="xlsx-lab.js" charset="utf-8"></script>
 <script>
 (function(){
 "use strict";
@@ -825,7 +874,9 @@ function recalc(){
 
 /* 필터 상태 */
 var F={ intent:{0:true,1:false,2:false,3:false,4:true}, v:{"린정":true,"반린정":true,"패스":false},
-        vol:100, comp:10, q:"", hint:"", sec:0, rel:null };
+        vmin:100, vmax:null, comp:10, q:"", hint:"", sec:0, rel:null };
+/* 정렬. 황금키워드는 황금점수, 연관은 검색수가 기본이다. 머리글을 누르면 바뀐다. */
+var SORT={ k:null, dir:-1 };
 var LIMIT=100, CUR=0;
 
 /* ── 연관 키워드 ──
@@ -883,26 +934,45 @@ function passes(i){
   /* 연관 보기일 때는 의도·판정 필터를 걸지 않는다.
      아이템스카우트 연관키워드 탭은 그 씨앗이 물고 온 것을 그대로 보여준다.
      여기서 또 거르면 "왜 저기 있는 게 여기 없냐" 가 된다. */
-  if(F.rel){ return F.rel.has(i) && (!F.q || R[i][K.KW].indexOf(F.q)>=0); }
+  /* 유형·검색수·찾기는 연관 보기에도 건다 — 아이템스카우트 연관키워드 탭도 그렇다.
+     판정·광고경쟁도·섹션·품목은 황금키워드 전용이다.
+     연관을 처음 열 때 유형은 전체, 검색수는 제한 없음으로 풀어서 "그대로" 다 보이게 한다. */
+  if(F.rel && !F.rel.has(i)) return false;
   if(!F.intent[intentOf(i)]) return false;
+  if(F.vmin!=null && S_tot[i]<F.vmin) return false;
+  if(F.vmax!=null && S_tot[i]>F.vmax) return false;
+  if(F.q && R[i][K.KW].indexOf(F.q)<0) return false;
+  if(F.rel) return true;
   if(!F.v[VN[C_v[i]]]) return false;
-  if(S_tot[i]<F.vol) return false;
   if(S_cs[i]>F.comp) return false;
   if(F.sec && !(R[i][K.SEC] & F.sec)) return false;
-  if(F.q && R[i][K.KW].indexOf(F.q)<0) return false;
   if(F.hint && GRP[i].indexOf(F.hint)<0) return false;
   return true;
 }
 /* 통과 개수만 센다. 줄 세우지 않는다. */
 function countPass(){ var c=0; for(var i=0;i<N;i++) if(passes(i)) c++; return c; }
 /* 상위 K개만 고른다. 전부 정렬한 결과와 같다는 것을 실측으로 확인했다. */
+var SORTKEY={
+  tot:   function(i){ return S_tot[i]; },
+  click: function(i){ return (R[i][K.CPC_]||0)+(R[i][K.CMO]||0); },
+  ctr:   function(i){ return R[i][K.TMO]||0; },
+  bid1:  function(i){ return R[i][K.BM1]||0; },
+  depth: function(i){ return R[i][K.DEPTH]||0; },
+  prod:  function(i){ var v=prodOf(i); return v==null?-1:v; },
+  comp:  function(i){ var v=realComp(i); return v==null?-1:v; },
+  cvr:   function(i){ var v=C_cvr[i]; return isFinite(v)?v:1e9; },
+  gold:  function(i){ return C_gold[i]; }
+};
+function sortKey(){ return SORT.k || (F.rel?"tot":"gold"); }
+/* 걸러진 전부를 지금 정렬로 줄 세운다. 복사·다운로드도 이것을 쓴다. */
+function allPassing(){
+  var out=[]; for(var r0=0;r0<N;r0++) if(passes(r0)) out.push(r0);
+  var f=SORTKEY[sortKey()], d=SORT.k?SORT.dir:-1;
+  out.sort(function(a,b){ var x=f(a), y=f(b); return x===y ? S_tot[b]-S_tot[a] : (x<y?-d:d); });
+  return out;
+}
 function topN(K2){
-  if(F.rel){
-    var out=[];
-    for(var r0=0;r0<N;r0++) if(passes(r0)) out.push(r0);
-    out.sort(function(a,b){ return S_tot[b]-S_tot[a]; });
-    return out.slice(0,K2);
-  }
+  if(F.rel || SORT.k) return allPassing().slice(0,K2);
   var idx=new Int32Array(K2), n=0, floor=-Infinity;
   for(var i=0;i<N;i++){
     if(!passes(i)) continue;
@@ -969,8 +1039,59 @@ document.getElementById("fVerdict").querySelectorAll(".chip").forEach(function(c
   c.onclick=function(){ var on=c.getAttribute("aria-pressed")!=="true"; c.setAttribute("aria-pressed",on);
     F.v[c.dataset.v]=on; LIMIT=100; renderTable(); };
 });
-document.getElementById("fVol").oninput=function(e){ F.vol=+e.target.value;
-  document.getElementById("fVolV").textContent=fmt(F.vol); LIMIT=100; renderTable(); };
+/* 키워드 유형. 세부 칩과 같은 상태(F.intent)를 쓰므로 둘이 어긋나지 않는다. */
+var TYPESET={ all:[0,1,2,3,4], shop:[0,4], info:[1,3] };
+function typeOf(){
+  for(var t in TYPESET){
+    var on=TYPESET[t], ok=true;
+    for(var k=0;k<5;k++) if(!!F.intent[k]!==(on.indexOf(k)>=0)) { ok=false; break; }
+    if(ok) return t;
+  }
+  return "";
+}
+function setType(t){ for(var k=0;k<5;k++) F.intent[k]=TYPESET[t].indexOf(k)>=0; }
+function syncFilters(){
+  var t=typeOf();
+  document.querySelectorAll("#fType .chip").forEach(function(c){ c.setAttribute("aria-pressed", c.dataset.t===t); });
+  document.querySelectorAll("#fIntent .chip").forEach(function(c){ c.setAttribute("aria-pressed", !!F.intent[+c.dataset.i]); });
+  var lo=document.getElementById("fVolLo"), hi=document.getElementById("fVolHi");
+  if(document.activeElement!==lo) lo.value = F.vmin==null?"":F.vmin;
+  if(document.activeElement!==hi) hi.value = F.vmax==null?"":F.vmax;
+  document.querySelectorAll("#fVolP .chip").forEach(function(c){
+    var a=c.dataset.lo===""?null:+c.dataset.lo, b=c.dataset.hi===""?null:+c.dataset.hi;
+    c.setAttribute("aria-pressed", a===F.vmin && b===F.vmax);
+  });
+  document.getElementById("goldOnly").hidden=!!F.rel;
+  document.querySelectorAll("th.srt").forEach(function(h){
+    if(h.dataset.sort===sortKey()) h.setAttribute("data-dir", (SORT.k?SORT.dir:-1)<0?"↓":"↑");
+    else h.removeAttribute("data-dir");
+  });
+}
+document.getElementById("fType").querySelectorAll(".chip").forEach(function(c){
+  c.onclick=function(){ setType(c.dataset.t); LIMIT=100; renderTable(); };
+});
+document.getElementById("fVolP").querySelectorAll(".chip").forEach(function(c){
+  c.onclick=function(){
+    F.vmin=c.dataset.lo===""?null:+c.dataset.lo; F.vmax=c.dataset.hi===""?null:+c.dataset.hi;
+    LIMIT=100; renderTable(); };
+});
+["fVolLo","fVolHi"].forEach(function(id){
+  var vt; document.getElementById(id).addEventListener("input",function(e){
+    clearTimeout(vt); var v=e.target.value.trim();
+    vt=setTimeout(function(){
+      var n=v===""?null:Math.max(0,+v);
+      if(id==="fVolLo") F.vmin=n; else F.vmax=n;
+      LIMIT=100; renderTable(); },250);
+  });
+});
+document.querySelectorAll("th.srt").forEach(function(h){
+  h.onclick=function(){
+    var k=h.dataset.sort;
+    if(sortKey()===k && SORT.k) SORT.dir=-SORT.dir;
+    else { SORT.k=k; SORT.dir = (k==="cvr") ? 1 : -1; }   /* 손익분기는 낮을수록 좋다 */
+    LIMIT=100; renderTable();
+  };
+});
 document.getElementById("fComp").oninput=function(e){ F.comp=+e.target.value;
   document.getElementById("fCompV").textContent=F.comp.toFixed(1); LIMIT=100; renderTable(); };
 var qt; document.getElementById("q").addEventListener("input",function(e){
@@ -994,6 +1115,7 @@ function setTab(n){ TAB=n;
 
 /* ── 표 ── */
 function renderTable(){
+  syncFilters();
   var shown=topN(LIMIT), body=document.getElementById("kwBody"); body.innerHTML="";
   var total=countPass();
   var mg=marginOf();
@@ -1003,7 +1125,7 @@ function renderTable(){
   var rb=document.getElementById("relBar");
   if(F.rel){
     rb.hidden=false;
-    rb.innerHTML='<b>'+F.relSeed+'</b> 의 연관 키워드 '+fmt(total)+'개 · 검색수 큰 순'
+    rb.innerHTML='<b>'+esc(F.relSeed)+'</b> 의 연관 키워드 '+fmt(total)+'개'
       +'<span class="rel-src">NAVER 검색광고 연관검색 · 씨앗 '+F.relName+'</span>'
       +'<button type="button" id="relOff">전체 목록으로 →</button>';
     document.getElementById("relOff").onclick=function(){ clearRel(); LIMIT=100; refresh(); };
@@ -1013,7 +1135,7 @@ function renderTable(){
   mb.textContent="더 보기 (남은 "+fmt(total-LIMIT)+"개)";
   if(!shown.length){
     var tr=el("tr"), td=el("td","empty","조건에 맞는 키워드가 없다. 필터를 넓히거나 목표 전환율을 올려봐라.");
-    td.colSpan=15; tr.appendChild(td); body.appendChild(tr); return;
+    td.colSpan=17; tr.appendChild(td); body.appendChild(tr); return;
   }
   var frag=document.createDocumentFragment();
   shown.forEach(function(i){
@@ -1032,12 +1154,22 @@ function renderTable(){
     top.appendChild(document.createTextNode(" "));
     var _ti=intentOf(i); top.appendChild(el("span","pill mini intent"+_ti, INTENT[_ti]));
     c1.appendChild(top);
-    c1.appendChild(el("div","sub", NCOMP[a[K.COMP]]+" 경쟁 · 모바일 "+Math.round(s.moShare*100)+"%"+(a[K.MASK]?" · 검색량 가려짐":"")));
+    c1.appendChild(el("div","sub", NCOMP[a[K.COMP]]+" 경쟁 · 모바일 "+Math.round(s.moShare*100)+"%"
+      +(a[K.MASK]?" · 검색량 가려짐":"")+(liveLabel(a[K.KW])?" · "+liveLabel(a[K.KW]):"")));
     tr.appendChild(c1);
     var c2=el("td","num");
     c2.appendChild(el("div",null,fmt(s.tot)));
     c2.appendChild(el("div","sub","PC "+fmt(a[K.PC])+" / MO "+fmt(a[K.MO])));
     tr.appendChild(c2);
+    /* 아이템스카우트에서 제일 많이 보는 두 칸. 상세에 들어가야만 보이던 것을 표로 꺼냈다. */
+    var clk=(a[K.CPC_]||0)+(a[K.CMO]||0), c3=el("td","num");
+    c3.appendChild(el("div",null, clk>=10?fmt(clk):clk.toFixed(1)));
+    c3.appendChild(el("div","sub","PC "+(a[K.CPC_]||0).toFixed(1)+" / MO "+(a[K.CMO]||0).toFixed(1)));
+    tr.appendChild(c3);
+    var c4=el("td","num");
+    c4.appendChild(el("div",null,(a[K.TMO]||0).toFixed(2)+"%"));
+    c4.appendChild(el("div","sub","PC "+(a[K.TPC]||0).toFixed(2)+"%"));
+    tr.appendChild(c4);
     [[K.BP1,K.BM1],[K.BP2,K.BM2],[K.BP3,K.BM3]].forEach(function(p){
       tr.appendChild(el("td","num bidcell",fmt(a[p[0]])));
       tr.appendChild(el("td","num",fmt(a[p[1]])));
@@ -1069,6 +1201,64 @@ function renderTable(){
     "<b>린정</b> = 검색 "+fmt(RULE.minVol)+"↑ · 마진율 "+(RULE.marginMin*100)+"%↑ · 광고 감당 · 광고경쟁도 "+RULE.maxComp.toFixed(1)+"↓ 전부 충족 &nbsp;|&nbsp; "+
     "<b>반린정</b> = 광고 감당과 광고경쟁도 중 하나만 충족 &nbsp;|&nbsp; 지금 감당 CPC 상한 <b>"+fmt(Math.max(0,mg.margin*SET.tgtCvr/roasMult()))+"원</b>";
 }
+
+/* ── 내보내기 ──
+   걸러진 전부를 지금 정렬 그대로. 화면에 보이는 100줄이 아니라 전체다.
+   복사는 어디서나 된다(엑셀에 붙여넣기). 파일 다운로드는 니 PC 서버로 열었을 때만 된다 —
+   claude.ai 페이지는 다운로드를 막는다. */
+var XCOLS=[
+  ["키워드",function(i){return R[i][K.KW];}],
+  ["분류",function(i){return INTENT[intentOf(i)];}],
+  ["검색수",function(i){return S_tot[i];}],
+  ["검색수 PC",function(i){return R[i][K.PC];}],
+  ["검색수 모바일",function(i){return R[i][K.MO];}],
+  ["월평균 클릭수 PC",function(i){return R[i][K.CPC_];}],
+  ["월평균 클릭수 모바일",function(i){return R[i][K.CMO];}],
+  ["클릭률 PC %",function(i){return R[i][K.TPC];}],
+  ["클릭률 모바일 %",function(i){return R[i][K.TMO];}],
+  ["PC 1위",function(i){return R[i][K.BP1];}],["PC 2위",function(i){return R[i][K.BP2];}],["PC 3위",function(i){return R[i][K.BP3];}],
+  ["모바일 1위",function(i){return R[i][K.BM1];}],["모바일 2위",function(i){return R[i][K.BM2];}],["모바일 3위",function(i){return R[i][K.BM3];}],
+  ["광고깊이",function(i){return R[i][K.DEPTH];}],
+  ["경쟁정도",function(i){return NCOMP[R[i][K.COMP]];}],
+  ["상품수",function(i){var v=prodOf(i);return v==null?"":v;}],
+  ["경쟁강도",function(i){var v=realComp(i);return v==null?"":+v.toFixed(2);}],
+  ["손익분기 전환율 %",function(i){return isFinite(C_cvr[i])?+(C_cvr[i]*100).toFixed(2):"";}],
+  ["황금점수",function(i){return C_gold[i];}],
+  ["판정",function(i){return VN[C_v[i]];}],
+  ["기준",function(i){return liveLabel(R[i][K.KW])||"9월 수집본";}]
+];
+function exportRows(sep){
+  var rows=allPassing(), q=function(v){ v=String(v==null?"":v);
+    return sep===","&&/[",\n]/.test(v) ? '"'+v.replace(/"/g,'""')+'"' : v.replace(/[\t\n]/g," "); };
+  return [XCOLS.map(function(c){return q(c[0]);}).join(sep)]
+    .concat(rows.map(function(i){ return XCOLS.map(function(c){ return q(c[1](i)); }).join(sep); }))
+    .join("\r\n");
+}
+function exportName(){
+  var d=new Date(), p=function(n){return String(n).padStart(2,"0");};
+  return "키워드랩_"+(F.relSeed||"황금키워드")+"_"+d.getFullYear()+p(d.getMonth()+1)+p(d.getDate())+"_"+p(d.getHours())+p(d.getMinutes())+".csv";
+}
+(function(){
+  var cp=document.getElementById("xCopy"), dl=document.getElementById("xCsv");
+  if(/^(127\.0\.0\.1|localhost)$/.test(location.hostname)) dl.hidden=false;
+  cp.onclick=function(){
+    var t=exportRows("\t"), n=t.split("\r\n").length-1;
+    var done=function(ok){ cp.textContent= ok? n+"줄 복사됨" : "복사 실패"; setTimeout(function(){ cp.textContent="복사"; },1800); };
+    if(navigator.clipboard&&navigator.clipboard.writeText) navigator.clipboard.writeText(t).then(function(){done(true);},function(){done(fallback(t));});
+    else done(fallback(t));
+  };
+  function fallback(t){
+    var ta=document.createElement("textarea"); ta.value=t; ta.style.cssText="position:fixed;left:-9999px";
+    document.body.appendChild(ta); ta.select(); var ok=false; try{ ok=document.execCommand("copy"); }catch(e){} ta.remove(); return ok;
+  }
+  dl.onclick=function(){
+    /* 엑셀이 한글을 깨뜨리지 않게 BOM 을 붙인다 */
+    var blob=new Blob(["\uFEFF"+exportRows(",")],{type:"text/csv;charset=utf-8"});
+    var a=document.createElement("a"); a.href=URL.createObjectURL(blob);
+    a.setAttribute("download", exportName().replace(/[\\/:*?"<>|\s]+/g,"_"));
+    document.body.appendChild(a); a.click(); setTimeout(function(){ URL.revokeObjectURL(a.href); a.remove(); },500);
+  };
+})();
 
 /* ── KPI · 경고 ── */
 function renderKpi(){
@@ -1245,11 +1435,28 @@ async function removeUpload(rec){
   if(rec.where==="pc"){ try{ await fetch("/api/uploads/"+rec.id,{method:"DELETE"}); }catch(e){} }
   else lsSave(lsLoad().filter(function(x){ return x.id!==rec.id; }));
 }
+function applyNaverKw(rec){
+  if(!rec.rows||!rec.rows.length) return [];
+  var idx=upsertLive({ kw:rec.rows[0].kw, at:rec.at, related:rec.rows, bids:{} }, "naverkw");
+  rec.idx=idx;
+  /* 위쪽 표시도 바꾼다. 실시간 연결이 아니면 몇 개가 언제 기준으로 갱신됐는지 밝힌다. */
+  if(!LIVE){
+    var n=0, last=null;
+    for(var k in LIVEAT) if(LIVEAT[k].src==="naverkw"){ n++; if(!last||LIVEAT[k].at>last) last=LIVEAT[k].at; }
+    var d=new Date(last), st=document.getElementById("stamp");
+    st.textContent="9월 수집본 + 키워드도구 "+fmt(n)+"개 "+(d.getMonth()+1)+"/"+d.getDate()+" 갱신";
+  }
+  return idx;
+}
 async function loadSavedUploads(){
   var got=[];
   if(LIVE){ try{ var r=await fetch("/api/uploads"); if(r.ok) got=(await r.json()).map(function(x){ x.where="pc"; return x; }); }catch(e){} }
   lsLoad().forEach(function(x){ if(!got.some(function(g){ return g.id===x.id; })){ x.where="browser"; got.push(x); } });
   XROWS=got;
+  /* 키워드도구 엑셀은 다시 적용한다. 오래된 것부터 — 새것이 이기게. */
+  var nk=got.filter(function(x){ return x.kind==="naverkw"; })
+    .sort(function(a,b){ return String(a.at).localeCompare(String(b.at)); });
+  if(nk.length){ nk.forEach(applyNaverKw); recalc(); refresh(); }
   if(TAB==="xls") renderXls();
 }
 /* claude.ai 에서 열었을 때도 브라우저에 남겨둔 것은 바로 불러온다 */
@@ -1276,17 +1483,62 @@ function renderXls(){
     var when=f.savedAt? new Date(f.savedAt) : null;
     var whenTxt= when? (when.getMonth()+1)+"/"+when.getDate()+" "+String(when.getHours()).padStart(2,"0")+":"+String(when.getMinutes()).padStart(2,"0") : "";
     var whereTxt= f.where==="pc"?"이 PC 에 저장됨" : f.where==="browser"?"이 브라우저에 저장됨" : "저장 안 됨";
-    h+='<div class="xfile"><span class="tagk">'+(f.kind==="supply"?"공급가 비교표":"판매가 계산기")+'</span>'
+    h+='<div class="xfile"><span class="tagk">'+(f.kind==="supply"?"공급가 비교표":f.kind==="naverkw"?"네이버 키워드도구":"판매가 계산기")+'</span>'
       +'<b>'+esc(f.file)+'</b><span class="sub">'+f.rows.length+'줄 · '+whereTxt+(whenTxt?' · '+whenTxt:'')+'</span>'
       +'<span class="f-sp" style="flex:1"></span>'
       +'<button class="chip" data-drop="'+fi+'">지우기</button></div>';
-    h+= f.kind==="supply" ? supplyBlocks(f.rows) : calcBlocks(f.rows);
+    h+= f.kind==="supply" ? supplyBlocks(f.rows) : f.kind==="naverkw" ? naverKwBlocks(f, fi) : calcBlocks(f.rows);
   });
   out.innerHTML=h;
   out.querySelectorAll("[data-drop]").forEach(function(b){
     b.onclick=async function(){ var rec=XROWS.splice(+b.dataset.drop,1)[0]; if(rec) await removeUpload(rec); renderXls(); };
   });
+  out.querySelectorAll("[data-nkview]").forEach(function(b){
+    b.onclick=function(){
+      var rec=XROWS[+b.dataset.nkview]; if(!rec) return;
+      var idx=(rec.rows||[]).map(function(x){ return BYKW[x.kw]; }).filter(function(i){ return i!=null; });
+      if(!F.rel) openRelFilters();
+      F.rel=new Set(idx); F.relSeed=rec.rows[0].kw; F.relName="네이버 키워드도구 "+(rec.file||"");
+      F.q=""; document.getElementById("q").value="";
+      CUR=BYKW[rec.rows[0].kw]!=null?BYKW[rec.rows[0].kw]:idx[0];
+      LIMIT=100; setTab("gold"); refresh(); window.scrollTo({top:0,behavior:"smooth"});
+    };
+  });
   out.querySelectorAll("svg[data-tipbox]").forEach(bindTips);
+}
+
+/* ── 네이버 키워드도구 엑셀 ──
+   숫자를 갱신하고, 9월 수집본보다 얼마나 바뀌었는지 보여준다. */
+function naverKwBlocks(f, fi){
+  var before=f.before||{}, list=[];
+  f.rows.forEach(function(x){
+    var now=(x.pc||0)+(x.mo||0), then=before[x.kw];
+    list.push({ kw:x.kw, now:now, then:then, x: then? now/then : null, clk:(x.clickPc||0)+(x.clickMo||0), ctr:x.ctrMo });
+  });
+  var xs=list.filter(function(r){ return r.x; }).map(function(r){ return r.x; }).sort(function(a,b){return a-b;});
+  var med=xs.length? xs[xs.length>>1] : null;
+  var up2=xs.filter(function(v){ return v>=2; }).length;
+  var d=new Date(f.at||f.savedAt||Date.now());
+  var h=kpi([
+    ["갱신한 키워드", fmt(list.length)+"개", "네이버 "+(d.getMonth()+1)+"/"+d.getDate()+" "+String(d.getHours()).padStart(2,"0")+":"+String(d.getMinutes()).padStart(2,"0")+" 기준"],
+    ["9월 수집본 대비", med? med.toFixed(1)+"배":"—", "중앙값 · 대조 "+xs.length+"개"],
+    ["2배 이상 오른 것", up2+"개", xs.length? "대조한 것의 "+Math.round(up2/xs.length*100)+"%":""],
+    ["새로 들어온 키워드", (list.length-xs.length)+"개", "9월 수집본에 없던 것"]
+  ]);
+  h+='<div style="margin:-4px 0 12px"><button class="chip" data-nkview="'+fi+'">이 키워드들로 목록 보기 →</button></div>';
+  list.sort(function(a,b){ return (b.x||0)-(a.x||0) || b.now-a.now; });
+  h+='<div class="tbox"><div class="tscroll"><table><thead><tr><th>키워드</th><th>9월 수집본</th><th>지금</th><th>변화</th>'
+   +'<th>월평균 클릭수</th><th>모바일 클릭률</th></tr></thead><tbody>';
+  list.forEach(function(r){
+    var chg = r.x==null ? '<span class="sub">새로 들어옴</span>'
+      : '<span class="'+(r.x>=1.2?"cvr-ok":r.x<=0.8?"cvr-no":"")+'">'+(r.x>=1?"×"+r.x.toFixed(1):"−"+Math.round((1-r.x)*100)+"%")+'</span>';
+    h+='<tr><td><span class="kw">'+esc(r.kw)+'</span></td>'
+     +'<td class="num dim">'+(r.then==null?"—":fmt(r.then))+'</td>'
+     +'<td class="num"><b>'+fmt(r.now)+'</b></td><td class="num">'+chg+'</td>'
+     +'<td class="num">'+(r.clk>=10?fmt(r.clk):r.clk.toFixed(1))+'</td>'
+     +'<td class="num">'+(r.ctr||0).toFixed(2)+'%</td></tr>';
+  });
+  return h+'</tbody></table></div></div>';
 }
 
 /* ── 공통 조각 ── */
@@ -1578,15 +1830,29 @@ function calcTable(rows){
         var book=await window.XlsxLab.readWorkbook(await f.arrayBuffer());
         var d=window.XlsxLab.detect(book);
         if(!d.kind){ bad.push(f.name+" — 아는 모양이 아니다. 시트: "+(d.names||[]).join(", ")); continue; }
-        var rows = d.kind==="supply" ? window.XlsxLab.readSupply(d.t) : window.XlsxLab.readCalc(d.t);
+        var rows = d.kind==="supply" ? window.XlsxLab.readSupply(d.t)
+                 : d.kind==="naverkw" ? window.XlsxLab.readNaverKw(d.found, d.sheet.rows)
+                 : window.XlsxLab.readCalc(d.t);
         if(!rows.length){ bad.push(f.name+" — 읽을 줄이 없다"); continue; }
         var rec={ file:f.name, kind:d.kind, rows:rows };
+        if(d.kind==="naverkw"){
+          /* 파일 이름의 시각을 기준으로 삼는다: 연관키워드_20261009_1428.xlsx */
+          var m=f.name.match(/(20\d{6})[_-]?(\d{4})?/);
+          rec.at = m ? new Date(m[1].slice(0,4)+"-"+m[1].slice(4,6)+"-"+m[1].slice(6,8)+"T"
+                       +(m[2]?m[2].slice(0,2)+":"+m[2].slice(2,4):"12:00")+":00").toISOString()
+                     : new Date().toISOString();
+          /* 덮어쓰기 전에 9월 값을 떠둔다. 얼마나 바뀌었는지 보여주려면 필요하다. */
+          rec.before={};
+          rows.forEach(function(x){ var i=BYKW[x.kw]; if(i!=null && !LIVEAT[x.kw]) rec.before[x.kw]=(R[i][K.PC]||0)+(R[i][K.MO]||0); });
+          applyNaverKw(rec);
+        }
         await persistUpload(rec);
         XROWS=XROWS.filter(function(x){ return x.id!==rec.id; });
         XROWS.unshift(rec);
       }catch(e){ bad.push(f.name+" — "+e.message); }
     }
     if(bad.length) err("<b>못 읽은 파일</b><br>"+bad.map(esc).join("<br>"));
+    if(XROWS.some(function(x){ return x.kind==="naverkw"; })){ recalc(); refresh(); }
     renderXls();
   }
 })();
@@ -2017,13 +2283,20 @@ function renderHintChips(){
   }
 }
 function CURPAGE(){ LIMIT=100; }
+var GOLD_DEFAULT={ intent:[0,4], vmin:100, vmax:null };
+function openRelFilters(){ setType("all"); F.vmin=null; F.vmax=null; SORT.k=null; }
 function setRel(i){
   var g=relGroup(i);
+  if(!F.rel) openRelFilters();
   F.rel = g.length>1 ? new Set(g) : null;
   F.relName = F.rel ? relName(i) : "";
   F.relSeed = F.rel ? R[i][K.KW] : "";
 }
-function clearRel(){ F.rel=null; F.relName=""; F.relSeed=""; }
+function clearRel(){
+  F.rel=null; F.relName=""; F.relSeed=""; SORT.k=null;
+  for(var k=0;k<5;k++) F.intent[k]=GOLD_DEFAULT.intent.indexOf(k)>=0;
+  F.vmin=GOLD_DEFAULT.vmin; F.vmax=GOLD_DEFAULT.vmax;
+}
 
 function hcard(k,src,v,split,foot,na){
   return '<div class="hc"><div class="hc-top"><span class="hc-k">'+k+'</span>'
@@ -2067,9 +2340,9 @@ function renderHero(){
   var cap=Math.max(0, mg.margin*SET.tgtCvr/roasMult());
 
   document.getElementById("hcards").innerHTML=
-   hcard("한 달 검색수", liveStamp(a[K.KW])?"실시간 "+liveStamp(a[K.KW]):"9월 수집본 · 낡음", fmt(st.tot)+"회",
+   hcard("한 달 검색수", liveLabel(a[K.KW])||"9월 수집본 · 낡음", fmt(st.tot)+"회",
      sp("PC",fmt(a[K.PC])+"회")+sp("모바일",fmt(a[K.MO])+"회"),
-     "모바일 비중 "+moP+"% · "+(liveStamp(a[K.KW])?"네이버 최근 30일 · 방금 받음":"9월 14일 기준 최근 30일. 제철 품목은 지금과 크게 다를 수 있다"))
+     "모바일 비중 "+moP+"% · "+(liveLabel(a[K.KW])?"네이버 최근 30일 · "+liveLabel(a[K.KW])+" 기준":"9월 14일 기준 최근 30일. 제철 품목은 지금과 크게 다를 수 있다"))
   +(function(){
       /* 상품수는 쇼핑검색 API 종료로 원본이 없다. 빈칸으로 두느니 판단에 직접 쓰는 값을 둔다.
          손익분기 전환율 = 그 순위에 광고를 걸었을 때 본전이 되는 전환율이다.
@@ -2132,7 +2405,7 @@ var RE_SHOP_P=/선물세트|선물|세트$|\d+\s*(kg|KG|g|G|개|구|알|통|캔|
 function intentGuess(kw){ return RE_HOWTO_P.test(kw)?1 : RE_DISH_P.test(kw)?3 : RE_SHOP_P.test(kw)?0 : /[A-Za-z]{3,}/.test(kw)?2 : 4; }
 var COMPI={"낮음":0,"중간":1,"높음":2};
 
-function upsertLive(j){
+function upsertLive(j, src){
   var idx=[], hint=j.kw;
   (j.related||[]).forEach(function(x){
     var i=BYKW[x.kw], b=(j.bids||{})[x.kw];
@@ -2153,7 +2426,7 @@ function upsertLive(j){
       a[K.BM1]=b.mo[0]||0; a[K.BM2]=b.mo[1]||0; a[K.BM3]=b.mo[2]||0;
     }
     statRow(i);
-    LIVEAT[x.kw]={ at:j.at, bid:!!b };
+    LIVEAT[x.kw]={ at:j.at, bid:!!b, src:src||"live" };
     idx.push(i);
   });
   LIVESEEN++;
@@ -2163,6 +2436,12 @@ function liveStamp(kw){
   var l=LIVEAT[kw]; if(!l) return null;
   var d=new Date(l.at);
   return String(d.getHours()).padStart(2,"0")+":"+String(d.getMinutes()).padStart(2,"0");
+}
+/* 어디서 온 숫자인지 한 줄로. 실시간 서버 / 네이버 키워드도구 엑셀 / 9월 수집본 */
+function liveLabel(kw){
+  var l=LIVEAT[kw]; if(!l) return null;
+  if(l.src==="naverkw"){ var d=new Date(l.at); return "키워드도구 "+(d.getMonth()+1)+"/"+d.getDate()+" "+liveStamp(kw); }
+  return "실시간 "+liveStamp(kw);
 }
 async function liveFind(v, fresh){
   var note=document.getElementById("exactNote");
@@ -2179,6 +2458,7 @@ async function liveFind(v, fresh){
       if(idx.length){ CUR=idx[0]; }
     } else CUR=ex;
     F.q=""; document.getElementById("q").value="";
+    if(!F.rel) openRelFilters();
     F.rel=new Set(idx); F.relSeed=v; F.relName="네이버 실시간 연관";
     var t=liveStamp(R[CUR][K.KW]);
     note.innerHTML='<span class="live-dot"></span> <b class="live-k">실시간</b> '+t+' 조회'+(j.cached?' (3시간 안에 받은 것)':'')
@@ -2187,8 +2467,10 @@ async function liveFind(v, fresh){
     document.getElementById("liveAgain").onclick=function(){ liveFind(v,true); };
     CURPAGE(); refresh();
   }catch(e){
-    note.innerHTML='<b>실시간 조회 실패</b> — '+esc(e.message)+'. 아래는 9월 수집본이다.';
-    staticFind(v);
+    /* 실패를 덮어쓰면 안 된다. 전에는 staticFind 가 "정확 원본을 확인했다" 로 이 문구를
+       지워버려서, 9월 숫자를 보면서 실시간인 줄 알게 됐다. 숫자가 틀렸던 그 함정 그대로다. */
+    staticFind(v, '<span class="live-fail">실시간 조회 실패</span> '+esc(e.message)
+      +' — <b>아래는 9월 수집본이다. 지금 숫자가 아니다.</b> ');
   }
 }
 function exactFind(){
@@ -2198,20 +2480,21 @@ function exactFind(){
   if(LIVE) return liveFind(v,false);
   staticFind(v);
 }
-function staticFind(v){
+function staticFind(v, prefix){
   var note=document.getElementById("exactNote");
+  prefix=prefix||"";
   if(v in BYKW){
     CUR=BYKW[v]; F.q=""; document.getElementById("q").value="";
     setRel(CUR);
-    note.innerHTML=v+' NAVER 정확 원본을 확인했다. 아래 목록을 <b>'+v+'의 연관 키워드</b>로 좁혔다.';
+    note.innerHTML=prefix+(prefix?'':esc(v)+' 수집본에서 찾았다 (9월 14일 기준, 지금 숫자 아님). ')+'아래 목록을 <b>'+esc(v)+'의 연관 키워드</b>로 좁혔다.';
     CURPAGE(); refresh(); return;
   }
   var near=[];
   for(var i=0;i<R.length && near.length<8;i++) if(R[i][K.KW].indexOf(v)>=0) near.push(R[i][K.KW]);
-  note.innerHTML = near.length
+  note.innerHTML = prefix + (near.length
     ? '<b>'+v+'</b> 는 수집된 키워드에 없다. 포함하는 것은 있다 — '
       + near.map(function(k){ return '<a href="#" data-k="'+k+'" style="color:var(--brand);font-weight:700">'+k+'</a>'; }).join(" · ")
-    : '<b>'+v+'</b> 는 수집된 '+fmt(R.length)+'개 안에 없다. 아직 안 받아온 키워드일 수 있다.';
+    : '<b>'+v+'</b> 는 수집된 '+fmt(R.length)+'개 안에 없다. 아직 안 받아온 키워드일 수 있다.');
   note.querySelectorAll("[data-k]").forEach(function(n){
     n.onclick=function(e){ e.preventDefault(); document.getElementById("exact").value=n.dataset.k; exactFind(); };
   });
@@ -2456,7 +2739,6 @@ document.getElementById("stamp").textContent="9월 14일 수집본 · 실시간 
     loadSavedUploads();
   }).catch(function(){});
 })();
-document.getElementById("fVolV").textContent=fmt(F.vol);
 document.getElementById("fCompV").textContent=F.comp.toFixed(1);
 document.getElementById("foot").innerHTML=
   "<b>실데이터</b> · 월 검색수 · 클릭수 · CTR · 광고 깊이 · 경쟁정도 · 1~3위 입찰가(PC·모바일)는 NAVER 검색광고 API 에서 받은 값이다. "

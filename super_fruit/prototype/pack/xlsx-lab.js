@@ -146,9 +146,50 @@
   };
 
   /* ── 어떤 장부인지 가려낸다 ── */
+  /* 네이버 검색광고 키워드도구에서 내려받은 엑셀.
+     머리글이 두 줄이다 (월간검색수 / 월간검색수(PC)·(모바일)). 네이버 공식 원본이라
+     이걸 떨구면 그 시점의 숫자로 화면이 갱신된다. 실시간 서버가 없어도 되는 길이다. */
+  function findNaverKw(rows) {
+    for (let i = 0; i < Math.min(rows.length, 10); i++) {
+      const h = rows[i].map(x => String(x).replace(/\s/g, ""));
+      if (!h.some(c => c === "연관키워드" || c === "키워드")) continue;
+      const two = rows[i + 1] ? rows[i + 1].map(x => String(x).replace(/\s/g, "")) : [];
+      const at = n => { let j = two.indexOf(n); if (j < 0) j = h.indexOf(n); return j; };
+      const col = {
+        kw: h.findIndex(c => c === "연관키워드" || c === "키워드"),
+        pc: at("월간검색수(PC)"), mo: at("월간검색수(모바일)"),
+        cpc: at("월평균클릭수(PC)"), cmo: at("월평균클릭수(모바일)"),
+        tpc: at("월평균클릭률(PC)"), tmo: at("월평균클릭률(모바일)"),
+        comp: h.findIndex(c => c.includes("경쟁정도")),
+        depth: h.findIndex(c => c.includes("노출광고수"))
+      };
+      if (col.pc >= 0 && col.mo >= 0) return { start: two.some(c => c.includes("(PC)")) ? i + 2 : i + 1, col };
+    }
+    return null;
+  }
+  function readNaverKw(found, rows) {
+    const out = [], c = found.col;
+    const n = v => { const t = String(v ?? "").replace(/[,%\s]/g, ""); if (!t || t === "-") return 0;
+      if (t.startsWith("<")) return 0; const x = parseFloat(t); return isFinite(x) ? x : 0; };
+    const masked = v => /</.test(String(v ?? ""));
+    for (const r of rows.slice(found.start)) {
+      const kw = String(r[c.kw] ?? "").trim(); if (!kw) continue;
+      out.push({ kw, pc: n(r[c.pc]), mo: n(r[c.mo]), masked: masked(r[c.pc]) || masked(r[c.mo]),
+        clickPc: c.cpc >= 0 ? n(r[c.cpc]) : 0, clickMo: c.cmo >= 0 ? n(r[c.cmo]) : 0,
+        ctrPc: c.tpc >= 0 ? n(r[c.tpc]) : 0, ctrMo: c.tmo >= 0 ? n(r[c.tmo]) : 0,
+        comp: c.comp >= 0 ? String(r[c.comp] ?? "").trim() : "", depth: c.depth >= 0 ? n(r[c.depth]) : 0 });
+    }
+    return out;
+  }
+
   function detect(book) {
     const names = book.map(s => s.name);
     const sheet = n => book.find(s => s.name === n);
+
+    for (const sh of book) {
+      const f = findNaverKw(sh.rows);
+      if (f) return { kind: "naverkw", sheet: sh, found: f, book };
+    }
 
     /* 계산기를 먼저 본다.
        계산기의 설정_원가 탭에도 거래처와 "원 공급가" 가 있어서 공급가표로 오인됐다.
@@ -219,5 +260,5 @@
     return rows;
   }
 
-  window.XlsxLab = { readWorkbook, detect, readSupply, readCalc, findTable, num };
+  window.XlsxLab = { readWorkbook, detect, readSupply, readCalc, readNaverKw, findTable, num };
 })();
