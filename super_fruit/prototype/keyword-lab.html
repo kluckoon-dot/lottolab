@@ -401,6 +401,27 @@ tbody tr.sel{background:var(--brand-soft)}
 .tw-tip u{flex:1;text-decoration:none}
 .tw-tip em{font-style:normal;font-weight:700;color:var(--ink);font-variant-numeric:tabular-nums}
 .tw-note{font-size:11px;color:var(--ink-3);line-height:1.6;margin:9px 0 0}
+.drop{border:2px dashed var(--line-strong);border-radius:14px;padding:42px 20px;text-align:center;
+  background:var(--surface);cursor:pointer;transition:border-color .12s,background .12s}
+.drop:hover,.drop:focus-visible{border-color:var(--brand);background:var(--brand-soft)}
+.drop.over{border-color:var(--brand);background:var(--brand-soft)}
+.drop-ic{font-size:30px;color:var(--brand);font-weight:700;line-height:1}
+.drop-k{font-size:15px;font-weight:700;margin:11px 0 6px}
+.drop-s{margin:0;font-size:12.5px;color:var(--ink-3);line-height:1.65}
+.xfile{display:flex;gap:10px;align-items:center;flex-wrap:wrap;background:var(--surface);
+  border:1px solid var(--line);border-radius:10px;padding:10px 14px;margin-bottom:12px;font-size:13px}
+.xfile b{font-weight:700}
+.xfile .tagk{font-size:10.5px;font-weight:700;border-radius:6px;padding:3px 8px;
+  background:var(--brand-soft);color:var(--brand-ink)}
+.xerr{background:var(--warn-bg);border:1px solid color-mix(in srgb,var(--warn) 35%,transparent);
+  color:var(--warn);border-radius:10px;padding:12px 15px;font-size:13px;margin-bottom:12px;line-height:1.6}
+.ch{background:var(--surface);border:1px solid var(--line);border-radius:12px;
+  padding:15px 17px;box-shadow:var(--shadow);margin-bottom:13px}
+.ch h4{margin:0 0 3px;font-size:13.5px;font-weight:700}
+.ch .note{margin:0 0 13px;font-size:11.5px;color:var(--ink-3);line-height:1.55}
+.ch-legend{display:flex;gap:15px;flex-wrap:wrap;font-size:12px;color:var(--ink-2);margin-bottom:9px}
+.ch-legend span{display:inline-flex;align-items:center;gap:6px}
+.ch-legend i{width:9px;height:9px;border-radius:50%;flex:none}
 .sup-head{background:var(--surface);border:1px solid var(--line);border-top:3px solid var(--brand);
   border-radius:12px;padding:15px 17px;margin-bottom:13px;box-shadow:var(--shadow)}
 .sup-head h3{margin:0 0 6px;font-size:14px;font-weight:700}
@@ -505,6 +526,7 @@ td.gper{font-weight:700}
     <div class="tabs" role="tablist">
       <button class="tab" role="tab" aria-selected="true" data-tab="gold">황금키워드</button>
       <button class="tab" role="tab" aria-selected="false" data-tab="detail">키워드 상세</button>
+      <button class="tab" role="tab" aria-selected="false" data-tab="xls">엑셀 분석</button>
       <button class="tab" role="tab" aria-selected="false" data-tab="supply">공급가 비교</button>
       <button class="tab" role="tab" aria-selected="false" data-tab="margin">마진 · 광고효율</button>
       <button class="tab" role="tab" aria-selected="false" data-tab="status">수집 현황</button>
@@ -608,6 +630,18 @@ td.gper{font-weight:700}
       </div>
     </section>
 
+    <section id="panel-xls" hidden>
+      <div class="drop" id="xDrop" tabindex="0" role="button" aria-label="엑셀 파일 올리기">
+        <div class="drop-ic">↓</div>
+        <div class="drop-k">엑셀 파일을 여기에 끌어다 놓아라</div>
+        <p class="drop-s">공급가 비교표와 판매가 계산기를 알아서 가려낸다.<br>
+          파일은 이 브라우저 안에서만 읽는다. 어디로도 올라가지 않는다.</p>
+        <input type="file" id="xFile" accept=".xlsx" multiple hidden>
+      </div>
+      <div id="xErr"></div>
+      <div id="xOut"></div>
+    </section>
+
     <section id="panel-supply" hidden>
       <div class="sup-head" id="supHead"></div>
       <div class="filters" id="supFilters" hidden>
@@ -702,6 +736,7 @@ td.gper{font-weight:700}
 <script src="data-trend.js"></script>
 <script src="data-meta.js"></script>
 <script src="data-supply.js"></script>
+<script src="xlsx-lab.js"></script>
 <script>
 (function(){
 "use strict";
@@ -935,13 +970,14 @@ var qt; document.getElementById("q").addEventListener("input",function(e){
 document.getElementById("moreBtn").onclick=function(){ LIMIT+=200; renderTable(); };
 
 /* 탭 */
-var PANELS={gold:"panel-gold",detail:"panel-detail",supply:"panel-supply",margin:"panel-margin",status:"panel-status"};
+var PANELS={gold:"panel-gold",detail:"panel-detail",xls:"panel-xls",supply:"panel-supply",margin:"panel-margin",status:"panel-status"};
 var TAB="gold";
 document.querySelectorAll(".tab").forEach(function(t){ t.onclick=function(){ setTab(t.dataset.tab); }; });
 function setTab(n){ TAB=n;
   document.querySelectorAll(".tab").forEach(function(t){ t.setAttribute("aria-selected",t.dataset.tab===n); });
   for(var k in PANELS) document.getElementById(PANELS[k]).hidden=(k!==n);
   if(n==="detail") renderDetail();
+  if(n==="xls") renderXls();
   if(n==="supply") renderSupply();
   if(n==="margin") renderMargin();
   if(n==="status") renderStatus();
@@ -1172,6 +1208,342 @@ function drawClick(a){
   }
   var box=document.getElementById("clickChart"); box.innerHTML=out+'</svg>'; bindTips(box);
 }
+
+/* ── 엑셀 분석 ──
+   공급사 open API 는 정책이 자주 바뀌어 스무 곳을 쫓아다니기 어렵다.
+   보갬이 직접 만든 계산기와 공급가 비교표를 그냥 끌어다 놓으면 되게 한다.
+   읽기는 전부 이 브라우저 안에서 끝난다. 파일은 어디로도 올라가지 않는다. */
+var XROWS=[];   /* [{file, kind, rows}] */
+
+/* 네 가지 색. dataviz 검증기를 라이트·다크 양쪽으로 돌려 통과시킨 조합이다.
+   라이트에서 초록·노랑이 3:1 아래라 직접 라벨과 표를 같이 둔다(검증기 요구). */
+var CAT_L=["#2a78d6","#eb6834","#1baf7a","#eda100","#e87ba4","#4a3aa7","#008300","#e34948"];
+var CAT_D=["#3987e5","#d95926","#199e70","#c98500","#d55181","#9085e9","#008300","#e66767"];
+function isDark(){
+  var a=document.documentElement.getAttribute("data-theme");
+  if(a==="dark") return true; if(a==="light") return false;
+  return matchMedia("(prefers-color-scheme: dark)").matches;
+}
+function cat(i){ var p=isDark()?CAT_D:CAT_L; return p[i%p.length]; }
+var esc=function(t){ return String(t==null?"":t).replace(/[&<>"]/g,function(c){
+  return {"&":"&amp;","<":"&lt;",">":"&gt;","\"":"&quot;"}[c]; }); };
+
+function renderXls(){
+  var out=document.getElementById("xOut");
+  if(!XROWS.length){ out.innerHTML=""; return; }
+  var h="";
+  XROWS.forEach(function(f,fi){
+    h+='<div class="xfile"><span class="tagk">'+(f.kind==="supply"?"공급가 비교표":"판매가 계산기")+'</span>'
+      +'<b>'+esc(f.file)+'</b><span class="sub">'+f.rows.length+'줄</span>'
+      +'<span class="f-sp" style="flex:1"></span>'
+      +'<button class="chip" data-drop="'+fi+'">지우기</button></div>';
+    h+= f.kind==="supply" ? supplyBlocks(f.rows) : calcBlocks(f.rows);
+  });
+  out.innerHTML=h;
+  out.querySelectorAll("[data-drop]").forEach(function(b){
+    b.onclick=function(){ XROWS.splice(+b.dataset.drop,1); renderXls(); };
+  });
+  out.querySelectorAll("svg[data-tipbox]").forEach(bindTips);
+}
+
+/* ── 공통 조각 ── */
+function kpi(list){
+  return '<div class="kpi">'+list.map(function(x){
+    return '<div><div class="v-k">'+x[0]+'</div><div class="v-v num">'+x[1]+'</div>'
+      +'<div class="v-s">'+(x[2]||"")+'</div></div>'; }).join("")+'</div>';
+}
+function card(title,note,body,legend){
+  return '<div class="ch"><h4>'+title+'</h4><p class="note">'+note+'</p>'
+    +(legend||"")+body+'</div>';
+}
+function legendOf(items){
+  return '<div class="ch-legend">'+items.map(function(x,i){
+    return '<span><i style="background:'+(x[1]||cat(i))+'"></i>'+esc(x[0])+'</span>'; }).join("")+'</div>';
+}
+
+/* ── 공급가 비교표 ── */
+function supplyBlocks(rows){
+  var live=rows.filter(function(r){ return r.state!=="품절"; });
+  var sups=[]; live.forEach(function(r){ if(sups.indexOf(r.supplier)<0) sups.push(r.supplier); });
+  var wk=live.filter(function(r){ return r.wonKg; }).map(function(r){ return r.wonKg; }).sort(function(a,b){return a-b;});
+  var h=kpi([
+    ["옵션", fmt(rows.length)+"개", "판매중 "+live.length+" · 품절 "+(rows.length-live.length)],
+    ["공급처", sups.length+"곳", sups.slice(0,3).join(" · ")],
+    ["최저 원/kg", wk.length?fmt(wk[0]):"—", wk.length?"최고 "+fmt(wk[wk.length-1]):""],
+    ["가격 폭", wk.length?((wk[wk.length-1]/wk[0]-1)*100).toFixed(0)+"%":"—", "최저 대비"]
+  ]);
+
+  /* ① 중량별 원/kg — 공급처가 계열이다. 정체를 구분하는 일이라 categorical. */
+  /* 품종이 섞이면 눈금이 망가진다. 깐옥광밤 40,800원/kg 과 옥광밤 13,500원/kg 을
+     한 축에 올렸더니 아래쪽 선 세 개가 서로 붙어 읽을 수 없었다. 품종마다 나눠 그린다. */
+  var byVar={};
+  live.forEach(function(r){ if(r.kg&&r.wonKg) (byVar[r.variety||"기타"]||(byVar[r.variety||"기타"]=[])).push(r); });
+  var vkeys=Object.keys(byVar).sort(function(a,b){ return byVar[b].length-byVar[a].length; });
+  var lineBody=vkeys.map(function(v){
+    var vr=byVar[v], vs=[]; vr.forEach(function(r){ if(vs.indexOf(r.supplier)<0) vs.push(r.supplier); });
+    return (vkeys.length>1?'<div class="vlabel" style="margin:4px 0 2px">'+esc(v)+'</div>':"")
+      + legendOf(vs.map(function(s2){ return [s2,cat(sups.indexOf(s2))]; }))
+      + lineByKg(vr,vs,sups);
+  }).join("");
+  h+=card("중량별 원/kg", "같은 중량에서 누가 싼지, 그리고 중량을 키우면 단가가 얼마나 떨어지는지. 선이 아래일수록 싸다. 품종마다 따로 그린다.",
+      lineBody);
+
+  /* ② 규격별 최저가 — 한 규격 안에서는 크기 비교일 뿐이라 한 가지 색. */
+  h+=card("규격별 최저가 대비 추가 비용",
+    "중량이 같은 것끼리 묶고, 그 묶음에서 제일 싼 곳을 0 으로 뒀다. 막대 길이가 곧 더 내는 돈이다.",
+    barByGroup(live));
+
+  /* ③ 표 */
+  h+=supTable(rows);
+  return h;
+}
+
+/* 눈금은 사람이 읽는 수로 올린다. 44,064 같은 수가 축에 박히면 안 된다. */
+function niceMax(v){
+  if(!(v>0)) return 1;
+  var e=Math.pow(10,Math.floor(Math.log10(v))), f=v/e;
+  return (f<=1?1:f<=2?2:f<=2.5?2.5:f<=5?5:10)*e;
+}
+function lineByKg(rows,sups,allSups){
+  var kgs=[]; rows.forEach(function(r){ if(r.kg&&kgs.indexOf(r.kg)<0) kgs.push(r.kg); });
+  kgs.sort(function(a,b){return a-b;});
+  if(kgs.length<2) return '<p class="note">중량이 한 가지뿐이라 선으로 그릴 것이 없다. 아래 표에서 값을 보라.</p>';
+  var W=880,H=270,L=66,R2=132,T=14,B=38, iw=W-L-R2, ih=H-T-B;
+  var mx=0; rows.forEach(function(r){ if(r.wonKg>mx) mx=r.wonKg; });
+  mx=niceMax(mx*1.05)||1;
+  var X=function(k){ return L+(kgs.length<2?0:kgs.indexOf(k)/(kgs.length-1)*iw); };
+  var Y=function(v){ return T+ih-v/mx*ih; };
+  var o='<svg viewBox="0 0 '+W+' '+H+'" role="img" aria-label="중량별 원/kg" data-tipbox="1">';
+  for(var g=0;g<=4;g++){ var yy=T+ih-g/4*ih;
+    o+='<line class="gl" x1="'+L+'" y1="'+yy.toFixed(1)+'" x2="'+(L+iw)+'" y2="'+yy.toFixed(1)+'"/>'
+      +'<text class="ax" x="'+(L-9)+'" y="'+(yy+3.5).toFixed(1)+'" text-anchor="end">'+fmt(mx*g/4)+'</text>'; }
+  kgs.forEach(function(k){ o+='<text class="ax" x="'+X(k).toFixed(1)+'" y="'+(H-14)+'" text-anchor="middle">'+k+'kg</text>'; });
+  o+='<text class="vlabel" x="'+L+'" y="10">원/kg</text>';
+  var labels=[];
+  sups.forEach(function(sp,si2){
+    var i=allSups?allSups.indexOf(sp):si2;
+    var pts=[];
+    kgs.forEach(function(k){
+      var m=null;
+      rows.forEach(function(r){ if(r.supplier===sp&&r.kg===k&&r.wonKg&&(m===null||r.wonKg<m.wonKg)) m=r; });
+      if(m) pts.push({k:k,r:m});
+    });
+    if(!pts.length) return;
+    var c=cat(i), d="";
+    pts.forEach(function(p,j){ d+=(j?"L":"M")+X(p.k).toFixed(1)+" "+Y(p.r.wonKg).toFixed(1); });
+    if(pts.length>1) o+='<path d="'+d+'" fill="none" stroke="'+c+'" stroke-width="2" stroke-linejoin="round"/>';
+    pts.forEach(function(p){
+      o+='<circle cx="'+X(p.k).toFixed(1)+'" cy="'+Y(p.r.wonKg).toFixed(1)+'" r="4.5" fill="'+c+'" '
+       +'stroke="var(--surface)" stroke-width="2" data-t="'+esc(sp)+' · '+p.k+'kg<br>'+fmt(p.r.wonKg)+'원/kg · 공급가 '+fmt(p.r.price)+'원"/>';
+    });
+    /* 직접 라벨 — 라이트에서 대비가 3:1 아래인 색이 있어 색만으로 두지 않는다.
+       같은 자리에 겹치면 못 읽으므로 아래쪽으로 밀어낸다. */
+    var last=pts[pts.length-1];
+    labels.push({ x:X(last.k)+9, y:Y(last.r.wonKg), c:c, t:sp });
+  });
+  labels.sort(function(a,b){ return a.y-b.y; });
+  for(var li=1;li<labels.length;li++)
+    if(labels[li].y-labels[li-1].y<13) labels[li].y=labels[li-1].y+13;
+  labels.forEach(function(l){
+    o+='<text class="ax" x="'+l.x.toFixed(1)+'" y="'+(l.y+3.5).toFixed(1)+'" '
+      +'style="font-weight:700;fill:'+l.c+'">'+esc(l.t)+'</text>';
+  });
+  return o+'</svg>';
+}
+
+function barByGroup(rows){
+  var g={};
+  rows.forEach(function(r){
+    if(!r.kg||!r.price) return;
+    /* 등급이 비어 있는 줄이 많아 중/대가 한 묶음에 섞인다.
+       묶음은 품종+중량까지만 하고, 등급 구분은 줄 라벨의 옵션명으로 읽게 둔다. */
+    var k=(r.variety||"기타")+" "+r.kg+"kg";
+    (g[k]||(g[k]=[])).push(r);
+  });
+  var keys=Object.keys(g).sort();
+  if(!keys.length) return '<p class="note">중량이 적힌 줄이 없어 묶을 수 없다.</p>';
+  /* 처음에는 공급가 자체를 막대로 그렸다. 13,500 과 14,600 이 92% 대 100% 라
+     막대가 둘 다 꽉 차서 차이가 눈에 안 보였다.
+     실제로 보고 싶은 값은 "제일 싼 곳보다 얼마 더 내나" 다. 그것을 그린다. */
+  var o="";
+  keys.forEach(function(k){
+    var list=g[k].slice().sort(function(a,b){ return a.price-b.price; });
+    var base=list[0].price;
+    var span=list[list.length-1].price-base;
+    var BW=520, LBL=250;
+    o+='<div style="margin:0 0 15px"><div class="vlabel" style="margin-bottom:5px">'+esc(k)
+      +' <span style="font-weight:400;color:var(--ink-3)">· 최저 '+fmt(base)+'원 ('+esc(list[0].supplier)+')</span></div>';
+    o+='<svg viewBox="0 0 880 '+(list.length*26+6)+'" role="img" aria-label="'+esc(k)+' 최저가 대비" data-tipbox="1">';
+    list.forEach(function(r,i){
+      var over=r.price-base, y=i*26;
+      var w=span>0?Math.max(0,over/span*BW):0;
+      var label=(r.option||r.product||"").slice(0,16);
+      o+='<text class="ax" x="'+(LBL-8)+'" y="'+(y+15)+'" text-anchor="end">'+esc(r.supplier)
+       +(label?'<tspan fill="var(--ink-3)">  '+esc(label)+'</tspan>':'')+'</text>'
+       +'<line class="gl" x1="'+LBL+'" y1="'+(y+4)+'" x2="'+LBL+'" y2="'+(y+20)+'" stroke="var(--line-strong)"/>';
+      if(over>0)
+        o+='<rect x="'+LBL+'" y="'+(y+5)+'" width="'+w.toFixed(1)+'" height="14" rx="4" fill="#eb6834" '
+         +'data-t="'+esc(r.supplier)+'<br>'+esc(r.option||r.product)+'<br>공급가 '+fmt(r.price)+'원 · 최저보다 +'+fmt(over)+'원'
+         +(r.wonKg?"<br>"+fmt(r.wonKg)+"원/kg":"")+'"/>';
+      else
+        o+='<circle cx="'+(LBL+4)+'" cy="'+(y+12)+'" r="5" fill="#1baf7a" '
+         +'data-t="'+esc(r.supplier)+'<br>'+esc(r.option||r.product)+'<br>이 묶음 최저 '+fmt(r.price)+'원"/>';
+      o+='<text class="vlabel" x="'+(LBL+Math.max(w,12)+9).toFixed(1)+'" y="'+(y+16)+'">'
+       +(over>0?'+'+fmt(over)+'원 · '+((r.price/base-1)*100).toFixed(0)+'%':'최저 '+fmt(base)+'원')+'</text>';
+    });
+    o+='</svg></div>';
+  });
+  return o;
+}
+
+function supTable(rows){
+  var h='<div class="tbox"><div class="tscroll"><table><thead><tr>'
+   +'<th>공급처</th><th>상품 · 옵션</th><th>중량</th><th>공급가</th><th>배송비</th><th>원/kg</th><th>상태</th><th>확인 필요</th>'
+   +'</tr></thead><tbody>';
+  rows.slice().sort(function(a,b){ return (a.wonKg||1e9)-(b.wonKg||1e9); }).forEach(function(r){
+    h+='<tr><td><span class="kw">'+esc(r.supplier)+'</span></td>'
+     +'<td>'+esc(r.product)+(r.option?' <span class="sub">'+esc(r.option)+'</span>':'')+'</td>'
+     +'<td class="num">'+(r.kg?r.kg+"kg":"—")+'</td>'
+     +'<td class="num">'+fmt(r.price)+'</td>'
+     +'<td class="num dim">'+(r.ship?fmt(r.ship):"0")+'</td>'
+     +'<td class="num">'+(r.wonKg?fmt(r.wonKg):"—")+'</td>'
+     +'<td>'+esc(r.state)+'</td>'
+     +'<td class="sub">'+esc(r.need||"")+'</td></tr>';
+  });
+  return h+'</tbody></table></div></div>';
+}
+
+/* ── 판매가 계산기 ── */
+function calcBlocks(rows){
+  var rate=rows.filter(function(r){ return r.nRate; }).map(function(r){ return r.nRate; }).sort(function(a,b){return a-b;});
+  var good=rows.filter(function(r){ return r.verdict&&r.verdict.indexOf("불가")<0&&r.verdict.indexOf("미달")<0; }).length;
+  var h=kpi([
+    ["옵션", rows.length+"개", [...new Set(rows.map(function(r){return r.supplier;}))].filter(Boolean).join(" · ")],
+    ["네이버 이익률 중앙값", rate.length?(rate[rate.length>>1]*100).toFixed(1)+"%":"—", "최저 "+(rate.length?(rate[0]*100).toFixed(1)+"%":"—")],
+    ["등록 가능", good+"개", "전체 "+rows.length+"개 중"],
+    ["원가 폭", fmt(Math.min.apply(null,rows.map(function(r){return r.cost;})))+" ~ "+fmt(Math.max.apply(null,rows.map(function(r){return r.cost;}))), "총원가"]
+  ]);
+
+  /* 채널 비교 — 항목마다 전·후 두 점이라 덤벨이 맞다. 한 색조 두 농도. */
+  h+=card("옵션별 공헌이익 · 네이버 vs 쿠팡",
+    "한 줄이 옵션 하나다. 점 사이가 벌어질수록 채널에 따라 남는 돈이 다르다는 뜻이다.",
+    dumbbell(rows), legendOf([["네이버","#2a78d6"],["쿠팡","#9ec5f4"]]));
+
+  /* 이익률 — 기준선 대비라 상태색 하나 + 중립 */
+  h+=card("옵션별 네이버 이익률", "가로 점선이 기준 20%다. 짧을수록 위험하다.", rateBars(rows));
+  h+=calcTable(rows);
+  return h;
+}
+
+function dumbbell(rows){
+  var list=rows.filter(function(r){ return r.nProfit!=null; })
+    .slice().sort(function(a,b){ return (b.nProfit||0)-(a.nProfit||0); });
+  if(!list.length) return '<p class="note">공헌이익이 적힌 줄이 없다.</p>';
+  var W=880,L=150,R2=70,T=10, rowH=22, H=list.length*rowH+T+26, iw=W-L-R2;
+  var lo=0,hi=0;
+  list.forEach(function(r){ [r.nProfit,r.cProfit].forEach(function(v){
+    if(v==null) return; if(v<lo)lo=v; if(v>hi)hi=v; }); });
+  var span=(hi-lo)||1, X=function(v){ return L+(v-lo)/span*iw; };
+  var o='<svg viewBox="0 0 '+W+' '+H+'" role="img" aria-label="채널별 공헌이익" data-tipbox="1">';
+  if(lo<0){ var z=X(0);
+    o+='<line x1="'+z.toFixed(1)+'" y1="'+T+'" x2="'+z.toFixed(1)+'" y2="'+(H-26)+'" stroke="var(--line-strong)" stroke-width="1" stroke-dasharray="3 3"/>'
+     +'<text class="ax" x="'+(z+4).toFixed(1)+'" y="'+(H-14)+'">0원</text>'; }
+  list.forEach(function(r,i){
+    var y=T+i*rowH+rowH/2;
+    o+='<text class="ax" x="'+(L-10)+'" y="'+(y+3.5).toFixed(1)+'" text-anchor="end">'+esc(r.name)+'</text>';
+    if(r.cProfit!=null&&r.nProfit!=null)
+      o+='<line x1="'+X(r.nProfit).toFixed(1)+'" y1="'+y.toFixed(1)+'" x2="'+X(r.cProfit).toFixed(1)+'" y2="'+y.toFixed(1)+'" stroke="var(--line-strong)" stroke-width="2"/>';
+    if(r.cProfit!=null)
+      o+='<circle cx="'+X(r.cProfit).toFixed(1)+'" cy="'+y.toFixed(1)+'" r="5" fill="#9ec5f4" stroke="var(--surface)" stroke-width="2" data-t="'+esc(r.name)+'<br>쿠팡 공헌이익 '+fmt(r.cProfit)+'원"/>';
+    if(r.nProfit!=null)
+      o+='<circle cx="'+X(r.nProfit).toFixed(1)+'" cy="'+y.toFixed(1)+'" r="5" fill="#2a78d6" stroke="var(--surface)" stroke-width="2" data-t="'+esc(r.name)+'<br>네이버 공헌이익 '+fmt(r.nProfit)+'원"/>';
+    var big=Math.max(r.nProfit==null?-1e9:r.nProfit, r.cProfit==null?-1e9:r.cProfit);
+    o+='<text class="vlabel" x="'+(X(big)+10).toFixed(1)+'" y="'+(y+3.5).toFixed(1)+'">'+fmt(big)+'</text>';
+  });
+  return o+'</svg>';
+}
+
+function rateBars(rows){
+  var list=rows.filter(function(r){ return r.nRate!=null; });
+  if(!list.length) return '<p class="note">이익률이 적힌 줄이 없다.</p>';
+  var W=880,L=150,R2=60,T=8,rowH=20,H=list.length*rowH+T+6,iw=W-L-R2;
+  var mx=Math.max.apply(null,list.map(function(r){return r.nRate;}))*1.1||1;
+  var o='<svg viewBox="0 0 '+W+' '+H+'" role="img" aria-label="옵션별 이익률" data-tipbox="1">';
+  var bx=L+(0.20/mx)*iw;
+  o+='<line x1="'+bx.toFixed(1)+'" y1="'+T+'" x2="'+bx.toFixed(1)+'" y2="'+(H-4)+'" stroke="var(--good)" stroke-width="1.5" stroke-dasharray="4 3"/>';
+  list.forEach(function(r,i){
+    var y=T+i*rowH, w=Math.max(3,r.nRate/mx*iw), ok=r.nRate>=0.20;
+    o+='<text class="ax" x="'+(L-10)+'" y="'+(y+13)+'" text-anchor="end">'+esc(r.name)+'</text>'
+     +'<rect x="'+L+'" y="'+(y+3)+'" width="'+w.toFixed(1)+'" height="14" rx="4" fill="'+(ok?"#2a78d6":"#d03b3b")+'" '
+     +'data-t="'+esc(r.name)+'<br>이익률 '+(r.nRate*100).toFixed(1)+'% · 공헌이익 '+fmt(r.nProfit||0)+'원"/>'
+     +'<text class="vlabel" x="'+(L+w+7).toFixed(1)+'" y="'+(y+14)+'">'+(r.nRate*100).toFixed(1)+'%</text>';
+  });
+  return o+'</svg>';
+}
+
+function calcTable(rows){
+  var h='<div class="tbox"><div class="tscroll"><table><thead><tr>'
+   +'<th>옵션명</th><th>총원가</th><th>네이버 판매가</th><th>공헌이익</th><th>이익률</th><th>최소 ROAS</th>'
+   +'<th>쿠팡 등록가</th><th>쿠팡 공헌이익</th><th>쿠팡 이익률</th><th>판정</th></tr></thead><tbody>';
+  rows.forEach(function(r){
+    h+='<tr><td><span class="kw">'+esc(r.name)+'</span>'
+     +(r.supplier?'<div class="sub">'+esc(r.supplier)+'</div>':'')+'</td>'
+     +'<td class="num">'+fmt(r.cost)+'</td>'
+     +'<td class="num">'+(r.nPrice?fmt(r.nPrice):"—")+'</td>'
+     +'<td class="num">'+(r.nProfit!=null?fmt(r.nProfit):"—")+'</td>'
+     +'<td class="num"><span class="'+((r.nRate||0)>=0.20?"cvr-ok":"cvr-no")+'">'+(r.nRate!=null?(r.nRate*100).toFixed(1)+"%":"—")+'</span></td>'
+     +'<td class="num dim">'+(r.nRoas!=null?r.nRoas.toFixed(2):"—")+'</td>'
+     +'<td class="num">'+(r.cPrice?fmt(r.cPrice):"—")+'</td>'
+     +'<td class="num">'+(r.cProfit!=null?fmt(r.cProfit):"—")+'</td>'
+     +'<td class="num"><span class="'+((r.cRate||0)>=0.20?"cvr-ok":"cvr-no")+'">'+(r.cRate!=null?(r.cRate*100).toFixed(1)+"%":"—")+'</span></td>'
+     +'<td>'+esc(r.verdict||r.role||"")+'</td></tr>';
+  });
+  return h+'</tbody></table></div></div>';
+}
+
+/* ── 파일 받기 ── */
+(function(){
+  var drop=document.getElementById("xDrop"), inp=document.getElementById("xFile");
+  if(!drop) return;
+  var err=function(m){ document.getElementById("xErr").innerHTML=m?'<div class="xerr">'+m+'</div>':""; };
+  drop.onclick=function(){ inp.click(); };
+  drop.onkeydown=function(e){ if(e.key==="Enter"||e.key===" "){ e.preventDefault(); inp.click(); } };
+  ["dragenter","dragover"].forEach(function(n){ drop.addEventListener(n,function(e){
+    e.preventDefault(); drop.classList.add("over"); }); });
+  ["dragleave","drop"].forEach(function(n){ drop.addEventListener(n,function(e){
+    e.preventDefault(); drop.classList.remove("over"); }); });
+  drop.addEventListener("drop",function(e){ take(e.dataTransfer.files); });
+  inp.onchange=function(){ take(inp.files); inp.value=""; };
+
+  async function take(fileList){
+    /* FileList 는 입력칸을 가리키는 살아있는 목록이다.
+       take 가 await 로 멈춰 있는 사이에 inp.value="" 가 돌면 목록이 그 자리에서 비워져
+       두 번째 파일부터 조용히 사라진다. 둘을 한꺼번에 떨궈보고 알았다.
+       그래서 먼저 배열로 떠둔다. */
+    var files=Array.prototype.slice.call(fileList||[]);
+    return run(files);
+  }
+  async function run(files){
+    err("");
+    if(!window.XlsxLab){ err("엑셀 읽기 모듈(xlsx-lab.js)을 못 불러왔다."); return; }
+    if(!window.DecompressionStream){ err("이 브라우저는 압축 해제를 지원하지 않는다. 크롬이나 엣지 최신판으로 열어라."); return; }
+    var bad=[];
+    for(var i=0;i<files.length;i++){
+      var f=files[i];
+      if(!/\.xlsx$/i.test(f.name)){ bad.push(f.name+" — xlsx 만 읽는다"); continue; }
+      try{
+        var book=await window.XlsxLab.readWorkbook(await f.arrayBuffer());
+        var d=window.XlsxLab.detect(book);
+        if(!d.kind){ bad.push(f.name+" — 아는 모양이 아니다. 시트: "+(d.names||[]).join(", ")); continue; }
+        var rows = d.kind==="supply" ? window.XlsxLab.readSupply(d.t) : window.XlsxLab.readCalc(d.t);
+        if(!rows.length){ bad.push(f.name+" — 읽을 줄이 없다"); continue; }
+        XROWS.push({ file:f.name, kind:d.kind, rows:rows });
+      }catch(e){ bad.push(f.name+" — "+e.message); }
+    }
+    if(bad.length) err("<b>못 읽은 파일</b><br>"+bad.map(esc).join("<br>"));
+    renderXls();
+  }
+})();
 
 /* ── 공급가 비교 ──
    공급사마다 같은 물건을 다르게 적는다. 낱말을 믿으면 당한다.
@@ -1937,7 +2309,7 @@ function drawTrend(kw){
 /* ── 갱신 ── */
 function refresh(){ readSet(); recalc(); renderSecBar(); renderHero(); renderBuy(); renderKpi(); renderTable();
   drawTrend(R[CUR][K.KW]);
-  if(TAB==="detail") renderDetail(); if(TAB==="supply") renderSupply(); if(TAB==="margin") renderMargin(); if(TAB==="status") renderStatus(); }
+  if(TAB==="detail") renderDetail(); if(TAB==="xls") renderXls(); if(TAB==="supply") renderSupply(); if(TAB==="margin") renderMargin(); if(TAB==="status") renderStatus(); }
 
 /* 처음 열었을 때 1번 행이 아니라 지금 기준에서 제일 좋은 키워드를 보여준다 */
 recalc();

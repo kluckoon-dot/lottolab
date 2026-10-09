@@ -101,23 +101,23 @@ function readXlsx(buf) {
   const sst = [];
   if (sstXml) {
     const x = sstXml.toString("utf8");
-    for (const m of x.matchAll(/<si>([\s\S]*?)<\/si>/g))
-      sst.push([...m[1].matchAll(/<t[^>]*>([\s\S]*?)<\/t>/g)].map(t => unesc(t[1])).join(""));
+    for (const m of x.matchAll(/<(?:\w+:)?si>([\s\S]*?)<\/(?:\w+:)?si>/g))
+      sst.push([...m[1].matchAll(/<(?:\w+:)?t[^>]*>([\s\S]*?)<\/(?:\w+:)?t>/g)].map(t => unesc(t[1])).join(""));
   }
   const sheetName = Object.keys(files).find(k => /^xl\/worksheets\/sheet\d+\.xml$/.test(k));
   if (!sheetName) throw new Error("시트를 못 찾았다");
   const sheet = files[sheetName].toString("utf8");
   const rows = [];
-  for (const rm of sheet.matchAll(/<row[^>]*>([\s\S]*?)<\/row>/g)) {
+  for (const rm of sheet.matchAll(/<(?:\w+:)?row\b[^>]*>([\s\S]*?)<\/(?:\w+:)?row>/g)) {
     const cells = [];
-    for (const cm of rm[1].matchAll(/<c([^>]*)>([\s\S]*?)<\/c>/g)) {
-      const attrs = cm[1], body = cm[2];
+    for (const cm of rm[1].matchAll(/<(?:\w+:)?c\b([^>]*?)(?:\/>|>([\s\S]*?)<\/(?:\w+:)?c>)/g)) {
+      const attrs = cm[1], body = cm[2] || "";
       const ref = (attrs.match(/r="([A-Z]+\d+)"/) || [])[1];
       const t = (attrs.match(/t="([^"]+)"/) || [])[1];
       let val = "";
-      if (t === "inlineStr") val = [...body.matchAll(/<t[^>]*>([\s\S]*?)<\/t>/g)].map(x => unesc(x[1])).join("");
+      if (t === "inlineStr") val = [...body.matchAll(/<(?:\w+:)?t[^>]*>([\s\S]*?)<\/(?:\w+:)?t>/g)].map(x => unesc(x[1])).join("");
       else {
-        const v = (body.match(/<v>([\s\S]*?)<\/v>/) || [])[1];
+        const v = (body.match(/<(?:\w+:)?v>([\s\S]*?)<\/(?:\w+:)?v>/) || [])[1];
         if (v != null) val = t === "s" ? (sst[+v] ?? "") : unesc(v);
       }
       const at = ref ? colNum(ref) : cells.length;
