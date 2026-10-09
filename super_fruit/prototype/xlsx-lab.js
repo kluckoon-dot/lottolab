@@ -157,7 +157,8 @@
         kw: at("키워드"), dup: at("중복횟수"), cat: at("대표카테고리"), cls: at("키워드분류"),
         shopIdx: at("쇼핑성지수"), pc: at("PC검색"), mo: at("모바일검색"), tot: at("총검색수"),
         prod: at("상품수"), comp: at("경쟁강도"), clk: at("평균클릭수"),
-        tpc: at("PC클릭률"), tmo: at("모바일클릭률") } };
+        tpc: at("PC클릭률"), tmo: at("모바일클릭률"),
+        adPc: at("PC광고단가"), adMo: at("모바일광고단가"), clkComp: at("클릭경쟁률"), adPerClk: at("클릭대비광고비") } };
     }
     return null;
   }
@@ -172,7 +173,8 @@
       out.push({ kw, dup: n(g(r, c.dup)), cat: String(g(r, c.cat) ?? "").trim(), cls: String(g(r, c.cls) ?? "").trim(),
         shopIdx: n(g(r, c.shopIdx)), pc: n(g(r, c.pc)) || 0, mo: n(g(r, c.mo)) || 0, tot: n(g(r, c.tot)),
         prod: n(g(r, c.prod)), comp: n(g(r, c.comp)), clk: n(g(r, c.clk)),
-        ctrPc: n(g(r, c.tpc)) || 0, ctrMo: n(g(r, c.tmo)) || 0 });
+        ctrPc: n(g(r, c.tpc)) || 0, ctrMo: n(g(r, c.tmo)) || 0,
+        adPc: n(g(r, c.adPc)), adMo: n(g(r, c.adMo)), clkComp: n(g(r, c.clkComp)), adPerClk: n(g(r, c.adPerClk)) });
     }
     return out;
   }

@@ -121,24 +121,26 @@ async function lookup(kw, fresh) {
   const list = (r.json?.keywordList || []).map(rowOf);
   const exact = list.find(x => same(x.kw, kw)) || list.find(x => same(x.kw, hint)) || null;
 
-  /* 2. 입찰가 1~3위. 검색한 키워드와 연관 상위 29개까지, 10개씩 묶어 PC·모바일 따로.
-        묶음 조회는 9월 수집 때 지원되는 것을 확인했다. */
+  /* 2. 입찰가 1~3위 · 중간 입찰가. 연관 전부(검색량 큰 순 500개까지).
+        전에는 상위 30개만 받아서 나머지 줄에 9월 입찰가가 표시 없이 섞여 보였다.
+        순위 입찰가는 한 번에 50개, 중간 입찰가는 200개까지 받는다 (2026-10-09 실측). */
   const want = [];
   if (exact) want.push(exact.kw);
   list.slice().sort((a, b) => (b.pc + b.mo) - (a.pc + a.mo))
-    .forEach(x => { if (want.length < 30 && !want.includes(x.kw)) want.push(x.kw); });
+    .forEach(x => { if (want.length < 500 && !want.includes(x.kw)) want.push(x.kw); });
   const bids = await bidsFor(want);
-  const out = { at: new Date().toISOString(), kw, hint, exact, related: list, bids };
+  const med = await medFor(want);
+  const out = { at: new Date().toISOString(), kw, hint, exact, related: list, bids, med };
   await fsp.mkdir(CACHE, { recursive: true });
   await fsp.writeFile(file, JSON.stringify(out), "utf8");
   return { ...out, cached: false };
 }
 
-/* ── 입찰가 1~3위. 10개씩 묶어 PC·모바일 따로 ── */
+/* ── 입찰가 1~3위. 50개씩 묶어 PC·모바일 따로 ── */
 async function bidsFor(want) {
   const bids = {};
-  for (let i = 0; i < want.length; i += 10) {
-    const g = want.slice(i, i + 10);
+  for (let i = 0; i < want.length; i += 50) {
+    const g = want.slice(i, i + 50);
     const items = []; for (const k of g) for (const p of [1, 2, 3]) items.push({ key: k, position: p });
     for (const device of ["PC", "MOBILE"]) {
       const b = await ad("POST", "/estimate/average-position-bid/keyword",
@@ -147,10 +149,26 @@ async function bidsFor(want) {
         const slot = (bids[e.keyword] ||= { pc: [null, null, null], mo: [null, null, null] });
         (device === "PC" ? slot.pc : slot.mo)[e.position - 1] = e.bid;
       }
-      await sleep(250);
+      await sleep(80);
     }
   }
   return bids;
+}
+/* ── 중간 입찰가 (최근 한 달). 아이템스카우트 "광고 단가" 와 맞대보는 값. 200개씩 ── */
+async function medFor(want) {
+  const med = {};
+  for (let i = 0; i < want.length; i += 200) {
+    const g = want.slice(i, i + 200);
+    for (const device of ["PC", "MOBILE"]) {
+      const r = await ad("POST", "/estimate/median-bid/keyword", { body: { device, period: "MONTH", items: g } });
+      if (r.ok) for (const e of (r.json?.estimate || [])) {
+        const slot = (med[e.keyword] ||= [null, null]);
+        slot[device === "PC" ? 0 : 1] = e.bid;
+      }
+      await sleep(80);
+    }
+  }
+  return med;
 }
 const rowOf = x => ({
   kw: x.relKeyword,
@@ -191,9 +209,11 @@ async function multi(kws) {
   }
   for (const k of asked) if (!found[k]) miss.push(k);
   const rows = Object.values(found);
-  const bids = await bidsFor([...new Set(rows.map(x => x.kw))]);
+  const uniq = [...new Set(rows.map(x => x.kw))];
+  const bids = await bidsFor(uniq);
+  const med = await medFor(uniq);
   return { at: new Date().toISOString(), asked, found: Object.fromEntries(Object.entries(found).map(([k, v]) => [k, v.kw])),
-           miss, related: rows, bids };
+           miss, related: rows, bids, med };
 }
 
 /* ── 추세 · 쇼핑 구매층 (NAVER API HUB) ──
@@ -332,6 +352,19 @@ const server = http.createServer(async (req, res) => {
       if (!(KEY && SECRET && CUSTOMER)) return send(res, 500, { error: "key.txt 에 검색광고 키가 없다." });
       const kw = (u.searchParams.get("kw") || "").trim();
       return send(res, 200, await lookup(kw, u.searchParams.get("fresh") === "1"));
+    }
+    /* 판정 기록 — 내린 판정과 실제 결과. 이 PC 의 naver-out/verdict-log.json 하나에 통째로 둔다 */
+    if (u.pathname === "/api/log" && req.method === "GET") {
+      try { return send(res, 200, JSON.parse(await fsp.readFile(path.join(OUTDIR, "verdict-log.json"), "utf8"))); }
+      catch { return send(res, 200, []); }
+    }
+    if (u.pathname === "/api/log" && req.method === "POST") {
+      const list = JSON.parse(await readBody(req));
+      if (!Array.isArray(list)) throw Object.assign(new Error("모양이 맞지 않는다"), { code: 400 });
+      await fsp.mkdir(OUTDIR, { recursive: true });
+      const f = path.join(OUTDIR, "verdict-log.json");
+      await fsp.writeFile(f + ".tmp", JSON.stringify(list), "utf8"); await fsp.rename(f + ".tmp", f);
+      return send(res, 200, { ok: true, n: list.length });
     }
     if (u.pathname === "/api/uploads" && req.method === "GET") return send(res, 200, await listUploads());
     if (u.pathname === "/api/uploads" && req.method === "POST")

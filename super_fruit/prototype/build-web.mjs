@@ -59,20 +59,32 @@ function secOf(kw) {
   return m;
 }
 const before = SEC.map(() => 0), after = SEC.map(() => 0);
+/* 글자로만 나누면 식품 아닌 것이 끼어든다 (독감 · 배게 · 남여주CC · 앞치마 · 추석연휴).
+   refresh-naver.mjs 가 네이버 쇼핑인사이트 식품 분야에서 클릭이 있는지 재둔 값(r[25])으로 거른다.
+   0 = 식품 분야 쇼핑 클릭 없음 → 화면 섹션에서 뺀다. 원본 keywords.json 에는 그대로 남는다.
+   -1 = 아직 모름 → 글자 규칙대로 둔다. */
+let notFood = 0; const notFoodTop = [];
 for (const r of R) {
   for (let i = 0; i < SEC.length; i++) if (r[18] & (1 << i)) before[i]++;
-  r[18] = secOf(r[0]);
+  const m = secOf(r[0]);
+  if (m && r[25] === 0) { notFood++; if (notFoodTop.length < 400) notFoodTop.push([r[0], (r[1] || 0) + (r[2] || 0)]); r[18] = 0; continue; }
+  r[18] = m;
   for (let i = 0; i < SEC.length; i++) if (r[18] & (1 << i)) after[i]++;
 }
 console.log("섹션별  (접을 때 → 다시 계산)");
 SEC.forEach((s, i) => console.log(`  ${s.name.padEnd(14)} ${before[i].toLocaleString().padStart(8)} → ${after[i].toLocaleString().padStart(8)}`));
 
+if (notFood) {
+  notFoodTop.sort((a, b) => b[1] - a[1]);
+  console.log(`\n식품 아님으로 뺀 것 ${notFood.toLocaleString()}개 (네이버 쇼핑인사이트 식품 분야 클릭 없음)`);
+  console.log("  예: " + notFoodTop.slice(0, 30).map(x => x[0]).join(" · "));
+}
 const keep = R.filter(r => r[18]);
 const set = new Set(keep.map(r => r[0]));
 console.log(`\n담을 키워드 ${keep.length.toLocaleString()}개`);
 
 fs.mkdirSync(OUT, { recursive: true });
-const head = { fetchedAt: H.fetchedAt, calls: H.calls, failed: H.failed, cols: H.cols,
+const head = { fetchedAt: H.fetchedAt, freshAt: H.freshAt || "", calls: H.calls, failed: H.failed, cols: H.cols,
                sections: SEC.map(x => ({ id: x.id, name: x.name, naver: x.naver })) };
 const w = (f, js) => { fs.writeFileSync(path.join(OUT, f), js, "utf8");
                        console.log(`  → ${f.padEnd(16)} ${MB(Buffer.byteLength(js))}`); };

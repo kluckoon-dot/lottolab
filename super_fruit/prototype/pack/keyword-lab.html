@@ -1,4 +1,5 @@
 <meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
 <title>슈퍼프룻 키워드랩</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -58,7 +59,10 @@ body{margin:0; background:var(--bg); color:var(--ink);
 .num{font-family:"IBM Plex Mono","IBM Plex Sans KR",monospace; font-variant-numeric:tabular-nums}
 .wrap{max-width:1240px; margin:0 auto; padding-inline:16px; padding-block:0 56px}
 
-.top{border-bottom:1px solid var(--line); background:var(--surface); position:sticky; top:0; z-index:30}
+/* 머리 바와 판매 설정 바는 붙여두지 않는다. 붙여두면 스크롤할 때 차트 위를 덮고,
+   전체 화면 캡처에서는 페이지 한가운데에 머리 바가 한 번 더 찍힌다 (2026-10-09 보갬 캡처). */
+[hidden]{display:none!important}
+.top{border-bottom:1px solid var(--line); background:var(--surface); position:relative; z-index:2}
 .top-in{max-width:1240px; margin:0 auto; padding-inline:16px; padding-block:12px; display:flex; align-items:center; gap:13px; flex-wrap:wrap}
 .mark{font-family:Hahmlet,serif; font-weight:700; font-size:20px; letter-spacing:-.02em; color:var(--brand); margin:0}
 .mark span{color:var(--ink)}
@@ -69,7 +73,7 @@ body{margin:0; background:var(--bg); color:var(--ink);
 .sample::before{content:""; width:6px; height:6px; border-radius:50%; background:var(--warn); flex:none}
 
 /* 판매 설정 바 */
-.setbar{background:var(--surface-2); border-bottom:1px solid var(--line); position:sticky; top:53px; z-index:29}
+.setbar{background:var(--surface-2); border-bottom:1px solid var(--line); position:relative; z-index:1}
 .setbar-in{max-width:1240px; margin:0 auto; padding-inline:16px; padding-block:9px; display:flex; gap:16px; align-items:center; flex-wrap:wrap}
 .set-k{font-size:10.5px; letter-spacing:.06em; text-transform:uppercase; color:var(--ink-3); font-weight:700; margin-right:2px}
 .seg{display:inline-flex; border:1px solid var(--line-strong); border-radius:7px; overflow:hidden}
@@ -372,6 +376,13 @@ tbody tr.sel{background:var(--brand-soft)}
 .ages div{flex:1;display:flex;flex-direction:column;justify-content:flex-end;align-items:center;gap:3px;min-width:0}
 .ages i{display:block;width:100%;background:var(--seq4);border-radius:3px 3px 0 0}
 .ages i.peak{background:var(--brand)}
+.prodin{display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin-top:8px}
+.prodin a{color:var(--brand);font-weight:700;font-size:12px}
+.prodin span{display:inline-flex;gap:4px;align-items:center}
+.prodin input{width:96px}
+.medrow{display:flex;gap:10px;align-items:center;font-size:12px;margin-top:6px;color:var(--ink-2)}
+.medrow b{font-size:11px;color:var(--ink-3);min-width:58px}
+.medrow em{font-style:normal;font-weight:700;color:var(--ink);font-family:"IBM Plex Mono",monospace}
 .ages b{font-size:9.5px;font-weight:600;color:var(--ink-3);white-space:nowrap}
 .buy-foot{margin:11px 0 0;font-size:11px;color:var(--ink-3);line-height:1.55}
 @media (max-width:700px){.buy-grid{grid-template-columns:1fr;gap:13px}}
@@ -644,6 +655,7 @@ th.srt[data-dir]::after{content:attr(data-dir);margin-left:3px;color:var(--brand
       <button class="tab" role="tab" aria-selected="false" data-tab="detail">키워드 상세</button>
       <button class="tab" role="tab" aria-selected="false" data-tab="xls">엑셀 분석</button>
       <button class="tab" role="tab" aria-selected="false" data-tab="margin">마진 · 광고효율</button>
+      <button class="tab" role="tab" aria-selected="false" data-tab="log">판정 기록</button>
       <button class="tab" role="tab" aria-selected="false" data-tab="status">수집 현황</button>
     </div>
 
@@ -850,6 +862,7 @@ th.srt[data-dir]::after{content:attr(data-dir);margin-left:3px;color:var(--brand
       <div class="formula" id="marFormula"></div>
     </section>
 
+    <section id="panel-log" hidden><div id="logBox"></div></section>
     <section id="panel-status" hidden>
       <div class="grid2">
         <div class="card"><h3>확보한 것</h3><p class="note">검색광고 API · 실데이터</p><div id="haveList"></div></div>
@@ -883,7 +896,18 @@ if (window.KWROWS && window.KWROWS.length) {
 }
 var R = DATA.rows;   // [kw,pc,mo,depth,comp,clickPc,clickMo,ctrPc,ctrMo,bp1,bp2,bp3,bm1,bm2,bm3,masked,intent,hint,sec]
 var N = R.length;
-var K={KW:0,PC:1,MO:2,DEPTH:3,COMP:4,CPC_:5,CMO:6,TPC:7,TMO:8,BP1:9,BP2:10,BP3:11,BM1:12,BM2:13,BM3:14,MASK:15,INT:16,HINT:17,SEC:18,PROD:19,ICOMP:20,ICAT:21};
+var K={KW:0,PC:1,MO:2,DEPTH:3,COMP:4,CPC_:5,CMO:6,TPC:7,TMO:8,BP1:9,BP2:10,BP3:11,BM1:12,BM2:13,BM3:14,MASK:15,INT:16,HINT:17,SEC:18,PROD:19,ICOMP:20,ICAT:21,MPC:22,MMO:23,DAY:24,FOOD:25,SEP:26};
+/* 22·23 중간 입찰가 PC·모바일 (네이버 /estimate/median-bid, 최근 한 달) — 아이템스카우트 "광고 단가" 와 맞대보는 값
+   24 그 줄 숫자를 네이버에서 받은 날 YYYYMMDD. 9월 수집본은 0
+   25 식품 분야 쇼핑 클릭 1 있음 · 0 없음 · -1 모름 (API HUB 쇼핑인사이트)
+   26 9월 수집 당시 한 달 검색수. 9월 주간 추세(9/14 에 끝남)의 눈금은 이 값에 맞춘다 —
+      오늘 검색수에 맞추면 9월 바닥이 10월 성수기 값으로 부풀어 곡선 전체가 몇 배가 된다 */
+var PACK_DAY = (window.KWHEAD && window.KWHEAD.freshAt) ? String(window.KWHEAD.freshAt).slice(0,10) : "2026-09-14";
+function mdOf(t){ var p=String(t).replace(/-/g,""); return (+p.slice(4,6))+"/"+(+p.slice(6,8)); }
+function todayInt(t){ var d=t?new Date(t):new Date(); return d.getFullYear()*10000+(d.getMonth()+1)*100+d.getDate(); }
+/* 이 줄 숫자가 언제 것인지. 실시간 > 키워드도구 엑셀 > 아이템스카우트 > 수집본(줄마다 날짜) > 9월 수집본 */
+function srcLabel(i){ var l=liveLabel(R[i][K.KW]); if(l) return l; var d=R[i][K.DAY]; return d ? "수집본 "+mdOf(d) : "9월 수집본"; }
+function staleDays(i){ var kw=R[i][K.KW], l=LIVEAT[kw], t= l ? new Date(l.at) : (R[i][K.DAY] ? new Date(String(R[i][K.DAY]).replace(/(\d{4})(\d{2})(\d{2})/,"$1-$2-$3")) : new Date("2026-09-14")); return Math.floor((Date.now()-t)/864e5); }
 /* 상품수. 아이템스카우트 내보내기를 21단계로 넣었을 때만 값이 있다.
    0 은 "안 받았다"는 뜻이지 "상품이 0개"가 아니다. 절대 0 을 계산에 쓰지 않는다. */
 function prodOf(i){ var v=R[i][K.PROD]; return v>0?v:null; }
@@ -1296,7 +1320,7 @@ var qt; document.getElementById("q").addEventListener("input",function(e){
 document.getElementById("moreBtn").onclick=function(){ LIMIT+=200; renderTable(); };
 
 /* 탭 */
-var PANELS={gold:"panel-gold",detail:"panel-detail",xls:"panel-xls",margin:"panel-margin",status:"panel-status"};
+var PANELS={gold:"panel-gold",detail:"panel-detail",xls:"panel-xls",margin:"panel-margin",log:"panel-log",status:"panel-status"};
 var TAB="gold";
 document.querySelectorAll(".tab").forEach(function(t){ t.onclick=function(){ setTab(t.dataset.tab); }; });
 function setTab(n){ TAB=n; hideTip();
@@ -1306,6 +1330,7 @@ function setTab(n){ TAB=n; hideTip();
   if(n==="xls") renderXls();
   if(n==="margin") renderMargin();
   if(n==="status") renderStatus();
+  if(n==="log") renderLog();
 }
 
 /* ── 표 ── */
@@ -1417,6 +1442,7 @@ var XCOLS=[
   ["클릭률 모바일 %",function(i){return R[i][K.TMO];}],
   ["PC 1위",function(i){return R[i][K.BP1];}],["PC 2위",function(i){return R[i][K.BP2];}],["PC 3위",function(i){return R[i][K.BP3];}],
   ["모바일 1위",function(i){return R[i][K.BM1];}],["모바일 2위",function(i){return R[i][K.BM2];}],["모바일 3위",function(i){return R[i][K.BM3];}],
+  ["중간 입찰가 PC",function(i){return R[i][K.MPC]||"";}],["중간 입찰가 모바일",function(i){return R[i][K.MMO]||"";}],
   ["광고깊이",function(i){return R[i][K.DEPTH];}],
   ["경쟁정도",function(i){return NCOMP[R[i][K.COMP]];}],
   ["상품수",function(i){var v=prodOf(i);return v==null?"":v;}],
@@ -1424,7 +1450,7 @@ var XCOLS=[
   ["손익분기 전환율 %",function(i){return isFinite(C_cvr[i])?+(C_cvr[i]*100).toFixed(2):"";}],
   ["황금점수",function(i){return C_gold[i];}],
   ["판정",function(i){return VN[C_v[i]];}],
-  ["기준",function(i){return liveLabel(R[i][K.KW])||"9월 수집본";}]
+  ["기준",function(i){return srcLabel(i);}]
 ];
 function exportRows(sep){
   var rows=allPassing(), q=function(v){ v=String(v==null?"":v);
@@ -1651,9 +1677,10 @@ function applyItemScout(rec){
   rec.rows.forEach(function(x){
     var i=BYKW[x.kw];
     if(i==null){ if(N>=CAP) return; i=newRow(x.kw, seed); }
-    var a=R[i], l=LIVEAT[x.kw], newer=!l || String(l.at)<=String(rec.at);
+    /* 새것만 이긴다. 실시간 기록뿐 아니라 수집본 줄의 날짜(오늘 갱신했을 수 있다)와도 견준다 */
+    var a=R[i], l=LIVEAT[x.kw], newer=(!l || String(l.at)<=String(rec.at)) && (!a[K.DAY] || a[K.DAY]<=todayInt(rec.at));
     if(newer){
-      a[K.PC]=x.pc; a[K.MO]=x.mo; a[K.TPC]=x.ctrPc; a[K.TMO]=x.ctrMo; a[K.MASK]=0;
+      a[K.PC]=x.pc; a[K.MO]=x.mo; a[K.TPC]=x.ctrPc; a[K.TMO]=x.ctrMo; a[K.MASK]=0; a[K.DAY]=todayInt(rec.at);
       if(x.clk!=null){
         var wp=x.pc*x.ctrPc, wm=x.mo*x.ctrMo, ws=wp+wm;
         a[K.CPC_]= ws ? +(x.clk*wp/ws).toFixed(1) : 0; a[K.CMO]= ws ? +(x.clk*wm/ws).toFixed(1) : x.clk;
@@ -1685,6 +1712,93 @@ function applyItemScout(rec){
   rec.idx=idx;
   return idx;
 }
+/* 상품수 직접 입력. 네이버쇼핑·아이템스카우트 화면에서 본 숫자를 사람이 넣는다.
+   자동으로 긁지 않는다(쇼핑 검색 결과 자동 수집은 네이버 DB권 판례 · docs/04).
+   경쟁강도 = 상품수 ÷ 그때의 한 달 검색수 로 다시 낸다. */
+function manualLoad(){ try{ return JSON.parse(localStorage.getItem("kwlab.prodManual")||"{}"); }catch(e){ return {}; } }
+function setManualProd(kw, v){
+  var all=manualLoad(), at=new Date().toISOString();
+  (all[kw]||(all[kw]=[])).push({ at:at, prod:v });
+  try{ localStorage.setItem("kwlab.prodManual", JSON.stringify(all)); }catch(e){}
+  applyManualOne(kw, { at:at, prod:v });
+}
+function applyManualOne(kw, p){
+  var i=BYKW[kw]; if(i==null) return;
+  R[i][K.PROD]=p.prod; R[i][K.ICOMP]=0;
+  var h=PRODH[kw]||(PRODH[kw]=[]);
+  if(!h.some(function(q){ return q.at===p.at; })) h.push({ at:p.at, prod:p.prod, src:"직접" });
+  h.sort(function(p1,q){ return String(p1.at).localeCompare(String(q.at)); });
+  /* 더 새 아이템스카우트 값이 있으면 그것이 이긴다 */
+  var last=h[h.length-1]; R[i][K.PROD]=last.prod;
+}
+function applyManualAll(){ var all=manualLoad(); Object.keys(all).forEach(function(kw){ all[kw].forEach(function(p){ applyManualOne(kw,p); }); }); }
+/* ── 판정 기록 · 피드백 루프 (docs/05 무기 ③) ──
+   판정을 내린 그때의 숫자와 설정을 그대로 떠둔다. 나중에 실제로 팔아보고 결과를 적는다.
+   쌓이면 "린정 준 것이 실제로 남았나" 를 센다. 판정 규칙은 이 표로 교정한다.
+   실시간 서버로 열면 이 PC 의 naver-out/verdict-log.json 에, 아니면 이 브라우저에 남는다. */
+var VLOG=[], VLOG_READY=false;
+async function loadLog(){
+  var got=null;
+  if(LIVE){ try{ var r=await fetch("/api/log"); if(r.ok) got=await r.json(); }catch(e){} }
+  if(!got){ try{ got=JSON.parse(localStorage.getItem("kwlab.vlog")||"[]"); }catch(e){ got=[]; } }
+  VLOG=got; VLOG_READY=true;
+}
+async function saveLog(){
+  try{ localStorage.setItem("kwlab.vlog", JSON.stringify(VLOG)); }catch(e){}
+  if(LIVE){ try{ await fetch("/api/log",{method:"POST",headers:{"content-type":"application/json"},body:JSON.stringify(VLOG)}); }catch(e){} }
+}
+async function addLog(i){
+  if(!VLOG_READY) await loadLog();
+  var a=R[i], st=ST(i), c=CA(i), mg=marginOf();
+  VLOG.unshift({ id:Date.now().toString(36)+Math.random().toString(36).slice(2,6), at:new Date().toISOString(),
+    kw:a[K.KW], verdict:c.v, gold:c.gold, src:srcLabel(i),
+    tot:st.tot, pc:a[K.PC], mo:a[K.MO], clk:+((a[K.CPC_]||0)+(a[K.CMO]||0)).toFixed(1),
+    bm:[a[K.BM1],a[K.BM2],a[K.BM3]], medMo:a[K.MMO]||0, beCvr3:isFinite(c.cvr)?+(c.cvr*100).toFixed(2):null,
+    prod:prodOf(i), comp:realComp(i)!=null?+realComp(i).toFixed(2):null,
+    set:{ platform:SET.platform, supply:SET.supply, sell:SET.sell, ship:SET.ship, tgtCvr:SET.tgtCvr },
+    margin:Math.round(mg.margin), marginRate:+(mg.rate*100).toFixed(1),
+    out:{ result:"", revenue:"", adCost:"", orders:"", memo:"" } });
+  await saveLog();
+  if(TAB==="log") renderLog();
+}
+async function renderLog(){
+  if(!VLOG_READY) await loadLog();
+  var box=document.getElementById("logBox");
+  var by={린정:[0,0,0],반린정:[0,0,0],패스:[0,0,0]};   /* [기록, 결과 적음, 남음] */
+  VLOG.forEach(function(r){ var b=by[r.verdict]; if(!b) return; b[0]++; if(r.out.result){ b[1]++; if(r.out.result==="남음") b[2]++; } });
+  var rate=function(b){ return b[1] ? Math.round(b[2]/b[1]*100)+"%" : "—"; };
+  var h=kpi([
+    ["기록", fmt(VLOG.length)+"건", "판정을 내린 그때의 숫자 그대로"],
+    ["린정 → 실제로 남음", rate(by.린정), "결과 적은 "+by.린정[1]+"건 중"],
+    ["반린정 → 남음", rate(by.반린정), "결과 적은 "+by.반린정[1]+"건 중"],
+    ["패스 → 남음", rate(by.패스), "패스였는데 남았다면 규칙이 너무 빡빡하다"]
+  ]);
+  if(!VLOG.length){
+    box.innerHTML=h+'<div class="na" style="padding:22px">아직 기록이 없다. 키워드를 고르고 위쪽 <b>판정 기록 +</b> 를 누르면 그때의 판정·검색수·입찰가·마진 설정이 그대로 남는다. 팔아본 뒤 여기서 결과를 적는다.</div>';
+    return;
+  }
+  h+='<div class="tbox"><div class="tscroll"><table class="logt"><thead><tr><th>기록일</th><th>키워드</th><th>판정</th><th>검색수</th><th>3위 입찰가(모바일)</th><th>손익분기 전환율</th><th>마진</th>'
+   +'<th>결과</th><th>매출</th><th>광고비</th><th>주문수</th><th>메모</th><th></th></tr></thead><tbody>';
+  VLOG.forEach(function(r){
+    var d=new Date(r.at), o=r.out||{};
+    var sel=function(v){ return '<select data-f="result" data-id="'+r.id+'"><option value=""'+(!v?" selected":"")+'>—</option>'
+      +["남음","본전","손해","안 팔아봄"].map(function(x){ return '<option'+(v===x?" selected":"")+'>'+x+'</option>'; }).join("")+'</select>'; };
+    var inp=function(f,w){ return '<input type="text" data-f="'+f+'" data-id="'+r.id+'" value="'+esc(o[f]||"")+'" style="width:'+w+'px">'; };
+    h+='<tr><td class="dim">'+(d.getMonth()+1)+'/'+d.getDate()+'</td><td><span class="kw">'+esc(r.kw)+'</span><div class="dim" style="font-size:11px">'+esc(r.src||"")+'</div></td>'
+     +'<td>'+esc(r.verdict)+'</td><td class="num">'+fmt(r.tot)+'</td><td class="num">'+(r.bm&&r.bm[2]?fmt(r.bm[2]):"—")+'</td>'
+     +'<td class="num">'+(r.beCvr3!=null?r.beCvr3+"%":"—")+'</td><td class="num">'+fmt(r.margin)+'원 · '+r.marginRate+'%</td>'
+     +'<td>'+sel(o.result)+'</td><td>'+inp("revenue",80)+'</td><td>'+inp("adCost",72)+'</td><td>'+inp("orders",48)+'</td><td>'+inp("memo",150)+'</td>'
+     +'<td><button type="button" class="chip" data-del="'+r.id+'">지우기</button></td></tr>';
+  });
+  box.innerHTML=h+'</tbody></table></div></div><p class="note" style="margin-top:8px">결과를 적는 순간 저장된다. '
+    +(LIVE?'이 PC 의 naver-out\\verdict-log.json':'이 브라우저')+'에 남는다.</p>';
+  box.querySelectorAll("[data-f]").forEach(function(n){
+    n.onchange=function(){ var r=VLOG.find(function(x){ return x.id===n.dataset.id; }); if(!r) return; r.out[n.dataset.f]=n.value; saveLog(); if(n.dataset.f==="result") renderLog(); };
+  });
+  box.querySelectorAll("[data-del]").forEach(function(b){
+    b.onclick=function(){ if(!confirm("이 기록을 지울까?")) return; VLOG=VLOG.filter(function(x){ return x.id!==b.dataset.del; }); saveLog(); renderLog(); };
+  });
+}
 function applyRec(rec){
   if(rec.kind==="naverkw") applyNaverKw(rec);
   else if(rec.kind==="itemscout") applyItemScout(rec);
@@ -1699,7 +1813,7 @@ function updateStamp(){
   var d=new Date(last), parts=[];
   if(n.naverkw) parts.push("키워드도구 "+fmt(n.naverkw)+"개");
   if(n.itemscout) parts.push("아이템스카우트 "+fmt(n.itemscout)+"개");
-  document.getElementById("stamp").textContent="9월 수집본 + "+parts.join(" · ")+" ~"+(d.getMonth()+1)+"/"+d.getDate()+" 갱신";
+  document.getElementById("stamp").textContent="수집본 "+mdOf(PACK_DAY)+" + "+parts.join(" · ")+" ~"+(d.getMonth()+1)+"/"+d.getDate()+" 갱신";
 }
 async function loadSavedUploads(){
   var got=[];
@@ -1709,7 +1823,8 @@ async function loadSavedUploads(){
   /* 키워드도구·아이템스카우트 엑셀은 다시 적용한다. 오래된 것부터 — 새것이 이기게. */
   var nk=got.filter(function(x){ return x.kind==="naverkw"||x.kind==="itemscout"; })
     .sort(function(a,b){ return String(a.at).localeCompare(String(b.at)); });
-  if(nk.length){ nk.forEach(applyRec); buildCats(); recalc(); refresh(); }
+  if(nk.length) nk.forEach(applyRec);
+  applyManualAll(); buildCats(); recalc(); refresh();
   renderCalcPick();
   if(TAB==="xls") renderXls();
 }
@@ -1749,6 +1864,7 @@ function renderXls(){
   out.querySelectorAll("[data-drop]").forEach(function(b){
     b.onclick=async function(){ var rec=XROWS.splice(+b.dataset.drop,1)[0]; if(rec) await removeUpload(rec); renderXls(); };
   });
+  out.querySelectorAll("[data-iscmp]").forEach(function(b){ b.onclick=function(){ runIsCmp(+b.dataset.iscmp); }; });
   out.querySelectorAll("[data-nkview]").forEach(function(b){
     b.onclick=function(){
       var rec=XROWS[+b.dataset.nkview]; if(!rec) return;
@@ -1770,6 +1886,69 @@ function renderXls(){
 var XKIND={ supply:"공급가 비교표", naverkw:"네이버 키워드도구", itemscout:"아이템스카우트", calc:"판매가 계산기" };
 
 /* ── 아이템스카우트 엑셀 ── */
+/* ── 아이템스카우트 ↔ 네이버 지금 값 ──
+   "같은 조건 · 같은 값" 을 눈으로 확인하는 표. 아이템스카우트 엑셀을 받은 그 날 눌러야 뜻이 있다.
+   검색수·클릭·클릭률은 둘 다 네이버 검색광고 키워드도구가 원본이라 같은 날이면 같아야 한다.
+   광고 단가는 네이버 중간 입찰가(최근 한 달)와 맞대본다 — 같은지 아닌지가 이 표로 갈린다.
+   경쟁강도 = 상품수 ÷ 총검색수, 클릭 경쟁률 = 상품수 ÷ 평균클릭수 (아이템스카우트 98/98 확인). */
+async function runIsCmp(fi){
+  var f=XROWS[fi]; if(!f||!LIVE) return;
+  var kws=f.rows.map(function(x){ return x.kw; }), got={}, med={};
+  f.cmp={ busy:true, at:new Date().toISOString() }; renderXls();
+  try{
+    for(var i=0;i<kws.length;i+=30){
+      var r=await fetch("/api/multi?kws="+encodeURIComponent(kws.slice(i,i+30).join(",")));
+      var j=await r.json(); if(!r.ok) throw new Error(j.error||("응답 "+r.status));
+      var by={}; (j.related||[]).forEach(function(x){ by[x.kw]=x; });
+      Object.keys(j.found||{}).forEach(function(k){ var nk=j.found[k]; if(by[nk]) got[k]=by[nk]; if((j.med||{})[nk]) med[k]=j.med[nk]; });
+      f.cmp.done=Math.min(i+30,kws.length); renderXls();
+    }
+    f.cmp={ at:new Date().toISOString(), n:got, med:med };
+  }catch(e){ f.cmp={ err:e.message }; }
+  renderXls();
+}
+function isCmpBlock(f){
+  var c=f.cmp;
+  if(c.busy) return '<p class="note">네이버에서 받는 중… '+(c.done||0)+'/'+f.rows.length+'</p>';
+  if(c.err) return '<p class="note" style="color:var(--down)">대조 실패: '+esc(c.err)+'</p>';
+  var pct=function(a,b){ return (a==null||b==null)?null : b===0 ? (a===0?0:null) : (a-b)/b*100; };
+  var md=function(xs){ var s=xs.filter(function(x){ return x!=null&&isFinite(x); }).sort(function(a,b){return a-b;}); return s.length? s[Math.floor(s.length/2)] : null; };
+  var within=function(xs,t){ var v=xs.filter(function(x){ return x!=null; }); return v.length? Math.round(v.filter(function(x){ return Math.abs(x)<=t; }).length/v.length*100)+"%" : "—"; };
+  var dv=[], dc=[], da=[], rows=[];
+  f.rows.forEach(function(x){
+    var n=c.n[x.kw], m=c.med[x.kw]||[null,null];
+    var it=(x.pc||0)+(x.mo||0), nt= n ? n.pc+n.mo : null, nc= n ? n.clickPc+n.clickMo : null;
+    var v=pct(it,nt), k=pct(x.clk,nc), a=pct(x.adMo,m[1]);
+    dv.push(v); dc.push(k); da.push(a);
+    rows.push({ x:x, n:n, m:m, it:it, nt:nt, nc:nc, v:v, k:k, a:a });
+  });
+  var fd=new Date(f.at||f.savedAt), cd=new Date(c.at), sameDay=fd.toDateString()===cd.toDateString();
+  var cell=function(p){ return p==null?'<td class="num dim">—</td>':'<td class="num"><span class="'+(Math.abs(p)<=5?"cvr-ok":Math.abs(p)>20?"cvr-no":"")+'">'+(p>0?"+":"")+p.toFixed(1)+'%</span></td>'; };
+  var h='<div class="xok" style="margin:6px 0 10px">'
+   +'아이템스카우트 '+(fd.getMonth()+1)+'/'+fd.getDate()+' ↔ 네이버 '+(cd.getMonth()+1)+'/'+cd.getDate()+' '+liveTime(cd)+' · '
+   +'검색수 차이 중앙값 <b>'+(md(dv)!=null?md(dv).toFixed(1):"—")+'%</b> (±5% 안 '+within(dv,5)+') · '
+   +'평균클릭수 <b>'+(md(dc)!=null?md(dc).toFixed(1):"—")+'%</b> (±5% 안 '+within(dc,5)+') · '
+   +'모바일 광고 단가 ↔ 중간 입찰가 <b>'+(md(da)!=null?md(da).toFixed(1):"—")+'%</b> (±5% 안 '+within(da,5)+')'
+   +(sameDay?'':'<br><b>날짜가 다르다.</b> 검색수는 최근 30일 값이라 날짜가 다르면 당연히 어긋난다. 아이템스카우트를 오늘 다시 받아서 대조해라.')
+   +'</div>';
+  h+='<div class="tbox"><div class="tscroll"><table><thead><tr><th>키워드</th>'
+   +'<th>검색수 IS</th><th>검색수 네이버</th><th>차이</th>'
+   +'<th>클릭 IS</th><th>클릭 네이버</th><th>차이</th>'
+   +'<th>광고단가 IS PC·모바일</th><th>중간 입찰가 PC·모바일</th><th>차이(모바일)</th>'
+   +'<th>상품수</th><th>경쟁강도 IS</th><th>상품수÷네이버 검색</th></tr></thead><tbody>';
+  rows.sort(function(p,q){ return (q.it||0)-(p.it||0); }).forEach(function(r){
+    var x=r.x;
+    h+='<tr><td><span class="kw">'+esc(x.kw)+'</span></td>'
+     +'<td class="num">'+fmt(r.it)+'</td><td class="num">'+(r.nt!=null?fmt(r.nt):"없음")+'</td>'+cell(r.v)
+     +'<td class="num">'+(x.clk!=null?(+x.clk).toFixed(1):"—")+'</td><td class="num">'+(r.nc!=null?r.nc.toFixed(1):"—")+'</td>'+cell(r.k)
+     +'<td class="num">'+(x.adPc!=null?fmt(x.adPc):"—")+' · '+(x.adMo!=null?fmt(x.adMo):"—")+'</td>'
+     +'<td class="num">'+(r.m[0]!=null?fmt(r.m[0]):"—")+' · '+(r.m[1]!=null?fmt(r.m[1]):"—")+'</td>'+cell(r.a)
+     +'<td class="num">'+(x.prod!=null?fmt(x.prod):"—")+'</td><td class="num">'+(x.comp!=null?x.comp.toFixed(2):"—")+'</td>'
+     +'<td class="num">'+(x.prod!=null&&r.nt?(x.prod/r.nt).toFixed(2):"—")+'</td></tr>';
+  });
+  return h+'</tbody></table></div></div><div style="height:14px"></div>';
+}
+function liveTime(d){ return String(d.getHours()).padStart(2,"0")+":"+String(d.getMinutes()).padStart(2,"0"); }
 function itemScoutBlocks(f, fi){
   var rows=f.rows, withP=rows.filter(function(x){ return x.prod!=null; });
   var gold=withP.filter(function(x){ return x.comp!=null && x.comp<=1; }).length;
@@ -1782,7 +1961,9 @@ function itemScoutBlocks(f, fi){
     ["새로 들어온 키워드", fresh+"개", "우리 수집본에 없던 것"]
   ]);
   h+='<div style="margin:-4px 0 12px"><button class="chip" data-nkview="'+fi+'">이 키워드들로 목록 보기 →</button>'
+   +(LIVE?' <button class="chip" data-iscmp="'+fi+'">네이버 지금 값과 열마다 맞대보기 →</button>':'')
    +' <span class="note">공백 하나 달라도 다른 키워드로 따로 둔다.</span></div>';
+  if(f.cmp) h+=isCmpBlock(f);
   var top=rows.slice().sort(function(a,b){ return (b.tot||b.pc+b.mo)-(a.tot||a.pc+a.mo); }).slice(0,30);
   h+='<div class="tbox"><div class="tscroll"><table><thead><tr><th>키워드</th><th>대표 카테고리</th><th>분류</th>'
    +'<th>총 검색수</th><th>상품수</th><th>경쟁강도</th><th>평균 클릭수</th></tr></thead><tbody>';
@@ -2480,10 +2661,13 @@ function renderHero(){
    +'<button class="hbtn" type="button" data-go="detail">키워드 상세 →</button>'
    +'<button class="hbtn alt" type="button" id="relGo">'+(F.relSeed===a[K.KW]?"전체 목록으로":"이 키워드의 연관 "+fmt(relGroup(CUR).length)+"개")+'</button>'
    +'<button class="hbtn alt" type="button" data-go="margin">마진 · 광고효율 →</button>'
+   +'<button class="hbtn alt" type="button" id="logAdd">판정 기록 +</button>'
    +'</div></div>';
   document.getElementById("hero").querySelectorAll("[data-go]").forEach(function(b){
     b.onclick=function(){ setTab(b.dataset.go); };
   });
+  var la=document.getElementById("logAdd");
+  if(la) la.onclick=function(){ addLog(CUR); la.textContent="기록됨 ✓"; setTimeout(function(){ la.textContent="판정 기록 +"; },1600); };
   var rg=document.getElementById("relGo");
   if(rg) rg.onclick=function(){
     if(F.relSeed===R[CUR][K.KW]) clearRel(); else setRel(CUR);
@@ -2496,22 +2680,25 @@ function renderHero(){
   var cap=Math.max(0, mg.margin*SET.tgtCvr/roasMult());
 
   document.getElementById("hcards").innerHTML=
-   hcard("한 달 검색수", liveLabel(a[K.KW])||"9월 수집본 · 낡음", fmt(st.tot)+"회",
+   hcard("한 달 검색수", srcLabel(CUR)+(staleDays(CUR)>7?" · 낡음":""), fmt(st.tot)+"회",
      sp("PC",fmt(a[K.PC])+"회")+sp("모바일",fmt(a[K.MO])+"회"),
-     "모바일 비중 "+moP+"% · "+(liveLabel(a[K.KW])?"네이버 최근 30일 · "+liveLabel(a[K.KW])+" 기준":"9월 14일 기준 최근 30일. 제철 품목은 지금과 크게 다를 수 있다"))
+     "모바일 비중 "+moP+"% · 네이버 최근 30일 · "+srcLabel(CUR)+" 기준"+(staleDays(CUR)>7?". <b>"+staleDays(CUR)+"일 지난 값</b>이다. 제철 품목은 지금과 크게 다를 수 있다":""))
   +(function(){
       /* 상품수는 쇼핑검색 API 가 끝나 아이템스카우트 엑셀로만 채운다.
          경쟁강도 = 상품수 ÷ 한 달 검색수. 아이템스카우트와 같은 식이다 (48/48 대조). */
       var pr=prodOf(CUR), cp=realComp(CUR), ph=PRODH[a[K.KW]], last=ph&&ph[ph.length-1];
-      var src = last ? "아이템스카우트 "+(new Date(last.at).getMonth()+1)+"/"+new Date(last.at).getDate()
+      var src = last ? (last.src==="직접"?"직접 입력 ":"아이템스카우트 ")+(new Date(last.at).getMonth()+1)+"/"+new Date(last.at).getDate()
               : pr!=null ? "9월 수집본" : "원본 없음";
+      var shopUrl="https://search.shopping.naver.com/search/all?query="+encodeURIComponent(a[K.KW]);
+      var form='<div class="prodin"><a href="'+shopUrl+'" target="_blank" rel="noopener">네이버쇼핑에서 상품수 보기 ↗</a>'
+        +'<span><input type="number" id="prodIn" min="0" step="1" placeholder="상품수" value="'+(pr!=null?pr:"")+'"><button type="button" class="chip" id="prodSave">'+(pr!=null?"고치기":"넣기")+'</button></span></div>';
       if(pr==null) return hcard("상품수 · 경쟁강도", src, "—",
         sp("경쟁강도","—")+sp("광고경쟁도 (대신)", st.compScore.toFixed(2)),
-        "상품수는 <b>아이템스카우트 연관키워드 엑셀</b>을 엑셀 분석 탭에 떨구면 채워진다. 그 전까지는 광고 깊이·입찰가로 만든 광고경쟁도로 대신 본다.", true);
+        "상품수는 네이버 공식 API 가 없다(쇼핑검색 API 2026-07-31 종료). <b>아이템스카우트 연관키워드 엑셀</b>을 엑셀 분석 탭에 떨구거나, 네이버쇼핑에서 본 숫자를 아래에 직접 넣는다."+form, true);
       return hcard("상품수 · 경쟁강도", src, fmt(pr)+"개",
         sp("경쟁강도", '<b style="color:'+(cp<=1?"var(--good)":cp<=5?"var(--ink)":"var(--down)")+'">'+cp.toFixed(2)+'</b>')
         +sp("대표 카테고리", esc(catLast(CUR))||"—"),
-        "경쟁강도 = 상품수 ÷ 한 달 검색수 "+fmt(st.tot)+". 낮을수록 좋다. 상품 1개에 검색 "+(st.tot/pr).toFixed(1)+"회.");
+        "경쟁강도 = 상품수 ÷ 한 달 검색수 "+fmt(st.tot)+" (아이템스카우트와 같은 식). 낮을수록 좋다. 상품 1개에 검색 "+(st.tot/pr).toFixed(1)+"회."+form);
     })()
   +hcard("월평균 클릭수","NAVER 검색광고", clicks.toFixed(1)+"회",
      sp("PC",(a[K.CPC_]||0).toFixed(1))+sp("모바일",(a[K.CMO]||0).toFixed(1)),
@@ -2537,7 +2724,9 @@ function renderHero(){
       return '<div class="hc"><div class="hc-top"><span class="hc-k">평균 입찰가 · 1~3위</span>'
         +'<span class="hc-src">목표 순위 추정</span></div>'
         +'<div class="bidtab">'+row("PC",pcs)+row("모바일",mos)+'</div>'
+        +'<div class="medrow"><b>중간 입찰가</b><span>PC <em>'+(a[K.MPC]?fmt(a[K.MPC])+"원":"—")+'</em></span><span>모바일 <em>'+(a[K.MMO]?fmt(a[K.MMO])+"원":"—")+'</em></span></div>'
         +'<p class="hc-foot">감당 CPC 상한 '+fmt(cap)+'원. <b>붉은 값이 상한을 넘는 자리</b>다. '
+        +'중간 입찰가는 네이버가 주는 최근 한 달 입찰가 중앙값으로, 아이템스카우트 "광고 단가" 와 맞대보는 값이다. '
         +'실제 결제 금액이 아니라 그 순위를 노릴 때의 추정 최대 CPC다.</p></div>';
     })()
   +(function(){
@@ -2554,6 +2743,12 @@ function renderHero(){
         +(ok?"<b style=\'color:var(--good)\'>3위는 남는다.</b>":"<b>3위도 목표를 넘는다 — 이 설정으로는 안 남는다.</b>"));
     })();
 
+  var ps=document.getElementById("prodSave");
+  if(ps) ps.onclick=function(){
+    var v=Math.round(+document.getElementById("prodIn").value);
+    if(!(v>=0) || document.getElementById("prodIn").value==="") return;
+    setManualProd(a[K.KW], v); renderHero(); renderTable();
+  };
   var ipt=document.getElementById("exact");
   if(document.activeElement!==ipt) ipt.value=a[K.KW];
   renderHintChips();
@@ -2576,7 +2771,7 @@ var COMPI={"낮음":0,"중간":1,"높음":2};
 
 function newRow(kw, hint){
   var i=N; N++;
-  R[i]=[kw,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,intentGuess(kw),hint,0,0,0,""];
+  R[i]=[kw,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,intentGuess(kw),hint,0,0,0,"",0,0,0,-1];
   BYKW[kw]=i;
   (HG[hint]||(HG[hint]=[])).push(i);
   groupRow(i);
@@ -2600,6 +2795,9 @@ function upsertLive(j, src){
       a[K.BP1]=b.pc[0]||0; a[K.BP2]=b.pc[1]||0; a[K.BP3]=b.pc[2]||0;
       a[K.BM1]=b.mo[0]||0; a[K.BM2]=b.mo[1]||0; a[K.BM3]=b.mo[2]||0;
     }
+    var md=(j.med||{})[x.kw];
+    if(md){ a[K.MPC]=md[0]||0; a[K.MMO]=md[1]||0; }
+    a[K.DAY]=todayInt(j.at);
     statRow(i);
     LIVEAT[x.kw]={ at:j.at, bid:!!b, src:src||"live" };
     idx.push(i);
@@ -2626,15 +2824,16 @@ function liveLabel(kw){
    둘 다 따로 남겨야 하므로 물어본 철자 그대로도 한 줄을 만든다. 숫자는 네이버가 준 같은 값이다. */
 function applyMulti(j){
   var by={}; (j.related||[]).forEach(function(x){ by[x.kw]=x; });
-  var rows=[], bids=Object.assign({}, j.bids||{}), map={};
+  var rows=[], bids=Object.assign({}, j.bids||{}), med=Object.assign({}, j.med||{}), map={};
   (j.asked||[]).forEach(function(k){
     var nk=(j.found||{})[k]; if(!nk||!by[nk]) return;
     var x=Object.assign({}, by[nk], { kw:k, hint:k });
     if(k!==nk && bids[nk]) bids[k]=bids[nk];
+    if(k!==nk && med[nk]) med[k]=med[nk];
     rows.push(x); map[k]=k;
     if(k!==nk){ rows.push(Object.assign({}, by[nk], { hint:k })); }
   });
-  upsertLive({ kw:"", at:j.at, related:rows, bids:bids }, "live");
+  upsertLive({ kw:"", at:j.at, related:rows, bids:bids, med:med }, "live");
   return map;
 }
 function splitKws(v){
@@ -2721,7 +2920,7 @@ async function liveFind(v, fresh){
     /* 실패를 덮어쓰면 안 된다. 전에는 staticFind 가 "정확 원본을 확인했다" 로 이 문구를
        지워버려서, 9월 숫자를 보면서 실시간인 줄 알게 됐다. 숫자가 틀렸던 그 함정 그대로다. */
     staticFind(v, '<span class="live-fail">실시간 조회 실패</span> '+esc(e.message)
-      +' — <b>아래는 9월 수집본이다. 지금 숫자가 아니다.</b> ');
+      +' — <b>아래는 저장된 수집본이다. 지금 숫자가 아니다.</b> ');
   }
 }
 function exactFind(){
@@ -2738,7 +2937,7 @@ function staticFind(v, prefix){
   if(v in BYKW){
     CUR=BYKW[v]; F.q=""; document.getElementById("q").value="";
     setRel(CUR);
-    note.innerHTML=prefix+(prefix?'':esc(v)+' 수집본에서 찾았다 (9월 14일 기준, 지금 숫자 아님). ')+'아래 목록을 <b>'+esc(v)+'의 연관 키워드</b>로 좁혔다.';
+    note.innerHTML=prefix+(prefix?'':esc(v)+' 수집본에서 찾았다 ('+srcLabel(CUR)+' 기준, 실시간 아님). ')+'아래 목록을 <b>'+esc(v)+'의 연관 키워드</b>로 좁혔다.';
     CURPAGE(); refresh(); return;
   }
   var near=[];
@@ -2902,7 +3101,7 @@ var WD=["일","월","화","수","목","금","토"];
 
 function comboData(i){
   var a=R[i], kw=a[K.KW], ins=INS[kw], monthly=(a[K.PC]||0)+(a[K.MO]||0);
-  var l=LIVEAT[kw], anchor= l ? dayKey(new Date(l.at)) : PACK_AT;
+  var l=LIVEAT[kw], dd=a[K.DAY], anchor= l ? dayKey(new Date(l.at)) : dd ? String(dd).replace(/(\d{4})(\d{2})(\d{2})/,"$1-$2-$3") : PACK_AT;
   if(ins && (ins.search||ins.click)){
     var base=ins.search||ins.click, n=base.length, st=parseDay(ins.start), days=[];
     for(var k=0;k<n;k++) days.push(addD(st,k));
@@ -2920,8 +3119,9 @@ function comboData(i){
   var days2=[];
   for(var w=0;w<v.length;w++){ var d=weekDate(w); if(!d) return null; days2.push(new Date(d.getUTCFullYear(),d.getUTCMonth(),d.getUTCDate())); }
   var last4=v.slice(-4), b=last4.reduce(function(x,y){return x+y;},0)/4;
-  var sc2= b>0 ? (monthly/4.345)/b : 0;
-  return { daily:false, days:days2, vol:v.map(function(x){ return x*sc2; }), clk:null, src:"static", anchor:anchor };
+  var base= a[K.SEP] || monthly;
+  var sc2= b>0 ? (base/4.345)/b : 0;
+  return { daily:false, days:days2, vol:v.map(function(x){ return x*sc2; }), clk:null, src:"static", anchor:PACK_AT, base:base };
 }
 function cbRange(D){
   var last=D.days[D.days.length-1], first=D.days[0], from, to=last;
@@ -3067,7 +3267,7 @@ function drawCombo(){
 
   /* 한 줄 요약 — 제철이 언제인지가 광고·입고 타이밍을 정한다 */
   h+=seasonLine(D)+'<p class="tw-note">'
-    +(D.vol ? '<b>검색수는 환산값이다.</b> 네이버는 0~100 상대지수만 준다. 한 달 검색수 '+fmt(S_tot[i])+'회('+(LIVEAT[kw]?D.anchor:"9월 14일")+' 기준 30일)에 맞춰 눈금을 매겼다. 모양은 원본 그대로다. ':'')
+    +(D.vol ? '<b>검색수는 환산값이다.</b> 네이버는 0~100 상대지수만 준다. 한 달 검색수 '+fmt(D.src==="static"?(D.base||S_tot[i]):S_tot[i])+'회('+(D.src==="static"?"9월 14일 수집 당시":mdOf(D.anchor))+' 기준 30일)에 맞춰 눈금을 매겼다. 모양은 원본 그대로다. ':'')
     +(D.src==="static" ? '9월 수집본이라 주간까지만 있다. 실시간 서버 + API HUB 키면 어제까지 일간으로 바뀐다. ':'')
     +(n>1&&B[n-1].partial ? '마지막 '+(CB.unit==="week"?"주":CB.unit==="month"?"달":"칸")+'은 아직 덜 찼다(점선). ':'')
     +'</p>';
@@ -3172,7 +3372,7 @@ function refresh(){ hideTip(); readSet(); recalc(); renderSecBar(); renderHero()
 recalc(); buildCats();
 (function(){ var t=topN(1); if(t.length) CUR=t[0]; })();
 document.getElementById("scale").textContent=fmt(N)+"개 키워드 · 검색광고 실데이터";
-document.getElementById("stamp").textContent="9월 14일 수집본 · 실시간 아님";
+document.getElementById("stamp").textContent="수집본 "+mdOf(PACK_DAY)+" · 실시간 아님";
 /* 이 PC 의 실시간 서버에서 열었는지 확인한다. claude.ai 에서 열었으면 조용히 넘어간다. */
 (function(){
   if(!/^(127\.0\.0\.1|localhost)$/.test(location.hostname)) return;
