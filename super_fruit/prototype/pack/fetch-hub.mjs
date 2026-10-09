@@ -17,6 +17,7 @@
 import fs from "node:fs/promises";
 import { readFileSync } from "node:fs";
 import path from "node:path";
+import { fileURLToPath } from "node:url";
 
 const OUTDIR = "naver-out";
 
@@ -31,7 +32,7 @@ const ALIAS = {
   dev_client_secret:"SEARCH_SECRET", 검색시크릿:"SEARCH_SECRET"
 };
 function loadKeys() {
-  const here = path.dirname(new URL(import.meta.url).pathname.replace(/^\/([A-Za-z]:)/, "$1"));
+  const here = path.dirname(fileURLToPath(import.meta.url));
   for (const name of ["key.txt", ".env"]) {
     let raw; try { raw = readFileSync(path.join(here, name), "utf8"); } catch { continue; }
     const out = {};
@@ -511,7 +512,7 @@ async function collectShop(args) {
        --shop-fix 가 제 카테고리를 찾아준다. 버려지지 않는다. */
     const want = (val("--tiers") || "1").split(",").map(x => parseInt(x.trim(), 10)).filter(Boolean);
     try {
-      const here = path.dirname(new URL(import.meta.url).pathname.replace(/^\/([A-Za-z]:)/, "$1"));
+      const here = path.dirname(fileURLToPath(import.meta.url));
       const sj = JSON.parse(await fs.readFile(path.join(here, "seeds.json"), "utf8"));
       seedSet = new Set();
       const ones = new Set();

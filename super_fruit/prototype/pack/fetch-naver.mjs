@@ -26,6 +26,7 @@ import fs from "node:fs/promises";
 import fsSync from "node:fs";
 import { readFileSync } from "node:fs";
 import path from "node:path";
+import { fileURLToPath } from "node:url";
 
 const HOST = process.env.NAVER_AD_HOST || "https://api.searchad.naver.com";
 const OUTDIR = "naver-out";
@@ -39,7 +40,7 @@ const ALIAS = {
   customerid:"CUSTOMER", customer_id:"CUSTOMER", customer:"CUSTOMER"
 };
 function loadKeyFile() {
-  const here = path.dirname(new URL(import.meta.url).pathname.replace(/^\/([A-Za-z]:)/, "$1"));
+  const here = path.dirname(fileURLToPath(import.meta.url));
   for (const name of ["key.txt", ".env"]) {
     let raw; try { raw = readFileSync(path.join(here, name), "utf8"); } catch { continue; }
     const out = {};

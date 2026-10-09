@@ -26,11 +26,12 @@ import http from "node:http";
 import fs from "node:fs";
 import fsp from "node:fs/promises";
 import path from "node:path";
+import { fileURLToPath } from "node:url";
 import crypto from "node:crypto";
 import { exec } from "node:child_process";
 
 const PORT = +(process.env.PORT || 8787);
-const HERE = path.dirname(new URL(import.meta.url).pathname.replace(/^\/([A-Za-z]:)/, "$1"));
+const HERE = path.dirname(fileURLToPath(import.meta.url));
 const OUTDIR = path.join(HERE, "naver-out");
 const CACHE = path.join(OUTDIR, "live-cache");
 const UPLOADS = path.join(OUTDIR, "uploads");
