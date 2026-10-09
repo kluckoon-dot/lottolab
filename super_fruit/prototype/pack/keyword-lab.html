@@ -124,8 +124,8 @@ input[type=number]{font-family:"IBM Plex Mono",monospace; width:96px}
 .f-row{display:flex; align-items:center; gap:8px}
 input[type=range]{flex:1; accent-color:var(--brand); min-width:88px}
 .f-val{font-size:12.5px; font-weight:600; min-width:54px; text-align:right}
-.chips{display:flex; gap:5px}
-.chip{cursor:pointer; font:inherit; font-size:12px; font-weight:600; padding:4px 11px; border-radius:999px;
+.chips{display:flex; gap:5px; flex-wrap:wrap}
+.chip{white-space:nowrap; cursor:pointer; font:inherit; font-size:12px; font-weight:600; padding:4px 11px; border-radius:999px;
   border:1px solid var(--line-strong); background:var(--surface); color:var(--ink-2)}
 .chip[aria-pressed="true"]{background:var(--ink); color:var(--surface); border-color:var(--ink)}
 .f-sp{flex:1}
@@ -139,6 +139,7 @@ th{font-size:10px; letter-spacing:.04em; text-transform:uppercase; color:var(--i
 th:first-child{text-align:left}
 th.grp{text-align:center; border-left:1px solid var(--line)}
 td{padding:8px 7px; text-align:right; border-bottom:1px solid var(--line); white-space:nowrap; font-size:13px}
+th:first-child,td:first-child{padding-left:16px} th:last-child,td:last-child{padding-right:16px}
 td:first-child{text-align:left}
 tbody tr{cursor:pointer} tbody tr:hover{background:var(--surface-2)}
 tbody tr:last-child td{border-bottom:0}
@@ -159,6 +160,8 @@ tbody tr:last-child td{border-bottom:0}
 .cvr-ok{color:var(--good); font-weight:600} .cvr-no{color:var(--up); font-weight:600}
 
 .grid2{display:grid; grid-template-columns:repeat(auto-fit,minmax(300px,1fr)); gap:13px}
+#panel-detail .grid2>.card{display:flex; flex-direction:column; min-width:0}
+#panel-detail .grid2>.card>div:last-child{margin-top:auto; padding-top:6px}
 .card{background:var(--surface); border:1px solid var(--line); border-radius:10px; padding:15px; box-shadow:var(--shadow)}
 .card h3{font-size:13px; font-weight:700; margin:0 0 2px; letter-spacing:-.01em}
 .card .note{font-size:11.5px; color:var(--ink-3); margin:0 0 12px}
@@ -172,9 +175,10 @@ svg{display:block; width:100%; height:auto; overflow:visible}
 .verdict{border:1px solid var(--line); border-radius:10px; overflow:hidden; background:var(--surface); box-shadow:var(--shadow); margin-bottom:13px}
 .v-top{display:flex; align-items:center; gap:12px; padding:16px 20px; border-bottom:1px solid var(--line)}
 .v-top h3{margin:0; font-size:17px; font-family:Hahmlet,serif; flex:1}
-.v-body{display:grid; grid-template-columns:repeat(auto-fit,minmax(150px,1fr))}
-.v-cell{padding:15px 20px; border-right:1px solid var(--line); border-bottom:1px solid var(--line)}
-.v-cell:last-child{border-right:0}
+.v-body{display:grid; grid-template-columns:repeat(auto-fit,minmax(160px,1fr)); overflow:hidden; border-bottom:1px solid var(--line)}
+/* 칸 오른쪽·아래에만 선. 바깥으로 삐져나간 선은 부모가 잘라낸다 — 홀수 칸이어도 회색 빈칸이 안 생긴다 */
+.v-cell{padding:14px 18px; background:var(--surface); min-width:0; box-shadow:1px 0 0 var(--line), 0 1px 0 var(--line)}
+.v-cell .v-s{overflow-wrap:anywhere; line-height:1.45}
 .v-k{font-size:10.5px; letter-spacing:.06em; text-transform:uppercase; color:var(--ink-3); font-weight:700; margin-bottom:3px}
 .v-v{font-size:18px; font-weight:600; letter-spacing:-.02em}
 .v-s{font-size:11.5px; color:var(--ink-3); margin-top:2px}
@@ -204,9 +208,9 @@ svg{display:block; width:100%; height:auto; overflow:visible}
 .toprow b{min-width:120px; font-size:13.5px}
 .toprow .sub{flex:1}
 
-.mbox{display:flex; border:1px solid var(--line); border-radius:9px; overflow:hidden; background:var(--surface); flex-wrap:wrap}
-.mbox div{padding:10px 15px; border-right:1px solid var(--line); flex:1; min-width:118px}
-.mbox div:last-child{border-right:0}
+.mbox{display:grid; grid-template-columns:repeat(auto-fit,minmax(140px,1fr)); background:var(--surface);
+  border:1px solid var(--line); border-radius:10px; overflow:hidden}
+.mbox>.v-cell{padding:13px 16px}
 .mbox .v-v{font-size:17px}
 
 .tip{position:fixed; pointer-events:none; z-index:60; background:var(--ink); color:var(--bg); padding:7px 10px;
@@ -229,9 +233,9 @@ svg{display:block; width:100%; height:auto; overflow:visible}
 .stage{display:block}
 .railbar{display:flex; gap:10px; align-items:center; flex-wrap:wrap; margin:16px 0 12px}
 .railbar input[type=search]{min-width:220px; flex:1; max-width:340px}
-.kpi{display:grid; grid-template-columns:repeat(auto-fit,minmax(132px,1fr)); gap:1px; background:var(--line);
+.kpi{display:grid; grid-template-columns:repeat(auto-fit,minmax(132px,1fr)); background:var(--surface);
   border:1px solid var(--line); border-radius:10px; overflow:hidden; margin-bottom:14px}
-.kpi>div{background:var(--surface); padding:11px 14px}
+.kpi>div{background:var(--surface); padding:12px 16px; min-width:0; box-shadow:1px 0 0 var(--line), 0 1px 0 var(--line)}
 .kpi .v-v{font-size:19px}
 .warn-bar{background:var(--warn-bg); border:1px solid color-mix(in srgb,var(--warn) 35%, transparent);
   color:var(--warn); border-radius:9px; padding:10px 14px; font-size:13px; font-weight:600; margin-bottom:13px}
@@ -326,13 +330,15 @@ tbody tr.sel{background:var(--brand-soft)}
   font-variant-numeric:tabular-nums;word-break:keep-all;overflow-wrap:anywhere}
 .hc-v.sm{font-size:19px}
 .hc-v .sm2{font-size:19px;display:inline-block}
-.hc-v.na{font-size:15px;color:var(--ink-3);font-weight:700;border:1px dashed var(--line-strong);
-  border-radius:9px;padding:13px 10px;text-align:center}
+.hc-v.na{font-size:27px;color:var(--ink-3);font-weight:800;border:0 !important;background:none !important;padding:0 !important;
+  border-radius:9px;text-align:left}
 .hc-split{display:grid;grid-template-columns:repeat(auto-fit,minmax(0,1fr));gap:6px}
 .hc-split>div{background:var(--surface-2);border-radius:8px;padding:6px 4px;text-align:center;min-width:0}
 .hc-sk{display:block;font-size:10px;color:var(--ink-3);font-weight:600}
 .hc-sv{display:block;font-size:12.5px;font-weight:700;color:var(--ink);font-variant-numeric:tabular-nums}
-.hc-foot{margin:9px 0 0;font-size:11px;color:var(--ink-3);line-height:1.5}
+.hc-foot{margin:auto 0 0;padding-top:10px;font-size:11px;color:var(--ink-3);line-height:1.5}
+.hc{display:flex;flex-direction:column}
+.hc-v .hc-u{font-size:13px;font-weight:600;color:var(--ink-3);margin-left:4px}
 @media (max-width:640px){
   .hero-kw{font-size:25px}
   .hero-right{flex:1 1 100%;align-items:flex-start}
@@ -349,6 +355,14 @@ tbody tr.sel{background:var(--brand-soft)}
 .buy-src{font-size:10px;font-weight:700;border-radius:6px;padding:3px 7px;background:var(--brand-soft);color:var(--brand-ink)}
 .buy-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:16px}
 .buy-grid>*{min-width:0}
+.bcol{display:flex;flex-direction:column}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]) .bar2 .a{color:#0c241b}}
+:root[data-theme="dark"] .bar2 .a{color:#0c241b}
+.bvis{height:54px;display:flex;flex-direction:column;justify-content:flex-end}
+.bvis.two{padding-bottom:16px}
+.bvis .ages{height:auto}
+.bcap{margin-top:7px;font-size:11.5px;color:var(--ink-3)}
+.bcap b{color:var(--ink);font-weight:700}
 .buy-t{font-size:11px;font-weight:700;color:var(--ink-3);margin-bottom:6px}
 .bar2{display:flex;height:26px;border-radius:7px;overflow:hidden;background:var(--surface-2)}
 .bar2 span{display:flex;align-items:center;justify-content:center;font-size:11.5px;font-weight:700;color:#fff;
@@ -412,6 +426,10 @@ tbody tr.sel{background:var(--brand-soft)}
 .xfile{display:flex;gap:10px;align-items:center;flex-wrap:wrap;background:var(--surface);
   border:1px solid var(--line);border-radius:10px;padding:10px 14px;margin-bottom:12px;font-size:13px}
 .xfile b{font-weight:700}
+.xgroup{margin-bottom:34px}
+.xgroup>.kpi,.xgroup>.ch,.xgroup>.tbox,.xgroup>div{margin-bottom:12px}
+.xgroup>.xfile{margin-bottom:12px}
+#panel-xls .drop{margin-bottom:16px}
 .xfile .tagk{font-size:10.5px;font-weight:700;border-radius:6px;padding:3px 8px;
   background:var(--brand-soft);color:var(--brand-ink)}
 .xerr{background:var(--warn-bg);border:1px solid color-mix(in srgb,var(--warn) 35%,transparent);
@@ -443,7 +461,7 @@ td.gper{font-weight:700}
 .isf{background:var(--surface);border:1px solid var(--line);border-radius:10px;margin-bottom:13px;overflow:hidden}
 .isf-row{display:flex;align-items:stretch;border-bottom:1px solid var(--line)}
 .isf-row.isf-last{border-bottom:0}
-.isf-k{flex:none;width:132px;padding:11px 15px;font-size:12.5px;font-weight:700;color:var(--ink);
+.isf-k{flex:none;width:118px;padding:11px 16px;font-size:12.5px;font-weight:700;color:var(--ink);
   background:var(--surface-2);display:flex;align-items:center}
 .isf-v{flex:1;min-width:0;display:flex;align-items:center;gap:8px;flex-wrap:wrap;padding:9px 13px}
 .isf-sub{font-size:11.5px;color:var(--ink-3);font-weight:600}
@@ -506,14 +524,17 @@ th.srt[data-dir]::after{content:attr(data-dir);margin-left:3px;color:var(--brand
 .rc-two .on b{color:var(--ink)}
 .rc-two span{font-size:11.5px;font-weight:600;color:var(--ink-3)}
 .bar2.thin{height:10px}
-.rc-bars{display:flex;gap:4px;align-items:flex-end;height:96px}
+.rc-bars{display:flex;gap:4px;align-items:flex-end;height:100%}
 .rc-bars div{flex:1;display:flex;flex-direction:column;justify-content:flex-end;align-items:center;gap:3px;min-width:0}
 .rc-bars em{font-style:normal;font-size:9.5px;font-weight:600;color:var(--ink-3);font-variant-numeric:tabular-nums}
 .rc-bars i{display:block;width:100%;max-width:30px;background:var(--seq4);border-radius:3px 3px 0 0}
 .rc-bars i.top{background:var(--brand)}
 .rc-bars div:has(i.top) em{color:var(--ink);font-weight:700}
 .rc-bars b{font-size:11px;font-weight:600;color:var(--ink-2);white-space:nowrap}
-.rc .note{margin:10px 0 0}
+.rc{display:flex;flex-direction:column}
+.rc-body{height:112px;display:flex;flex-direction:column;justify-content:flex-end}
+@media (max-width:560px){.rc-body{height:auto}.rc-bars{height:100px}}
+.rc .note{margin:10px 0 0;min-height:3em;line-height:1.5}
 .na.sm{padding:12px;font-size:12px}
 .xok{background:var(--good-bg);border:1px solid color-mix(in srgb,var(--good) 35%,transparent);border-radius:9px;
   padding:10px 13px;font-size:12.5px;color:var(--ink-2);margin-bottom:12px}
@@ -716,7 +737,7 @@ th.srt[data-dir]::after{content:attr(data-dir);margin-left:3px;color:var(--brand
           </div>
         </div>
         <div class="isf-row isf-last">
-          <div class="isf-k">키워드 안에서 찾기</div>
+          <div class="isf-k">키워드 찾기</div>
           <div class="isf-v">
             <input type="search" id="q" placeholder="예: 5kg" autocomplete="off" style="min-width:200px">
             <span class="f-sp"></span>
@@ -1419,7 +1440,7 @@ function renderKpi(){
       +fmt(mg.margin*SET.tgtCvr/roasMult())+'원인데 수집된 3위 입찰가 최저가가 '+fmt(minCpc)+'원이다. 목표 전환율을 올리거나 단가가 높은 상품으로 봐라.</div>';
   else box.innerHTML='';
 }
-function cell(k,v,s){ return '<div><div class="v-k">'+k+'</div><div class="v-v num">'+v+'</div><div class="v-s">'+(s||'')+'</div></div>'; }
+function cell(k,v,s){ return '<div class="v-cell"><div class="v-k">'+k+'</div><div class="v-v num">'+v+'</div><div class="v-s">'+(s||'')+'</div></div>'; }
 
 /* ── 상세 ── */
 function renderDetail(){ renderDetail0(); drawCombo(); ratioCards(); }
@@ -1448,9 +1469,9 @@ function renderDetail0(){
   +'<div class="v-body">'
   +cell("월 검색수", fmt(s.tot), "PC "+fmt(a[K.PC])+" · 모바일 "+fmt(a[K.MO])+(a[K.MASK]?" · 가려진 값 포함":""))
   +cell("1위 입찰가", fmt(a[K.BM1])+"원", "모바일 · PC "+fmt(a[K.BP1])+"원")
-  +cell("광고경쟁도", s.compScore.toFixed(1), "광고 "+a[K.DEPTH]+"단 · NAVER "+NCOMP[a[K.COMP]]+" · 상품수 기반 아님")
-  +cell("경쟁강도", realComp(CUR)==null?"미수집":realComp(CUR).toFixed(2),
-        realComp(CUR)==null?"상품수 원본 없음 · 21단계로 넣으면 계산된다"
+  +cell("광고경쟁도", s.compScore.toFixed(1), "광고 "+a[K.DEPTH]+"단 · NAVER "+NCOMP[a[K.COMP]])
+  +cell("경쟁강도", realComp(CUR)==null?"—":realComp(CUR).toFixed(2),
+        realComp(CUR)==null?"상품수 없음 · 아이템스카우트 엑셀을 넣으면 계산된다"
                            :"상품수 "+fmt(prodOf(CUR))+" ÷ 검색수 "+fmt(s.tot)+" · 아이템스카우트와 같은 식")
   +cell("손익분기 전환율", isFinite(c.cvr)?(c.cvr*100).toFixed(1)+"%":"불가", "3위 기준 · 목표 "+(SET.tgtCvr*100).toFixed(1)+"%")
   +cell("황금점수", String(c.gold), "100점 만점")
@@ -1482,8 +1503,8 @@ function drawDevice(a,s){
    +'<text class="vlabel" x="'+L+'" y="12">기기 비중</text>'
    +'<rect x="'+L+'" y="18" width="'+Math.max(1,pw)+'" height="30" rx="4" fill="var(--s1)" data-t="PC '+pcP.toFixed(1)+'%"/>'
    +'<rect x="'+(L+pw+2)+'" y="18" width="'+Math.max(1,iw-pw-2)+'" height="30" rx="4" fill="var(--s2)" data-t="모바일 '+moP.toFixed(1)+'%"/>'
-   +'<text class="ax" x="'+(L+6)+'" y="37" fill="#fff" style="font-weight:600">PC '+pcP.toFixed(0)+'%</text>'
-   +'<text class="ax" x="'+(W-L-6)+'" y="37" fill="#fff" text-anchor="end" style="font-weight:600">모바일 '+moP.toFixed(0)+'%</text>'
+   +'<text class="ax" x="'+(L+6)+'" y="37" style="font-weight:600;fill:#fff">PC '+pcP.toFixed(0)+'%</text>'
+   +'<text class="ax" x="'+(W-L-6)+'" y="37" text-anchor="end" style="font-weight:600;fill:#fff">모바일 '+moP.toFixed(0)+'%</text>'
    +'<text class="vlabel" x="'+L+'" y="70">순위별 입찰가 (원)</text>';
   var pcs=[a[K.BP1],a[K.BP2],a[K.BP3]], mos=[a[K.BM1],a[K.BM2],a[K.BM3]];
   var maxB=Math.max(1,pcs[0],mos[0])*1.12, rw=iw-116;
@@ -1677,12 +1698,13 @@ function renderXls(){
     var when=f.savedAt? new Date(f.savedAt) : null;
     var whenTxt= when? (when.getMonth()+1)+"/"+when.getDate()+" "+String(when.getHours()).padStart(2,"0")+":"+String(when.getMinutes()).padStart(2,"0") : "";
     var whereTxt= f.where==="pc"?"이 PC 에 저장됨" : f.where==="browser"?"이 브라우저에 저장됨" : "저장 안 됨";
-    h+='<div class="xfile"><span class="tagk">'+(XKIND[f.kind]||f.kind)+'</span>'
+    h+='<section class="xgroup"><div class="xfile"><span class="tagk">'+(XKIND[f.kind]||f.kind)+'</span>'
       +'<b>'+esc(f.file)+'</b><span class="sub">'+f.rows.length+'줄 · '+whereTxt+(whenTxt?' · '+whenTxt:'')+'</span>'
       +'<span class="f-sp" style="flex:1"></span>'
       +'<button class="chip" data-drop="'+fi+'">지우기</button></div>';
     h+= f.kind==="supply" ? supplyBlocks(f.rows) : f.kind==="naverkw" ? naverKwBlocks(f, fi)
       : f.kind==="itemscout" ? itemScoutBlocks(f, fi) : calcBlocks(f.rows, fi);
+    h+='</section>';
   });
   out.innerHTML=h;
   out.querySelectorAll("[data-drop]").forEach(function(b){
@@ -1868,7 +1890,7 @@ function lineByKg(rows,sups,allSups){
   var kgs=[]; rows.forEach(function(r){ if(r.kg&&kgs.indexOf(r.kg)<0) kgs.push(r.kg); });
   kgs.sort(function(a,b){return a-b;});
   if(kgs.length<2) return '<p class="note">중량이 한 가지뿐이라 선으로 그릴 것이 없다. 아래 표에서 값을 보라.</p>';
-  var W=880,H=270,L=66,R2=132,T=14,B=38, iw=W-L-R2, ih=H-T-B;
+  var W=880,H=284,L=66,R2=132,T=28,B=38, iw=W-L-R2, ih=H-T-B;
   var mx=0; rows.forEach(function(r){ if(r.wonKg>mx) mx=r.wonKg; });
   mx=niceMax(mx*1.05)||1;
   var X=function(k){ return L+(kgs.length<2?0:kgs.indexOf(k)/(kgs.length-1)*iw); };
@@ -1878,7 +1900,7 @@ function lineByKg(rows,sups,allSups){
     o+='<line class="gl" x1="'+L+'" y1="'+yy.toFixed(1)+'" x2="'+(L+iw)+'" y2="'+yy.toFixed(1)+'"/>'
       +'<text class="ax" x="'+(L-9)+'" y="'+(yy+3.5).toFixed(1)+'" text-anchor="end">'+fmt(mx*g/4)+'</text>'; }
   kgs.forEach(function(k){ o+='<text class="ax" x="'+X(k).toFixed(1)+'" y="'+(H-14)+'" text-anchor="middle">'+k+'kg</text>'; });
-  o+='<text class="vlabel" x="'+L+'" y="10">원/kg</text>';
+  o+='<text class="vlabel" x="'+(L-9)+'" y="12" text-anchor="end">원/kg</text>';
   var labels=[];
   sups.forEach(function(sp,si2){
     var i=allSups?allSups.indexOf(sp):si2;
@@ -2152,18 +2174,18 @@ function renderMargin(){
   var parts=[["공급가",SET.supply,"var(--s1)"],["수수료",mg.fee,"var(--s2)"],
              ["광고비",Math.min(adCost,Math.max(0,mg.margin)),"var(--warn)"],
              ["실마진",Math.max(0,mg.margin-adCost),"var(--good)"]];
-  var W=760,H=112,L=10,iw=W-20,tot=SET.sell||1,x=L;
+  var W=1120,H=104,L=10,iw=W-20,tot=SET.sell||1,x=L;
   var out='<svg viewBox="0 0 '+W+' '+H+'" role="img" aria-label="마진 구성">';
   parts.forEach(function(p){
     var w=Math.max(0,(p[1]/tot)*iw);
     out+='<rect x="'+x+'" y="20" width="'+Math.max(0,w-2)+'" height="34" rx="4" fill="'+p[2]+'" data-t="'+p[0]+' '+fmt(p[1])+'원 · '+(p[1]/tot*100).toFixed(1)+'%"/>';
-    if(w>64) out+='<text class="ax" x="'+(x+7)+'" y="41" fill="#fff" style="font-weight:600">'+p[0]+'</text>';
+    if(w>64) out+='<text class="ax" x="'+(x+7)+'" y="41" style="font-weight:600;fill:#fff">'+p[0]+'</text>';
     x+=w;
   });
   out+='<text class="vlabel" x="'+L+'" y="13">판매가 '+fmt(SET.sell)+'원 = 100%</text>';
   parts.forEach(function(p,i){
-    out+='<text class="ax" x="'+(L+i*170)+'" y="76">'+p[0]+'</text>'
-       +'<text class="vlabel" x="'+(L+i*170)+'" y="94">'+fmt(p[1])+'원 · '+(p[1]/tot*100).toFixed(1)+'%</text>';
+    out+='<text class="ax" x="'+(L+i*230)+'" y="76">'+p[0]+'</text>'
+       +'<text class="vlabel" x="'+(L+i*230)+'" y="94">'+fmt(p[1])+'원 · '+(p[1]/tot*100).toFixed(1)+'%</text>';
   });
   var bc=document.getElementById("breakChart"); bc.innerHTML=out+'</svg>'; bindTips(bc);
   document.getElementById("breakNote").textContent= adCost>0
@@ -2209,13 +2231,13 @@ function renderStatus(){
    +row("검색량 가려진 것", fmt(masked)+"개", "< 10 표기 · 버리지 않고 표시만")
    +row("수확 캘린더", "202품종 45카테고리", "업로드 시트");
   document.getElementById("missList").innerHTML=
-    row("3년 주간 추세", "미연결", "API HUB 검색어트렌드")
-   +row("연령 · 성별 · 기기", "미연결", "API HUB 쇼핑인사이트 · 카테고리 ID 필요")
+    row("3년 일간 추세", HUB?"연결됨":"PC 서버에서만", HUB?"API HUB 검색어트렌드 · 고를 때마다 받음":"0-keyword-lab.bat + key.txt B칸(API HUB)")
+   +row("연령 · 성별 · 기기 · 요일", HUB?"연결됨":"PC 서버에서만", HUB?"API HUB 쇼핑인사이트 · 식품 분야":"0-keyword-lab.bat + key.txt B칸(API HUB)")
    +row("도매 시세", "미연결", "KAMIS")
    +row("공급가 실연동", "미연결", "공급사 API")
    +row("상품수 · 경쟁강도", (function(){var n=0;for(var i=0;i<R.length;i++)if(prodOf(i))n++;
         return n?fmt(n)+"개 · "+(n/R.length*100).toFixed(1)+"%":"원본 없음";})(),
-        "쇼핑검색 API 2026-07-31 종료 · 21단계 아이템스카우트 내보내기로만 채운다")
+        "네이버 쇼핑검색 API 2026-07-31 종료 · 아이템스카우트 엑셀로만 채운다")
    +row("내가 고친 의도", myIntentCount()+"개", "이 브라우저에 저장됨")
    +'<div style="padding:10px 0"><button class="chip" id="expInt">고친 판정 내보내기</button>'
    +'<span class="sub" style="margin-left:8px">눌러서 복사한 뒤 보내주면 다음 팩에 규칙으로 넣는다</span></div>';
@@ -2224,20 +2246,20 @@ function renderStatus(){
     if(b) b.onclick=function(){ var n=exportIntent(); b.textContent=n?n+"개 복사됨":"고친 게 없다"; };
   },0);
 
-  var W=760,H=120,L=10,iw=W-20,tot=R.length,x=L;
+  var W=1120,H=110,L=10,iw=W-20,tot=R.length,x=L;
   var col=["var(--brand)","var(--s1)","var(--s2)","#b45309","var(--line-strong)"];
   var out='<svg viewBox="0 0 '+W+' '+H+'" role="img" aria-label="의도별 분포">';
   byI.forEach(function(n,i){
     var w=(n/tot)*iw;
     out+='<rect x="'+x+'" y="18" width="'+Math.max(0,w-2)+'" height="34" rx="4" fill="'+col[i]+'" data-t="'+INTENT[i]+' '+fmt(n)+'개 · '+(n/tot*100).toFixed(1)+'%"/>';
-    if(w>72) out+='<text class="ax" x="'+(x+8)+'" y="39" fill="#fff" style="font-weight:600">'+INTENT[i]+'</text>';
+    if(w>72) out+='<text x="'+(x+10)+'" y="39" style="font-size:12px;font-weight:700;fill:'+(i===4?"var(--ink)":"#fff")+'">'+INTENT[i]+'</text>';
     x+=w;
   });
   out+='<text class="vlabel" x="'+L+'" y="12">전체 '+fmt(tot)+'개</text>';
   byI.forEach(function(n,i){
-    out+='<rect x="'+(L+i*150)+'" y="68" width="9" height="9" rx="2" fill="'+col[i]+'"/>'
-       +'<text class="ax" x="'+(L+i*150+14)+'" y="76">'+INTENT[i]+'</text>'
-       +'<text class="vlabel" x="'+(L+i*150)+'" y="94">'+fmt(n)+'개 · '+(n/tot*100).toFixed(1)+'%</text>';
+    out+='<rect x="'+(L+i*220)+'" y="68" width="9" height="9" rx="2" fill="'+col[i]+'"/>'
+       +'<text class="ax" x="'+(L+i*220+14)+'" y="76">'+INTENT[i]+'</text>'
+       +'<text class="vlabel" x="'+(L+i*220)+'" y="94">'+fmt(n)+'개 · '+(n/tot*100).toFixed(1)+'%</text>';
   });
   var ic=document.getElementById("intentChart"); ic.innerHTML=out+'</svg>'; bindTips(ic);
 }
@@ -2413,7 +2435,7 @@ function renderHero(){
    +' <span style="opacity:.6">· 수집 경로 '+(a[K.HINT]||"—")+'</span></div></div>'
    +'<div class="hero-right"><div class="hero-tags">'
    +'<span class="htag '+cls+'">'+c.v+'</span>'
-   +'<span class="htag">황금점수 '+c.gold.toFixed(2)+'</span>'
+   +'<span class="htag">황금점수 '+c.gold+'</span>'
    +(a[K.MASK]?'<span class="htag">일부 가림값</span>':'')
    +'</div><div class="hero-btns">'
    +'<button class="hbtn" type="button" data-go="detail">키워드 상세 →</button>'
@@ -2457,7 +2479,7 @@ function renderHero(){
      (LIVEAT[a[K.KW]]&&LIVEAT[a[K.KW]].src==="itemscout"
        ? "아이템스카우트는 합계만 준다. PC·모바일 나눔은 검색수×클릭률 비례로 나눈 추정이다."
        : "기기별 원값을 그대로 더한 값이다."))
-  +hcard("광고 클릭률","NAVER 검색광고", '<span class="sm2">PC '+(a[K.TPC]||0)+"% · MO "+(a[K.TMO]||0)+"%</span>",
+  +hcard("광고 클릭률","NAVER 검색광고", (a[K.TMO]||0)+'%<span class="hc-u">모바일</span>',
      sp("PC",(a[K.TPC]||0)+"%")+sp("모바일",(a[K.TMO]||0)+"%"),
      "클릭률은 노출 대비 클릭이다. 손익분기에 들어가는 전환율과 다른 지표다.")
   +(function(){
@@ -2487,7 +2509,7 @@ function renderHero(){
       var cv=bs.map(function(b){ return beCvr(b,mg.margin); });
       var f=function(x){ return isFinite(x) ? (x*100).toFixed(2)+"%" : "—"; };
       var ok=isFinite(cv[2]) && cv[2]<=SET.tgtCvr;
-      return hcard("손익분기 전환율 · 모바일","마진에서 계산", f(cv[2])+" <span style=\'font-size:14px;font-weight:600;color:var(--ink-3)\'>3위 기준</span>",
+      return hcard("손익분기 전환율 · 모바일","마진에서 계산", f(cv[2])+"<span class=\'hc-u\'>3위 기준</span>",
         sp("1위",f(cv[0]))+sp("2위",f(cv[1]))+sp("3위",f(cv[2])),
         "목표 "+(SET.tgtCvr*100).toFixed(1)+"% 보다 낮아야 광고가 남는다. "
         +(ok?"<b style=\'color:var(--good)\'>3위는 남는다.</b>":"<b>3위도 목표를 넘는다 — 이 설정으로는 안 남는다.</b>"));
@@ -2740,17 +2762,19 @@ function renderBuy(){
    '<div class="buy-top"><span class="buy-k">쇼핑 구매층 · 기기 · 성별 · 연령</span>'
   +'<span class="buy-src">NAVER 쇼핑인사이트'+(live?" · 실시간":" · 9월 수집본")+'</span></div>'
   +'<div class="buy-grid">'
-  +'<div><div class="buy-t">기기</div><div class="bar2">'
+  +'<div class="bcol"><div class="buy-t">기기</div><div class="bvis two"><div class="bar2">'
     +'<span class="a" style="width:'+mo+'%" data-t="모바일 '+pct(mo)+'">'+(mo>=18?"모바일 "+pct(mo):"")+'</span>'
     +'<span class="b" style="width:'+pc+'%" data-t="PC '+pct(pc)+'">'+(pc>=18?"PC "+pct(pc):"")+'</span></div></div>'
-  +'<div><div class="buy-t">성별</div><div class="bar2">'
+    +'<div class="bcap">'+(mo>=pc?"모바일이 PC의 <b>"+(pc>0?(mo/pc).toFixed(1):"—")+"배</b>":"PC가 모바일의 <b>"+(mo>0?(pc/mo).toFixed(1):"—")+"배</b>")+'</div></div>'
+  +'<div class="bcol"><div class="buy-t">성별</div><div class="bvis two"><div class="bar2">'
     +'<span class="a" style="width:'+f+'%" data-t="여성 '+pct(f)+'">'+(f>=18?"여성 "+pct(f):"")+'</span>'
     +'<span class="b" style="width:'+m+'%" data-t="남성 '+pct(m)+'">'+(m>=18?"남성 "+pct(m):"")+'</span></div></div>'
-  +'<div><div class="buy-t">연령 · 가장 두꺼운 층 '+AGEK[top]+'대 '+pct(mx)+'</div><div class="ages">'
+    +'<div class="bcap">'+(f>=m?"여성이 남성의 <b>"+(m>0?(f/m).toFixed(1):"—")+"배</b>":"남성이 여성의 <b>"+(f>0?(m/f).toFixed(1):"—")+"배</b>")+'</div></div>'
+  +'<div class="bcol"><div class="buy-t">연령</div><div class="bvis"><div class="ages">'
     + ages.map(function(a,ai){
-        return '<div><i class="'+(ai===top?"top":"")+'" style="height:'+Math.max(3,a/mx*40)+'px" data-t="'
+        return '<div><i class="'+(ai===top?"top":"")+'" style="height:'+Math.max(3,a/mx*34)+'px" data-t="'
           +AGEK[ai]+'대 '+pct(a)+'"></i><b>'+AGEK[ai]+'</b></div>'; }).join("")
-  +'</div></div></div>'
+  +'</div></div><div class="bcap">가장 두꺼운 층 <b>'+AGEK[top]+'대 '+pct(mx)+'</b></div></div></div>'
   +'<p class="buy-foot">'+(live ? "식품(50000006) 기준 · "+ins.start1+" ~ "+ins.end+" 최근 1년 클릭. " : SHOP_META.cat+' 기준 · '+SHOP_META.from+' ~ '+SHOP_META.to+' 12개월 평균. ')
   +'네이버가 주는 값은 비율이 아니라 상대지수라서 여기서 직접 나눠 비중으로 바꿨다. '
   +'검색광고의 기기 비중과 다를 수 있다 — 쇼핑에서의 클릭이고, 저쪽은 검색량이다.</p>';
@@ -2950,7 +2974,7 @@ function drawCombo(){
     +'</div></div>';
 
   /* 패널 — 항목마다 따로 쌓고 가로축을 같이 쓴다. 단위가 다른 값을 한 축에 겹치지 않는다. */
-  var W=980, L=66, Rr=18, iw=W-L-Rr, gap=16, y0=22, panels=[];
+  var W=Math.max(320, Math.round(box.clientWidth||980)), L=W<600?50:66, Rr=W<600?8:18, iw=W-L-Rr, gap=18, y0=30, panels=[];
   if(CB.show.vol && have.vol) panels.push({k:"vol", h:170});
   if(CB.show.clk && have.clk) panels.push({k:"clk", h:110});
   if(CB.show.prod && have.prod) panels.push({k:"prod", h:84});
@@ -2968,7 +2992,7 @@ function drawCombo(){
       .filter(function(o){ return o.j>=0 && o.v!=null; });
     mx = P.k==="clk" ? 100 : niceMax(Math.max.apply(null, (vals||dots.map(function(o){ return o.v; })).concat([0]))*1.05);
     var Y=function(v){ return P.y+ph - v/mx*ph; };
-    svg+='<text class="cb-pk" x="'+L+'" y="'+(P.y-6)+'">'+NAMES[P.k]+'</text>';
+    svg+='<text class="cb-pk" x="0" y="'+(P.y-14)+'">'+NAMES[P.k]+'</text>';
     for(var g=0;g<=2;g++){ var gy=P.y+ph-g/2*ph;
       svg+='<line class="gl" x1="'+L+'" y1="'+gy.toFixed(1)+'" x2="'+(L+iw)+'" y2="'+gy.toFixed(1)+'"/>'
         +'<text class="ax" x="'+(L-8)+'" y="'+(gy+3.5).toFixed(1)+'" text-anchor="end">'+fmtY(mx*g/2)+'</text>'; }
@@ -2990,15 +3014,15 @@ function drawCombo(){
       if(!dots.length) svg+='<text class="ax" x="'+(L+iw/2)+'" y="'+(P.y+ph/2)+'" text-anchor="middle">이 기간에는 기록이 없다 — 기록 날짜 '+pts.map(function(p){ return dayKey(p.d); }).join(", ")+'</text>';
     }
     P.vals=vals; P.dots=dots; P.fmtY=fmtY;
-    y+=ph+gap+16;
+    y+=ph+gap+26;
   });
   var H=y+4, xl="";
-  var ticks=Math.min(n, 7);
+  var ticks=Math.min(n, W<600?4:7);
   for(var t2=0;t2<ticks;t2++){ var j2= ticks<2?0:Math.round(t2/(ticks-1)*(n-1));
     xl+='<text class="ax" x="'+X(j2).toFixed(1)+'" y="'+(H-6)+'" text-anchor="'+(ticks<2?"middle":t2===0?"start":t2===ticks-1?"end":"middle")+'">'+bLabel(B[j2],CB.unit,true)+'</text>'; }
   h+= panels.length && n
     ? '<div class="tw-wrap"><div class="tw-tip" id="cbTip"></div><svg id="cbSvg" viewBox="0 0 '+W+' '+H+'" role="img" aria-label="'+esc(kw)+' 종합 차트">'
-      +svg+xl+'<line id="cbX" x1="0" y1="'+(y0-4)+'" x2="0" y2="'+(H-22)+'" stroke="var(--line-strong)" opacity="0"/>'
+      +svg+xl+'<line id="cbX" x1="0" y1="'+(y0)+'" x2="0" y2="'+(H-22)+'" stroke="var(--line-strong)" opacity="0"/>'
       +'<rect id="cbHit" x="'+(L-6)+'" y="0" width="'+(iw+12)+'" height="'+(H-20)+'" fill="transparent"/></svg></div>'
     : '<div class="na">'+(n?"그릴 항목을 하나 이상 켜라.":"이 기간에는 자료가 없다.")+'</div>';
 
@@ -3036,6 +3060,7 @@ function drawCombo(){
   });
   hit.addEventListener("mouseleave",function(){ tip.style.opacity="0"; xline.setAttribute("opacity","0"); });
 }
+var cbRT; window.addEventListener("resize",function(){ clearTimeout(cbRT); cbRT=setTimeout(function(){ if(TAB==="detail") drawCombo(); },150); });
 function seasonLine(D){
   if(!D.vol) return "";
   /* 최근 12개 완결된 달 */
@@ -3087,14 +3112,15 @@ function ratioCards(){
     if(!v) return '<div class="na sm">'+(HUB?"자료 없음":"일간 자료가 있어야 한다 · API HUB 키 필요")+'</div>';
     var mx=Math.max.apply(null,v)||1, top=v.indexOf(mx);
     return '<div class="rc-bars">'+v.map(function(x,j){
-      return '<div><em>'+x.toFixed(1)+'</em><i class="'+(j===top?"top":"")+'" style="height:'+Math.max(3,x/mx*64)+'px"></i><b>'+labels[j]+'</b></div>'; }).join("")+'</div>';
+      return '<div><em>'+x.toFixed(1)+'</em><i class="'+(j===top?"top":"")+'" style="height:'+Math.max(3,x/mx*66)+'px"></i><b>'+labels[j]+'</b></div>'; }).join("")+'</div>';
   };
-  var card=function(t,src2,body,foot){ return '<div class="card rc"><div class="rc-top"><h3>'+t+'</h3><span class="cb-src">'+src2+'</span></div>'+body+(foot?'<p class="note">'+foot+'</p>':'')+'</div>'; };
+  var card=function(t,src2,body,foot){ return '<div class="card rc"><div class="rc-top"><h3>'+t+'</h3><span class="cb-src">'+src2+'</span></div>'
+    +'<div class="rc-body">'+body+'</div><p class="note">'+(foot||"&nbsp;")+'</p></div>'; };
   var ageTop = age ? AGEK[age.indexOf(Math.max.apply(null,age))]+"대" : "";
   var wkL=["월","화","수","목","금","토","일"], wkTop = wk ? wkL[wk.indexOf(Math.max.apply(null,wk))]+"요일" : "";
   box.innerHTML=
-    card("기기별 클릭 비율", src, two(dev,"모바일","PC"))
-   +card("성별 클릭 비율", src, two(gen,"여성","남성"))
+    card("기기별 클릭 비율", src, two(dev,"모바일","PC"), dev?(dev[0]>=dev[1]?"모바일이 PC의 <b>"+(dev[1]?(dev[0]/dev[1]).toFixed(1):"—")+"배</b>":"PC가 모바일의 <b>"+(dev[0]?(dev[1]/dev[0]).toFixed(1):"—")+"배</b>"):"")
+   +card("성별 클릭 비율", src, two(gen,"여성","남성"), gen?(gen[0]>=gen[1]?"여성이 남성의 <b>"+(gen[1]?(gen[0]/gen[1]).toFixed(1):"—")+"배</b>":"남성이 여성의 <b>"+(gen[0]?(gen[1]/gen[0]).toFixed(1):"—")+"배</b>"):"")
    +card("연령별 클릭 비율", src, bars(age, AGEK.map(function(g){ return g+"대"; })), age?"가장 많이 누르는 층 <b>"+ageTop+"</b>":"")
    +card("요일별 클릭 비율", wk?wsrc:"원본 없음", bars(wk, wkL), wk?"가장 많이 누르는 요일 <b>"+wkTop+"</b> · 광고 요일 가중치에 쓴다":"");
 }
