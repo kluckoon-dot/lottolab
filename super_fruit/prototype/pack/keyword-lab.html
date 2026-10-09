@@ -371,7 +371,7 @@ tbody tr.sel{background:var(--brand-soft)}
 .ages{display:flex;gap:3px;align-items:flex-end;height:52px}
 .ages div{flex:1;display:flex;flex-direction:column;justify-content:flex-end;align-items:center;gap:3px;min-width:0}
 .ages i{display:block;width:100%;background:var(--seq4);border-radius:3px 3px 0 0}
-.ages i.top{background:var(--brand)}
+.ages i.peak{background:var(--brand)}
 .ages b{font-size:9.5px;font-weight:600;color:var(--ink-3);white-space:nowrap}
 .buy-foot{margin:11px 0 0;font-size:11px;color:var(--ink-3);line-height:1.55}
 @media (max-width:700px){.buy-grid{grid-template-columns:1fr;gap:13px}}
@@ -528,8 +528,8 @@ th.srt[data-dir]::after{content:attr(data-dir);margin-left:3px;color:var(--brand
 .rc-bars div{flex:1;display:flex;flex-direction:column;justify-content:flex-end;align-items:center;gap:3px;min-width:0}
 .rc-bars em{font-style:normal;font-size:9.5px;font-weight:600;color:var(--ink-3);font-variant-numeric:tabular-nums}
 .rc-bars i{display:block;width:100%;max-width:30px;background:var(--seq4);border-radius:3px 3px 0 0}
-.rc-bars i.top{background:var(--brand)}
-.rc-bars div:has(i.top) em{color:var(--ink);font-weight:700}
+.rc-bars i.peak{background:var(--brand)}
+.rc-bars div:has(i.peak) em{color:var(--ink);font-weight:700}
 .rc-bars b{font-size:11px;font-weight:600;color:var(--ink-2);white-space:nowrap}
 .rc{display:flex;flex-direction:column}
 .rc-body{height:112px;display:flex;flex-direction:column;justify-content:flex-end}
@@ -2811,7 +2811,7 @@ function renderBuy(){
     +'<div class="bcap">'+(f>=m?"여성이 남성의 <b>"+(m>0?(f/m).toFixed(1):"—")+"배</b>":"남성이 여성의 <b>"+(f>0?(m/f).toFixed(1):"—")+"배</b>")+'</div></div>'
   +'<div class="bcol"><div class="buy-t">연령</div><div class="bvis"><div class="ages">'
     + ages.map(function(a,ai){
-        return '<div><i class="'+(ai===top?"top":"")+'" style="height:'+Math.max(3,a/mx*34)+'px" data-t="'
+        return '<div><i class="'+(ai===top?"peak":"")+'" style="height:'+Math.max(3,a/mx*34)+'px" data-t="'
           +AGEK[ai]+'대 '+pct(a)+'"></i><b>'+AGEK[ai]+'</b></div>'; }).join("")
   +'</div></div><div class="bcap">가장 두꺼운 층 <b>'+AGEK[top]+'대 '+pct(mx)+'</b></div></div></div>'
   +'<p class="buy-foot">'+(live ? "식품(50000006) 기준 · "+ins.start1+" ~ "+ins.end+" 최근 1년 클릭. " : SHOP_META.cat+' 기준 · '+SHOP_META.from+' ~ '+SHOP_META.to+' 12개월 평균. ')
@@ -3151,7 +3151,7 @@ function ratioCards(){
     if(!v) return '<div class="na sm">'+(HUB?"자료 없음":"일간 자료가 있어야 한다 · API HUB 키 필요")+'</div>';
     var mx=Math.max.apply(null,v)||1, top=v.indexOf(mx);
     return '<div class="rc-bars">'+v.map(function(x,j){
-      return '<div><em>'+x.toFixed(1)+'</em><i class="'+(j===top?"top":"")+'" style="height:'+Math.max(3,x/mx*66)+'px"></i><b>'+labels[j]+'</b></div>'; }).join("")+'</div>';
+      return '<div><em>'+x.toFixed(1)+'</em><i class="'+(j===top?"peak":"")+'" style="height:'+Math.max(3,x/mx*66)+'px"></i><b>'+labels[j]+'</b></div>'; }).join("")+'</div>';
   };
   var card=function(t,src2,body,foot){ return '<div class="card rc"><div class="rc-top"><h3>'+t+'</h3><span class="cb-src">'+src2+'</span></div>'
     +'<div class="rc-body">'+body+'</div><p class="note">'+(foot||"&nbsp;")+'</p></div>'; };

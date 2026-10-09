@@ -49,3 +49,15 @@ key.txt   → 404
 `naver-collector-update.zip` 내용을 보갬 수집기 폴더에 직접 덮어썼다. key.txt · naver-out 은 그대로.
 덮어쓰기 전 원래 파일 41개는 PC 의 작업 폴더 `.claude/backup/navercollector-20261009/` 에 떠뒀다.
 이제 `0-keyword-lab.bat` 을 수집기 폴더에서 더블클릭하면 된다.
+
+## 연령 막대가 위 고정 바를 뚫고 올라왔다
+
+보갬 캡처: 스크롤하면 진한 초록 막대 하나가 `네이버 수수료 … 마진 …` 배지 위에 걸려 있다.
+
+가장 두꺼운 연령 층에 `class="top"` 을 붙였는데, 페이지 머리 바도 `.top` 이다.
+```css
+.top{ position:sticky; top:0; z-index:30; background:…; border-bottom:… }
+```
+그 막대가 머리 바의 성질을 통째로 물려받아 화면 맨 위에 달라붙었다. z-index 30 이라 판매 설정 바(29)보다 위다.
+쇼핑 구매층 연령 막대와 상세 탭의 연령·요일 막대 두 곳. `peak` 로 바꿨다.
+1400px 에서 재현 → 고친 뒤 막대 `position:static` 확인.
