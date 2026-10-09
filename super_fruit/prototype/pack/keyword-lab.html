@@ -734,6 +734,12 @@ th.srt[data-dir]::after{content:attr(data-dir);margin-left:3px;color:var(--brand
             <label for="fComp" class="isf-sub">최대 광고경쟁도</label>
             <input type="range" id="fComp" min="1" max="10" step="0.5" value="10" style="width:120px">
             <span class="f-val num" id="fCompV"></span>
+            <span class="f-sp"></span>
+            <span class="isf-sub">프리셋</span>
+            <div class="chips" id="fPreset">
+              <button class="chip" data-p="ours" title="린정·반린정 · 쇼핑성·품목 · 검색수 100 이상 · 황금점수 순">우리 판정 기준</button>
+              <button class="chip" data-p="is" title="쇼핑성 · 경쟁강도 0~1 · 판정 끔 · 검색수 순">아이템스카우트 기준</button>
+            </div>
           </div>
         </div>
         <div class="isf-row isf-last">
@@ -1177,6 +1183,7 @@ function syncFilters(){
   document.querySelectorAll(".rin").forEach(function(inp){
     if(document.activeElement!==inp) inp.value = F[inp.dataset.k]==null ? "" : F[inp.dataset.k]; });
   var fc=document.getElementById("fCat"); if(fc && fc.value!==F.cat) fc.value=F.cat;
+  var pz=presetOf(); document.querySelectorAll("#fPreset .chip").forEach(function(c){ c.setAttribute("aria-pressed", c.dataset.p===pz); });
   renderFChips();
   document.querySelectorAll("th.srt").forEach(function(h){
     if(h.dataset.sort===sortKey()) h.setAttribute("data-dir", (SORT.k?SORT.dir:-1)<0?"↓":"↑");
@@ -1252,6 +1259,35 @@ function renderFChips(){
     box.appendChild(b);
   });
 }
+/* ── 프리셋 ──
+   아이템스카우트 기준 = 그쪽 황금키워드 화면의 기본 조합.
+     쇼핑성 · 경쟁강도(상품수 ÷ 검색수) 0~1 · 검색수 많은 순 · 우리 판정은 끈다.
+   검색수 하한 100 은 우리 규칙이라 그대로 둔다.
+   경쟁강도는 상품수가 있어야 계산되므로, 아이템스카우트 엑셀로 상품수를 채운 키워드만 남는다. */
+function applyPreset(k){
+  clearRel(); F.q=""; document.getElementById("q").value="";
+  F.cat=""; F.pmin=null; F.pmax=null;
+  setType("shop"); F.vmin=100; F.vmax=null; F.comp=10;
+  document.getElementById("fComp").value=10; document.getElementById("fCompV").textContent="10.0";
+  if(k==="is"){
+    F.kmin=0; F.kmax=1;
+    VN.forEach(function(v){ F.v[v]=true; });
+    SORT.k="tot"; SORT.dir=-1;
+  } else {
+    F.kmin=null; F.kmax=null;
+    F.v["린정"]=true; F.v["반린정"]=true; F.v["패스"]=false;
+    SORT.k=null;
+  }
+  document.querySelectorAll("#fVerdict .chip").forEach(function(c){ c.setAttribute("aria-pressed", !!F.v[c.dataset.v]); });
+  LIMIT=100; refresh();
+}
+function presetOf(){
+  var shop=typeOf()==="shop", base=shop && F.vmin===100 && F.vmax==null && !F.rel && !F.cat && F.pmin==null && F.pmax==null && F.comp>=10 && !F.q;
+  if(base && F.kmin===0 && F.kmax===1 && F.v["린정"]&&F.v["반린정"]&&F.v["패스"] && SORT.k==="tot" && SORT.dir===-1) return "is";
+  if(base && F.kmin==null && F.kmax==null && F.v["린정"]&&F.v["반린정"]&&!F.v["패스"] && !SORT.k) return "ours";
+  return "";
+}
+document.querySelectorAll("#fPreset .chip").forEach(function(c){ c.onclick=function(){ applyPreset(c.dataset.p); }; });
 document.getElementById("fComp").oninput=function(e){ F.comp=+e.target.value;
   document.getElementById("fCompV").textContent=F.comp.toFixed(1); LIMIT=100; renderTable(); };
 var qt; document.getElementById("q").addEventListener("input",function(e){
@@ -1294,7 +1330,10 @@ function renderTable(){
   mb.style.display=total<=LIMIT?"none":"block";
   mb.textContent="더 보기 (남은 "+fmt(total-LIMIT)+"개)";
   if(!shown.length){
-    var tr=el("tr"), td=el("td","empty","조건에 맞는 키워드가 없다. 필터를 넓히거나 목표 전환율을 올려봐라.");
+    var noProd = (F.kmin!=null||F.kmax!=null||F.pmin!=null||F.pmax!=null) && !(function(){ for(var z=0;z<N;z++) if(prodOf(z)!=null) return true; return false; })();
+    var tr=el("tr"), td=el("td","empty", noProd
+      ? "상품수가 있는 키워드가 아직 없다. 아이템스카우트 연관키워드 엑셀을 엑셀 분석 탭에 넣으면 경쟁강도로 거를 수 있다."
+      : "조건에 맞는 키워드가 없다. 필터를 넓히거나 목표 전환율을 올려봐라.");
     td.colSpan=17; tr.appendChild(td); body.appendChild(tr); return;
   }
   var frag=document.createDocumentFragment();
