@@ -146,6 +146,36 @@
   };
 
   /* ── 어떤 장부인지 가려낸다 ── */
+  /* 아이템스카우트 연관키워드 내보내기.
+     상품수·경쟁강도는 쇼핑검색 API 가 끝난 지금 여기서만 얻는다. 저쪽 화면과 같은 숫자다. */
+  function findItemScout(rows) {
+    for (let i = 0; i < Math.min(rows.length, 10); i++) {
+      const h = rows[i].map(x => String(x).replace(/\s/g, ""));
+      const at = n => h.indexOf(n);
+      if (at("키워드") < 0 || at("상품수") < 0 || at("경쟁강도") < 0) continue;
+      return { start: i + 1, col: {
+        kw: at("키워드"), dup: at("중복횟수"), cat: at("대표카테고리"), cls: at("키워드분류"),
+        shopIdx: at("쇼핑성지수"), pc: at("PC검색"), mo: at("모바일검색"), tot: at("총검색수"),
+        prod: at("상품수"), comp: at("경쟁강도"), clk: at("평균클릭수"),
+        tpc: at("PC클릭률"), tmo: at("모바일클릭률") } };
+    }
+    return null;
+  }
+  function readItemScout(found, rows) {
+    const out = [], c = found.col;
+    const n = v => { const t = String(v ?? "").replace(/[,%\s]/g, ""); if (!t || t === "-") return null;
+      const x = parseFloat(t); return isFinite(x) ? x : null; };
+    const g = (r, i) => i >= 0 ? r[i] : "";
+    for (const r of rows.slice(found.start)) {
+      /* 공백 하나도 다른 키워드다. "홍로사과" 와 "홍로 사과" 는 둘 다 남긴다. */
+      const kw = String(g(r, c.kw) ?? "").trim(); if (!kw) continue;
+      out.push({ kw, dup: n(g(r, c.dup)), cat: String(g(r, c.cat) ?? "").trim(), cls: String(g(r, c.cls) ?? "").trim(),
+        shopIdx: n(g(r, c.shopIdx)), pc: n(g(r, c.pc)) || 0, mo: n(g(r, c.mo)) || 0, tot: n(g(r, c.tot)),
+        prod: n(g(r, c.prod)), comp: n(g(r, c.comp)), clk: n(g(r, c.clk)),
+        ctrPc: n(g(r, c.tpc)) || 0, ctrMo: n(g(r, c.tmo)) || 0 });
+    }
+    return out;
+  }
   /* 네이버 검색광고 키워드도구에서 내려받은 엑셀.
      머리글이 두 줄이다 (월간검색수 / 월간검색수(PC)·(모바일)). 네이버 공식 원본이라
      이걸 떨구면 그 시점의 숫자로 화면이 갱신된다. 실시간 서버가 없어도 되는 길이다. */
@@ -189,6 +219,10 @@
     for (const sh of book) {
       const f = findNaverKw(sh.rows);
       if (f) return { kind: "naverkw", sheet: sh, found: f, book };
+    }
+    for (const sh of book) {
+      const f = findItemScout(sh.rows);
+      if (f) return { kind: "itemscout", sheet: sh, found: f, book };
     }
 
     /* 계산기를 먼저 본다.
@@ -260,5 +294,5 @@
     return rows;
   }
 
-  window.XlsxLab = { readWorkbook, detect, readSupply, readCalc, readNaverKw, findTable, num };
+  window.XlsxLab = { readWorkbook, detect, readSupply, readCalc, readNaverKw, readItemScout, findTable, num };
 })();

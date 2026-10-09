@@ -13,6 +13,8 @@
  *
  * 하는 일
  *   GET  /api/live?kw=청도반시        검색수·클릭수·클릭률·연관키워드 + 입찰가 1~3위 (PC·모바일)
+ *   GET  /api/multi?kws=사과,배,감     여러 키워드를 한 번에. 정확히 그 키워드만 + 입찰가
+ *   GET  /api/insight?kw=청도반시     3년 일간 검색 추세 · 쇼핑 클릭 추세 · 기기 · 성별 · 연령 (API HUB)
  *   GET  /api/uploads                 저장해둔 엑셀 분석 목록
  *   POST /api/uploads                 엑셀 분석 결과 저장
  *   DELETE /api/uploads/<id>          지우기
@@ -39,7 +41,10 @@ const ALIAS = {
   naver_ad_api_key:"KEY", 액세스라이선스:"KEY", 라이선스:"KEY", apikey:"KEY", api_key:"KEY",
   naver_ad_secret:"SECRET", 비밀키:"SECRET", secret:"SECRET", secretkey:"SECRET",
   naver_ad_customer:"CUSTOMER", 고객id:"CUSTOMER", 고객아이디:"CUSTOMER",
-  customerid:"CUSTOMER", customer_id:"CUSTOMER", customer:"CUSTOMER"
+  customerid:"CUSTOMER", customer_id:"CUSTOMER", customer:"CUSTOMER",
+  /* B. NAVER API HUB — 검색어 트렌드 · 쇼핑 인사이트. fetch-hub.mjs 와 같은 이름들 */
+  naver_hub_id:"HUB_ID", hub_client_id:"HUB_ID", clientid:"HUB_ID", client_id:"HUB_ID", 허브id:"HUB_ID", 허브아이디:"HUB_ID",
+  naver_hub_secret:"HUB_SECRET", hub_client_secret:"HUB_SECRET", clientsecret:"HUB_SECRET", client_secret:"HUB_SECRET", 허브시크릿:"HUB_SECRET"
 };
 function loadKeys() {
   for (const name of ["key.txt", ".env"]) {
@@ -62,6 +67,11 @@ const KEY = process.env.NAVER_AD_API_KEY || FK.KEY;
 const SECRET = process.env.NAVER_AD_SECRET || FK.SECRET;
 const CUSTOMER = process.env.NAVER_AD_CUSTOMER || FK.CUSTOMER;
 const AD_HOST = process.env.NAVER_AD_HOST || "https://api.searchad.naver.com";
+const HUB_ID = process.env.NAVER_HUB_ID || FK.HUB_ID;
+const HUB_SECRET = process.env.NAVER_HUB_SECRET || FK.HUB_SECRET;
+const HUB_HOST = process.env.NAVER_HUB_HOST || "https://naverapihub.apigw.ntruss.com";
+const INSIGHT_MIN = +(process.env.INSIGHT_CACHE_MIN || 720);  // 추세는 하루 단위라 12시간 묶어둔다
+const CAT = process.env.SHOP_CAT || "50000006";                // 쇼핑인사이트 분야. 기본 식품
 
 function sign(method, urlPath) {
   const ts = Date.now().toString();
@@ -69,8 +79,8 @@ function sign(method, urlPath) {
   return { "X-Timestamp": ts, "X-API-KEY": KEY, "X-Customer": String(CUSTOMER),
            "X-Signature": sig, "Content-Type": "application/json; charset=UTF-8" };
 }
-async function ad(method, urlPath, { query, body } = {}) {
-  const qs = query ? "?" + new URLSearchParams(query) : "";
+async function ad(method, urlPath, { query, body, qs: rawQs } = {}) {
+  const qs = rawQs || (query ? "?" + new URLSearchParams(query) : "");
   const res = await fetch(AD_HOST + urlPath + qs, { method, headers: sign(method, urlPath),
     body: body ? JSON.stringify(body) : undefined });
   const text = await res.text();
@@ -78,7 +88,7 @@ async function ad(method, urlPath, { query, body } = {}) {
   return { ok: res.ok, status: res.status, json, text };
 }
 const sleep = ms => new Promise(r => setTimeout(r, ms));
-const safe = t => { let s = String(t ?? ""); for (const v of [KEY, SECRET, CUSTOMER]) if (v && String(v).length >= 6) s = s.split(v).join("<가림>"); return s; };
+const safe = t => { let s = String(t ?? ""); for (const v of [KEY, SECRET, CUSTOMER, HUB_ID, HUB_SECRET]) if (v && String(v).length >= 6) s = s.split(v).join("<가림>"); return s; };
 
 /* 네이버는 적은 검색량을 "< 10" 문자열로 준다. 숫자로 바꾸되 가려졌다는 표시를 남긴다. */
 const num = v => typeof v === "number" ? v : (parseInt(String(v ?? "").replace(/[^\d]/g, ""), 10) || 0);
@@ -107,14 +117,7 @@ async function lookup(kw, fresh) {
               : `네이버 응답 ${r.status}`;
     throw Object.assign(new Error(why + " " + safe(r.text).slice(0, 120)), { code: 502 });
   }
-  const list = (r.json?.keywordList || []).map(x => ({
-    kw: x.relKeyword,
-    pc: num(x.monthlyPcQcCnt), mo: num(x.monthlyMobileQcCnt),
-    masked: masked(x.monthlyPcQcCnt) || masked(x.monthlyMobileQcCnt),
-    clickPc: +x.monthlyAvePcClkCnt || 0, clickMo: +x.monthlyAveMobileClkCnt || 0,
-    ctrPc: +x.monthlyAvePcCtr || 0, ctrMo: +x.monthlyAveMobileCtr || 0,
-    depth: num(x.plAvgDepth), comp: x.compIdx || ""
-  }));
+  const list = (r.json?.keywordList || []).map(rowOf);
   const exact = list.find(x => same(x.kw, kw)) || list.find(x => same(x.kw, hint)) || null;
 
   /* 2. 입찰가 1~3위. 검색한 키워드와 연관 상위 29개까지, 10개씩 묶어 PC·모바일 따로.
@@ -123,6 +126,15 @@ async function lookup(kw, fresh) {
   if (exact) want.push(exact.kw);
   list.slice().sort((a, b) => (b.pc + b.mo) - (a.pc + a.mo))
     .forEach(x => { if (want.length < 30 && !want.includes(x.kw)) want.push(x.kw); });
+  const bids = await bidsFor(want);
+  const out = { at: new Date().toISOString(), kw, hint, exact, related: list, bids };
+  await fsp.mkdir(CACHE, { recursive: true });
+  await fsp.writeFile(file, JSON.stringify(out), "utf8");
+  return { ...out, cached: false };
+}
+
+/* ── 입찰가 1~3위. 10개씩 묶어 PC·모바일 따로 ── */
+async function bidsFor(want) {
   const bids = {};
   for (let i = 0; i < want.length; i += 10) {
     const g = want.slice(i, i + 10);
@@ -137,9 +149,127 @@ async function lookup(kw, fresh) {
       await sleep(250);
     }
   }
-  const out = { at: new Date().toISOString(), kw, hint, exact, related: list, bids };
-  await fsp.mkdir(CACHE, { recursive: true });
-  await fsp.writeFile(file, JSON.stringify(out), "utf8");
+  return bids;
+}
+const rowOf = x => ({
+  kw: x.relKeyword,
+  pc: num(x.monthlyPcQcCnt), mo: num(x.monthlyMobileQcCnt),
+  masked: masked(x.monthlyPcQcCnt) || masked(x.monthlyMobileQcCnt),
+  clickPc: +x.monthlyAvePcClkCnt || 0, clickMo: +x.monthlyAveMobileClkCnt || 0,
+  ctrPc: +x.monthlyAvePcCtr || 0, ctrMo: +x.monthlyAveMobileCtr || 0,
+  depth: num(x.plAvgDepth), comp: x.compIdx || ""
+});
+
+/* ── 여러 키워드 한 번에 ──
+   키워드도구는 씨앗을 5개까지 쉼표로 받는다. 돌아온 것 중 정확히 그 키워드만 고른다.
+   연관은 버린다 — 여기서 원하는 건 "이 10개를 한 표에" 이기 때문이다.
+   한 묶음이 실패하면 하나씩 다시 부른다. */
+async function multi(kws) {
+  const asked = [...new Set(kws.map(k => k.trim()).filter(Boolean))].slice(0, 30);
+  if (!asked.length) throw Object.assign(new Error("키워드가 비었다"), { code: 400 });
+  const found = {}, miss = [];
+  const take = (list, group) => {
+    for (const k of group) {
+      const h = cleanHint(k);
+      const x = list.find(r => same(r.relKeyword, k)) || list.find(r => same(r.relKeyword, h));
+      if (x) found[k] = rowOf(x);
+    }
+  };
+  for (let i = 0; i < asked.length; i += 5) {
+    const group = asked.slice(i, i + 5);
+    const hints = group.map(cleanHint).filter(Boolean);
+    const r = await ad("GET", "/keywordstool", { qs: "?hintKeywords=" + hints.map(encodeURIComponent).join(",") + "&showDetail=1" });
+    if (r.ok) take(r.json?.keywordList || [], group);
+    else if (r.status === 429) throw Object.assign(new Error("네이버 호출 한도에 걸렸다. 잠시 뒤 다시."), { code: 502 });
+    else for (const k of group) {
+      const one = await ad("GET", "/keywordstool", { query: { hintKeywords: cleanHint(k), showDetail: "1" } });
+      if (one.ok) take(one.json?.keywordList || [], [k]);
+      await sleep(200);
+    }
+    await sleep(200);
+  }
+  for (const k of asked) if (!found[k]) miss.push(k);
+  const rows = Object.values(found);
+  const bids = await bidsFor([...new Set(rows.map(x => x.kw))]);
+  return { at: new Date().toISOString(), asked, found: Object.fromEntries(Object.entries(found).map(([k, v]) => [k, v.kw])),
+           miss, related: rows, bids };
+}
+
+/* ── 추세 · 쇼핑 구매층 (NAVER API HUB) ──
+   아이템스카우트 종합차트와 같은 원본이다.
+     검색어 트렌드  /search-trend/v1/search            3년 일간 상대지수
+     쇼핑 인사이트  /shopping/v1/category/keywords     3년 일간 클릭 상대지수
+                    /shopping/v1/category/keyword/{device,gender,age}   최근 1년 클릭 비율
+   상대지수(0~100)라서 절대값은 화면에서 '최근 30일 검색수'에 맞춰 환산한다. */
+async function hub(p, body) {
+  try {
+    const res = await fetch(HUB_HOST + p, { method: "POST",
+      headers: { "X-NCP-APIGW-API-KEY-ID": HUB_ID, "X-NCP-APIGW-API-KEY": HUB_SECRET, "Content-Type": "application/json" },
+      body: JSON.stringify(body) });
+    const text = await res.text();
+    let json = null; try { json = JSON.parse(text); } catch {}
+    const bad = !res.ok || !!(json && (json.errorCode || json.errorMessage || json.error));
+    return { ok: !bad, status: res.status, json, text };
+  } catch (e) { return { ok: false, status: "연결실패", json: null, text: String(e.message || e) }; }
+}
+const ymd = d => d.getFullYear() + "-" + String(d.getMonth() + 1).padStart(2, "0") + "-" + String(d.getDate()).padStart(2, "0");
+const addDays = (d, n) => { const x = new Date(d); x.setDate(x.getDate() + n); return x; };
+/* 네이버는 값이 0 인 날을 빼고 준다. 빈 날을 0 으로 채워 하루 한 칸을 맞춘다. */
+function dense(data, start, end) {
+  const m = new Map((data || []).map(d => [d.period, d.ratio]));
+  const v = [];
+  for (let d = new Date(start + "T00:00:00"); ymd(d) <= end; d = addDays(d, 1)) v.push(+(m.get(ymd(d)) || 0).toFixed(3));
+  return v;
+}
+function share(data) {
+  const sum = {};
+  for (const d of data || []) sum[d.group] = (sum[d.group] || 0) + (+d.ratio || 0);
+  const tot = Object.values(sum).reduce((a, b) => a + b, 0);
+  if (!tot) return null;
+  return Object.fromEntries(Object.entries(sum).map(([g, v]) => [g, +(v / tot * 100).toFixed(1)]));
+}
+async function insight(kw, fresh) {
+  kw = String(kw).trim().slice(0, 40);
+  if (!kw) throw Object.assign(new Error("키워드가 비었다"), { code: 400 });
+  const file = path.join(CACHE, "insight-" + encodeURIComponent(kw.replace(/\s+/g, "")) + ".json");
+  if (!fresh) {
+    try {
+      const c = JSON.parse(await fsp.readFile(file, "utf8"));
+      if (Date.now() - Date.parse(c.at) < INSIGHT_MIN * 60000) return { ...c, cached: true };
+    } catch {}
+  }
+  const end = ymd(addDays(new Date(), -1));                       // 오늘 것은 아직 덜 찼다
+  const s3 = new Date(end + "T00:00:00"); s3.setFullYear(s3.getFullYear() - 3);
+  const start = ymd(addDays(s3, 1));
+  const s1 = new Date(end + "T00:00:00"); s1.setFullYear(s1.getFullYear() - 1);
+  const start1 = ymd(addDays(s1, 1));
+  const out = { at: new Date().toISOString(), kw, cat: CAT, start, end, start1, errors: {} };
+  const why = r => (r.status === 401 || r.status === 403) ? "API HUB 가 키를 거부했다" : r.status === 429 ? "호출 한도" : "응답 " + r.status;
+
+  const s = await hub("/search-trend/v1/search", { startDate: start, endDate: end, timeUnit: "date",
+    keywordGroups: [{ groupName: kw, keywords: [kw] }] });
+  if (s.ok) out.search = dense(s.json?.results?.[0]?.data, start, end);
+  else out.errors.search = why(s) + " " + safe(s.text).slice(0, 100);
+  await sleep(120);
+
+  const c = await hub("/shopping/v1/category/keywords", { startDate: start, endDate: end, timeUnit: "date",
+    category: CAT, keyword: [{ name: kw, param: [kw] }] });
+  if (c.ok) {
+    const d = c.json?.results?.[0]?.data || [];
+    if (d.length) out.click = dense(d, start, end); else out.errors.click = "쇼핑 클릭 기록이 없다 (식품 분야 기준)";
+  } else out.errors.click = why(c) + " " + safe(c.text).slice(0, 100);
+
+  for (const dim of ["device", "gender", "age"]) {
+    await sleep(120);
+    const r = await hub("/shopping/v1/category/keyword/" + dim, { startDate: start1, endDate: end, timeUnit: "month",
+      category: CAT, keyword: kw });
+    if (r.ok) { const v = share(r.json?.results?.[0]?.data); if (v) out[dim] = v; else out.errors[dim] = "기록 없음"; }
+    else out.errors[dim] = why(r);
+  }
+  if (out.search || out.click || out.device) {
+    await fsp.mkdir(CACHE, { recursive: true });
+    await fsp.writeFile(file, JSON.stringify(out), "utf8");
+  }
   return { ...out, cached: false };
 }
 
@@ -159,6 +289,9 @@ async function saveUpload(obj) {
   const id = crypto.createHash("sha1").update(obj.file + "|" + obj.kind).digest("hex").slice(0, 12);
   const rec = { id, file: String(obj.file).slice(0, 200), kind: obj.kind, rows: obj.rows,
                 savedAt: new Date().toISOString() };
+  /* 키워드도구·아이템스카우트 엑셀은 기준 시각과 덮어쓰기 전 값을 같이 둬야 다시 적용할 수 있다 */
+  if (obj.at) rec.at = String(obj.at).slice(0, 40);
+  if (obj.before && typeof obj.before === "object") rec.before = obj.before;
   await fsp.mkdir(UPLOADS, { recursive: true });
   await fsp.writeFile(path.join(UPLOADS, id + ".json"), JSON.stringify(rec), "utf8");
   return rec;
@@ -185,7 +318,15 @@ const readBody = req => new Promise((ok, no) => {
 const server = http.createServer(async (req, res) => {
   const u = new URL(req.url, "http://127.0.0.1");
   try {
-    if (u.pathname === "/api/ping") return send(res, 200, { ok: true, keys: !!(KEY && SECRET && CUSTOMER) });
+    if (u.pathname === "/api/ping") return send(res, 200, { ok: true, keys: !!(KEY && SECRET && CUSTOMER), hub: !!(HUB_ID && HUB_SECRET) });
+    if (u.pathname === "/api/multi") {
+      if (!(KEY && SECRET && CUSTOMER)) return send(res, 500, { error: "key.txt 에 검색광고 키가 없다." });
+      return send(res, 200, await multi((u.searchParams.get("kws") || "").split(/[,\n]/)));
+    }
+    if (u.pathname === "/api/insight") {
+      if (!(HUB_ID && HUB_SECRET)) return send(res, 500, { error: "key.txt 에 API HUB 키(B 칸)가 없다." });
+      return send(res, 200, await insight(u.searchParams.get("kw") || "", u.searchParams.get("fresh") === "1"));
+    }
     if (u.pathname === "/api/live") {
       if (!(KEY && SECRET && CUSTOMER)) return send(res, 500, { error: "key.txt 에 검색광고 키가 없다." });
       const kw = (u.searchParams.get("kw") || "").trim();
@@ -215,6 +356,9 @@ server.listen(PORT, "127.0.0.1", () => {
   console.log(KEY && SECRET && CUSTOMER
     ? "  검색광고 키 확인. 검색하면 네이버에서 바로 받아온다."
     : "  ※ key.txt 에 검색광고 키가 없다. 실시간 조회는 안 되고 수집본만 보인다.");
+  console.log(HUB_ID && HUB_SECRET
+    ? "  API HUB 키 확인. 종합차트 · 쇼핑 구매층도 바로 받아온다."
+    : "  ※ key.txt 에 API HUB 키(B 칸)가 없다. 종합차트는 9월 수집본으로만 그린다.");
   console.log(`  같은 키워드는 ${CACHE_MIN}분 안에 다시 부르지 않는다. 새로 받으려면 화면의 ↻ 를 눌러라.`);
   console.log("  이 창을 닫으면 서버도 꺼진다.\n");
   /* 서버가 귀를 연 뒤에 브라우저를 띄운다. 먼저 띄우면 "연결할 수 없음" 이 뜬다. */
