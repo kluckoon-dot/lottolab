@@ -47,21 +47,21 @@ function readXlsx(buf) {
   const files = unzip(buf);
   const sst = [];
   if (files["xl/sharedStrings.xml"])
-    for (const m of files["xl/sharedStrings.xml"].toString("utf8").matchAll(/<si>([\s\S]*?)<\/si>/g))
-      sst.push([...m[1].matchAll(/<t[^>]*>([\s\S]*?)<\/t>/g)].map(t => unesc(t[1])).join(""));
+    for (const m of files["xl/sharedStrings.xml"].toString("utf8").matchAll(/<(?:\w+:)?si>([\s\S]*?)<\/(?:\w+:)?si>/g))
+      sst.push([...m[1].matchAll(/<(?:\w+:)?t[^>]*>([\s\S]*?)<\/(?:\w+:)?t>/g)].map(t => unesc(t[1])).join(""));
   /* 시트가 여럿이면 행이 제일 많은 것을 쓴다. 안내 시트가 1번인 경우가 흔하다. */
   const sheets = Object.keys(files).filter(k => /^xl\/worksheets\/sheet\d+\.xml$/.test(k)).sort();
   let best = [];
   for (const sn of sheets) {
     const sheet = files[sn].toString("utf8"), rows = [];
-    for (const rm of sheet.matchAll(/<row[^>]*>([\s\S]*?)<\/row>/g)) {
+    for (const rm of sheet.matchAll(/<(?:\w+:)?row\b[^>]*>([\s\S]*?)<\/(?:\w+:)?row>/g)) {
       const cells = [];
-      for (const cm of rm[1].matchAll(/<c([^>]*)>([\s\S]*?)<\/c>/g)) {
+      for (const cm of rm[1].matchAll(/<(?:\w+:)?c\b([^>]*?)(?:\/>|>([\s\S]*?)<\/(?:\w+:)?c>)/g)) {
         const at = (cm[1].match(/r="([A-Z]+\d+)"/) || [])[1];
         const t = (cm[1].match(/t="([^"]+)"/) || [])[1];
         let val = "";
-        if (t === "inlineStr") val = [...cm[2].matchAll(/<t[^>]*>([\s\S]*?)<\/t>/g)].map(x => unesc(x[1])).join("");
-        else { const v = (cm[2].match(/<v>([\s\S]*?)<\/v>/) || [])[1]; if (v != null) val = t === "s" ? (sst[+v] ?? "") : unesc(v); }
+        if (t === "inlineStr") val = [...cm[2].matchAll(/<(?:\w+:)?t[^>]*>([\s\S]*?)<\/(?:\w+:)?t>/g)].map(x => unesc(x[1])).join("");
+        else { const v = (cm[2].match(/<(?:\w+:)?v>([\s\S]*?)<\/(?:\w+:)?v>/) || [])[1]; if (v != null) val = t === "s" ? (sst[+v] ?? "") : unesc(v); }
         const idx = at ? colNum(at) : cells.length;
         while (cells.length < idx) cells.push("");
         cells.push(val);
