@@ -989,14 +989,17 @@ var CAT_VAR={"포항초":"시금치","섬초":"시금치","밤호박":"단호박
 "닭다리":"닭고기","닭날개":"닭고기","닭봉":"닭고기","닭염통":"닭고기","백숙":"닭고기","삼계탕":"닭고기","닭볶음탕":"닭고기","토종닭":"닭고기",
 "곰장어":"장어","꼼장어":"장어","먹장어":"장어","갯장어":"장어","먹태":"명태","동태":"명태","북어":"명태","노가리":"명태","황태":"명태","코다리":"명태","생태":"명태",
 "한치":"오징어","석화":"굴","피칸":"견과류","피스타치오":"견과류","헤이즐넛":"견과류","해바라기씨":"견과류","호박씨":"견과류","브라질너트":"견과류","하루견과":"견과류","캐슈넛":"견과류",
-"유과":"한과","오란다":"한과","약과":"한과","전병":"한과"};
+"유과":"한과","오란다":"한과","약과":"한과","전병":"한과",
+"자옥":"포도","홍주씨들리스":"포도","슈팅스타":"포도","아리향":"딸기","비타베리":"딸기","캔탈로프":"멜론","하미과메론":"멜론","망고수박":"수박","유라조생":"감귤","천도복숭아":"복숭아","천중도":"복숭아",
+"짭짤이토마토":"토마토","구좌당근":"당근","대학찰옥수수":"옥수수","찰옥수수":"옥수수","반건시":"곶감","레몬밤":"허브","서리태":"콩","송이버섯":"버섯","목이버섯":"버섯",
+"갈비":"쇠고기","등심":"쇠고기","차돌박이":"쇠고기","육회":"쇠고기","닭갈비":"닭고기","돼지갈비":"돼지고기","등갈비":"돼지고기","수육":"돼지고기","대하":"새우","유정란":"계란"};
 /* 품목 사전(SEEDS)에 없지만 화면 키워드에 자주 나오는 품목 */
 var CAT_MORE=["오징어","골뱅이","게장","장어","방어","민어","전어","가자미","아귀","병어","명태","임연수","메로","꼬막","조개","소라","옥돔","홍어","가오리","학꽁치","박대","생선","맛살","파래","감태","해초",
 "굴비","꽁치","수수","염통","족발","보쌈","돈까스","함박스테이크","육포","훈제오리","오리고기","잣","오트밀","퀴노아","메밀","병아리콩","치아씨드","기장","누룽지","한과","정과","수삼","청국장","고들빼기","유정란","견과류","쇠고기"];
 /* 품목이 아니라 '때' 와 '쓰임' 을 찾는 말. 품목을 못 찾았을 때만 */
 var CAT_GIFT=/추석|명절|설날|설선물|차례|제사|성묘|답례품|집들이|상견례|선물/;
 /* 끝 이름을 네이버 카테고리 이름에 맞춘다 */
-var CAT_ALIAS={"주스":"주스/음료","소스":"식초/소스/기름","젤리":"젤리/양갱/간식","사탕":"젤리/양갱/간식","쿠키":"빵/과자","한과":"떡/한과","정과":"젤리/양갱/간식","귤":"감귤","단감":"감","차":"차류","녹차":"차류","빵":"빵/과자","과자":"빵/과자","떡":"떡/한과","식초":"식초/소스/기름","드레싱":"식초/소스/기름","마요네즈":"식초/소스/기름","김치":"김치/반찬","달걀":"계란"};
+var CAT_ALIAS={"주스":"주스/음료","소스":"식초/소스/기름","젤리":"젤리/양갱/간식","사탕":"젤리/양갱/간식","쿠키":"스낵/과자","한과":"떡/한과","정과":"젤리/양갱/간식","귤":"감귤","단감":"감","차":"차류","녹차":"차류","빵":"빵/베이커리","과자":"스낵/과자","케이크":"빵/베이커리","베이글":"빵/베이커리","떡":"떡/한과","식초":"식초/소스/기름","드레싱":"식초/소스/기름","마요네즈":"식초/소스/기름","달걀":"계란","마늘쫑":"마늘종"};
 /* 한 글자 품목이 낱말 끝에 붙었을 때 품목으로 봐도 되는 것. 마(고구마) · 딜 · 햄 은 뺀다 */
 var CAT_ONE_END={"잣":1,"톳":1,"배":1,"감":1,"밤":1,"귤":1,"쌀":1,"김":1,"무":1,"콩":1,"꿀":1,"굴":1,"팥":1,"쑥":1,"차":1,"빵":1,"떡":1};
 var CAT_ONE_NOT={"곶감":1,"감귤":1,"땅콩":1,"열무":1};
@@ -1011,9 +1014,11 @@ var CAT_FORM=[
  [/말랭이|건조|말린|동결|부각|튀각/, "건과류/말랭이"],
  [/가루|분말|파우더|전분/, "가루/분말"],
  [/양갱|젤리|사탕|캔디|초콜릿|초콜렛|정과/, "젤리/양갱/간식"],
- [/빵|케이크|케익|파이|타르트|쿠키|만주|만쥬|페이스트|다이스|카스테라|마들렌|스콘|도넛|몽블랑|티라미수|과자|스낵|칩/, "빵/과자"],
+ [/쿠키|과자|스낵|칩/, "스낵/과자"],
+ [/빵|케이크|케익|파이|타르트|만주|만쥬|페이스트|다이스|카스테라|마들렌|스콘|도넛|몽블랑|티라미수/, "빵/베이커리"],
  [/떡|인절미|송편|약과|한과|강정|약밥/, "떡/한과"],
- [/김치|깍두기|장아찌|절임|피클|무침|조림|젓갈|반찬/, "김치/반찬"],
+ [/김치|깍두기/, "김치"],
+ [/장아찌|절임|피클|무침|조림|젓갈|반찬/, "반찬"],
  [/통조림|병조림|캔$/, "통조림/캔"],
  [/막걸리|와인|담금주|술$|주$/, "전통주/와인"],
  [/식초|소스|드레싱|기름|오일/, "식초/소스/기름"],
@@ -1073,31 +1078,108 @@ function catMake(seeds){
   };
 }
 
+/* ── 네이버 쇼핑 분류 체계 ──
+   네이버 쇼핑의 식품 분야는 식품 > 농산물 > 과일 > 사과 처럼 내려간다 (아이템스카우트가 쓰는 것과 같은 나무).
+   위에서 읽은 끝 칸을 이 나무의 자리에 건다. 엑셀이 준 값이 있으면 그 경로를 그대로 쓴다.
+   2단계 번호는 쇼핑인사이트 API 로 확인했다: 농산물 50000160 · 수산물 50000159 · 축산물 50000145 · 반찬 50000146 · 김치 50000147 · 음료 50000148 */
+var CAT_TREE=[
+ ["농산물 > 과일","사과 배 감귤 한라봉 천혜향 레드향 포도 복숭아 자두 살구 매실 수박 참외 멜론 딸기 블루베리 체리 키위 다래 바나나 오렌지 자몽 레몬 라임 망고 파인애플 석류 감 무화과 유자 아보카도 코코넛 리치 용과 파파야 구아바 두리안 망고스틴 람부탄 패션후르츠 모과 탱자 앵두 산딸기 라즈베리 오디 복분자 아로니아 크랜베리 아사이베리 과일"],
+ ["농산물 > 채소","고구마 감자 마늘 양파 당근 무 배추 절임배추 양배추 상추 오이 고추 파프리카 피망 토마토 방울토마토 단호박 늙은호박 애호박 쥬키니 버섯 옥수수 생강 도라지 더덕 우엉 연근 마 토란 야콘 비트 콜라비 브로콜리 콜리플라워 아스파라거스 시금치 부추 미나리 깻잎 쑥갓 냉이 달래 두릅 고사리 곤드레 취나물 곰취 머위 나물 시래기 우거지 토란대 고들빼기 쑥 케일 로메인 청경채 루꼴라 치커리 셀러리 쪽파 대파 실파 열무 무순 마늘종 가지 채소 죽순 근대 호박잎 오크라 할라피뇨 샬롯 아티초크 씀바귀 어수리 눈개승마 오가피순 미역취 머위대 쌈추 적겨자 모듬쌈 버터헤드 당귀잎 라디치오 카이피라 엔다이브 타임 민트 바질 로즈마리 파슬리 고수 허브 오레가노 쌈채소 산나물 건나물"],
+ ["농산물 > 쌀","쌀"],
+ ["농산물 > 잡곡/혼합곡","콩 팥 녹두 보리 귀리 수수 기장 메밀 퀴노아 참깨 들깨 잡곡 오트밀 치아씨드"],
+ ["농산물 > 견과류","밤 호두 잣 땅콩 아몬드 대추 마카다미아 견과류"],
+ ["농산물 > 건과류","곶감 건과류/말랭이"],
+ ["농산물","농산물"],
+ ["축산물 > 쇠고기","쇠고기 곱창 막창 대창 염통"],
+ ["축산물 > 돼지고기","돼지고기 족발 보쌈"],
+ ["축산물 > 닭고기","닭고기 닭가슴살"],
+ ["축산물 > 오리고기/양고기","오리고기 훈제오리 양고기"],
+ ["축산물 > 알류","계란 메추리알"],
+ ["축산물 > 육가공품","스팸 소시지 베이컨 햄 육포"],
+ ["축산물","축산물"],
+ ["수산물 > 생선","생선 갈치 고등어 조기 굴비 연어 장어 명태 민어 방어 삼치 가자미 병어 아귀 광어 우럭 홍어 가오리 임연수 꽁치 옥돔 전어 박대 참치 과메기"],
+ ["수산물 > 해산물/어패류","새우 전복 오징어 낙지 문어 주꾸미 꽃게 대게 킹크랩 랍스터 굴 가리비 바지락 홍합 꼬막 조개 소라 골뱅이"],
+ ["수산물 > 김/해초","김 미역 다시마 감태 파래 톳 해초"],
+ ["수산물 > 건어물","멸치 쥐포 오징어채 건어물"],
+ ["수산물 > 젓갈/장류","젓갈 명란젓 오징어젓 액젓 게장"],
+ ["수산물 > 수산가공품","어묵 맛살"],
+ ["수산물","수산물"],
+ ["김치","김치"],
+ ["반찬","반찬"],
+ ["건강식품 > 건강즙/과일즙","건강즙/과일즙"],
+ ["건강식품 > 홍삼/인삼","홍삼 인삼 수삼 새싹삼"],
+ ["건강식품 > 꿀","꿀"],
+ ["건강식품 > 영양제","콜라겐 유산균 비타민 루테인 프로틴 건강식품"],
+ ["건강식품 > 한방재료","구기자 오미자 산수유 동충하초 민들레"],
+ ["음료","주스/음료 음료 두유 커피 원두 콜드브루 생수 탄산수"],
+ ["음료 > 차류","차류"],
+ ["유가공품","우유 요거트 버터 치즈 생크림 아이스크림"],
+ ["빵/베이커리","빵/베이커리 디저트 제과"],
+ ["스낵/과자","스낵/과자"],
+ ["젤리/사탕/초콜릿","젤리/양갱/간식 초콜릿"],
+ ["떡/한과","떡/한과"],
+ ["잼/시럽","잼/청 설탕"],
+ ["가루/분말류","가루/분말"],
+ ["소스/드레싱 · 식용유","식초/소스/기름 식용유 올리브유 케찹"],
+ ["장류","고추장 된장 간장 쌈장 청국장 장류"],
+ ["조미료","소금 다시다 조미료"],
+ ["통조림/캔","통조림/캔"],
+ ["라면/면류","국수 라면 파스타 냉면"],
+ ["냉동/간편조리식품","만두 돈까스 함박스테이크 떡볶이 도시락 즉석밥 밀키트 누룽지 이유식"],
+ ["전통주","전통주/와인"],
+ ["선물세트","명절/선물/답례품"],
+ ["식품 외 · 원예","묘목/씨앗/재배"],
+ ["식품 외 · 도구","도구/자재 수세미"],
+ ["식품 외 · 여가","축제/체험/맛집"]
+];
+var CAT_PARENT={};
+(function(){ for(var i=0;i<CAT_TREE.length;i++){ var ws=CAT_TREE[i][1].split(" "); for(var j=0;j<ws.length;j++) CAT_PARENT[ws[j]]=CAT_TREE[i][0]; } })();
 /* 줄마다 한 번만 낸다. 아이템스카우트 엑셀이 준 값이 있으면 그 끝 칸, 없으면 키워드에서 읽는다.
    전에는 아이템스카우트 값만 써서, 엑셀을 넣은 적 있는 '배' 34개 말고는 전부 빈칸이었다 —
    사과를 찾아도 고를 수 있는 칸이 '배' 하나뿐이던 까닭이다. */
-var CATFN=null, CATC=[];
+var CATFN=null, CATC=[], CATP=[];
 function itemCat(kw){ if(!CATFN) CATFN=catMake(SEEDS); return CATFN(kw); }
 function catLast(i){
   var c=CATC[i];
   if(c===undefined){ var ic=R[i][K.ICAT]; c = ic ? String(ic).split(">").pop().trim() : itemCat(R[i][K.KW]); CATC[i]=c; }
   return c;
 }
+/* 끝 칸이 걸린 윗자리. "농산물 > 과일" */
+function catParent(i){
+  var p=CATP[i];
+  if(p===undefined){
+    var ic=R[i][K.ICAT], c=catLast(i);
+    if(ic){ var a=String(ic).split(">").map(function(x){ return x.trim(); }); a.pop(); if(a[0]==="식품") a.shift(); p=a.join(" > ")||"식품"; }
+    else p= c ? (CAT_PARENT[c]||"기타") : "";
+    CATP[i]=p;
+  }
+  return p;
+}
+/* 온 경로. "농산물 > 과일 > 사과" */
+function catFull(i){ var c=catLast(i); if(!c) return ""; var p=catParent(i); return (p && p!=="기타" && p!==c ? p+" > " : "")+c; }
 /* 엑셀이 들어와 카테고리가 바뀌면 다시 낸다 */
-function buildCats(){ CATC=[]; }
+function buildCats(){ CATC=[]; CATP=[]; }
 /* 고르는 칸. 지금 걸린 다른 조건을 통과한 키워드로만 센다 —
    사과를 찾았으면 사과의 연관 키워드가 들어 있는 칸들이 나온다 */
 function catFacet(){
   var sel=document.getElementById("fCat"); if(!sel) return;
-  var keep=F.cat, cnt={}, none=0; F.cat="";
-  for(var i=0;i<N;i++){ if(!passes(i)) continue; var c=catLast(i); if(c) cnt[c]=(cnt[c]||0)+1; else none++; }
+  /* 네이버 분류 나무대로 묶는다: 윗자리(농산물 > 과일)마다 한 묶음, 그 안에 끝 칸(사과 · 배 …) */
+  var keep=F.cat, grp={}, none=0, leaves=0; F.cat="";
+  for(var i=0;i<N;i++){ if(!passes(i)) continue; var c=catLast(i); if(!c){ none++; continue; }
+    var p=catParent(i), g=grp[p]||(grp[p]={ n:0, leaf:{} }); g.n++; if(!g.leaf[c]){ g.leaf[c]=0; leaves++; } g.leaf[c]++; }
   F.cat=keep;
-  var keys=Object.keys(cnt).sort(function(a,b){ return cnt[b]-cnt[a]||a.localeCompare(b); });
-  if(keep && keep!=="__none" && !cnt[keep]) keys.unshift(keep);
-  sel.innerHTML='<option value="">전체 · '+fmt(keys.length)+'칸</option>'
-    +keys.map(function(c){ return '<option value="'+esc(c)+'">'+esc(c)+' ('+fmt(cnt[c]||0)+')</option>'; }).join("")
-    +(none||keep==="__none" ? '<option value="__none">미분류 ('+fmt(none)+')</option>' : '');
-  sel.value=keep;
+  var gs=Object.keys(grp).sort(function(a,b){ return (a==="기타")-(b==="기타") || grp[b].n-grp[a].n || a.localeCompare(b); });
+  var h='<option value="">전체 · '+fmt(leaves)+'칸</option>', seen=false;
+  gs.forEach(function(p){
+    var lf=Object.keys(grp[p].leaf).sort(function(a,b){ return grp[p].leaf[b]-grp[p].leaf[a]||a.localeCompare(b); });
+    h+='<optgroup label="'+esc(p)+' ('+fmt(grp[p].n)+')">';
+    if(lf.length>1){ h+='<option value="g:'+esc(p)+'">'+esc(p)+' 전체 ('+fmt(grp[p].n)+')</option>'; if(keep==="g:"+p) seen=true; }
+    lf.forEach(function(c){ h+='<option value="'+esc(c)+'">'+esc(c)+' ('+fmt(grp[p].leaf[c])+')</option>'; if(keep===c) seen=true; });
+    h+='</optgroup>';
+  });
+  if(none||keep==="__none"){ h+='<option value="__none">미분류 ('+fmt(none)+')</option>'; if(keep==="__none") seen=true; }
+  if(keep && !seen) h+='<option value="'+esc(keep)+'">'+esc(keep.replace(/^g:/,""))+' (0)</option>';
+  sel.innerHTML=h; sel.value=keep;
 }
 var INTENT=["쇼핑성","정보성","브랜드성","요리·조리","품목"];
 var NCOMP=["낮음","중간","높음"];
@@ -1259,7 +1341,11 @@ function passes(i){
     if(F.pmin!=null && pv<F.pmin) return false; if(F.pmax!=null && pv>F.pmax) return false; }
   if(F.kmin!=null || F.kmax!=null){ var kv=realComp(i); if(kv==null) return false;
     if(F.kmin!=null && kv<F.kmin) return false; if(F.kmax!=null && kv>F.kmax) return false; }
-  if(F.cat && (F.cat==="__none" ? catLast(i)!=="" : catLast(i)!==F.cat)) return false;
+  if(F.cat){
+    if(F.cat==="__none"){ if(catLast(i)!=="") return false; }
+    else if(F.cat.slice(0,2)==="g:"){ if(!catLast(i) || catParent(i)!==F.cat.slice(2)) return false; }
+    else if(catLast(i)!==F.cat) return false;
+  }
   if(F.rel) return true;
   if(!F.v[VN[C_v[i]]]) return false;
   if(S_cs[i]>F.comp) return false;
@@ -1461,7 +1547,7 @@ function renderFChips(){
   if(F.rel) list.push([F.relLabel? "목록: "+F.relLabel.replace(/<span class="rel-src">[\s\S]*$/,"").replace(/<[^>]+>/g,"").trim() : "연관: "+F.relSeed, function(){ clearRel(); }]);
   if(t!=="all") list.push([t==="shop"?"쇼핑성":t==="info"?"정보성":"유형: "+[0,1,2,3,4].filter(function(k){ return F.intent[k]; }).map(function(k){ return INTENT[k]; }).join("·"),
     function(){ setType("all"); }]);
-  if(F.cat) list.push(["대표 카테고리: "+(F.cat==="__none"?"미분류":F.cat), function(){ F.cat=""; }]);
+  if(F.cat) list.push(["대표 카테고리: "+(F.cat==="__none"?"미분류":F.cat.slice(0,2)==="g:"?F.cat.slice(2)+" 전체":F.cat), function(){ F.cat=""; }]);
   if(F.vmin!=null||F.vmax!=null) list.push(["검색수 "+rngText(F.vmin,F.vmax,""), function(){ F.vmin=null; F.vmax=null; }]);
   if(F.pmin!=null||F.pmax!=null) list.push(["상품수 "+rngText(F.pmin,F.pmax,""), function(){ F.pmin=null; F.pmax=null; }]);
   if(F.kmin!=null||F.kmax!=null) list.push(["경쟁강도 "+rngText(F.kmin,F.kmax,""), function(){ F.kmin=null; F.kmax=null; }]);
@@ -1636,6 +1722,7 @@ var XCOLS=[
   ["키워드",function(i){return R[i][K.KW];}],
   ["분류",function(i){return INTENT[intentOf(i)];}],
   ["대표 카테고리",function(i){return catLast(i);}],
+  ["카테고리 경로",function(i){return catFull(i);}],
   ["검색수",function(i){return S_tot[i];}],
   ["검색수 PC",function(i){return R[i][K.PC];}],
   ["검색수 모바일",function(i){return R[i][K.MO];}],
@@ -1825,7 +1912,7 @@ function renderDetail0(){
     who='<span class="v-who">주 구매층 <b>'+AGEK[top]+'대 '+(sv[1]>=500?"여성":"남성")+'</b> · 모바일 '+Math.round(sv[0]/10)+'%</span>'; }
   document.getElementById("vCard").innerHTML=
    '<div class="v-top"><h3>'+esc(kw)+'</h3>'+who
-   +(cat?'<span class="pill mini cat" title="'+(a[K.ICAT]?"아이템스카우트 대표 카테고리":"키워드에서 읽은 품목 · 형태")+'">'+esc(cat)+'</span>':'')
+   +(cat?'<span class="pill mini cat" title="'+(a[K.ICAT]?"아이템스카우트 대표 카테고리":"키워드에서 읽어 네이버 분류에 건 자리")+'">'+esc(catFull(CUR))+'</span>':'')
    +'<span class="pill mini intent'+intentOf(CUR)+'">'+INTENT[intentOf(CUR)]+'</span>'
    +'<span class="pill '+cls+'" style="font-size:13px;padding:4px 13px" title="'+esc(why)+'">'+c.v+'</span></div>'
   +'<div class="v-body">'
@@ -2998,8 +3085,7 @@ function renderHero(){
     '<div class="hero-em">'+emojiFor(a[K.KW],GRP[CUR].join(""))+'</div>'
    +'<div class="hero-mid"><div class="hero-eyebrow">EXACT KEYWORD INTELLIGENCE</div>'
    +'<div class="hero-kw">'+a[K.KW]+'</div>'
-   +'<div class="hero-sub">대표 카테고리 '+(esc(catLast(CUR))||"미분류")+' · 의도 '+INTENT[intentOf(CUR)]
-   +(GRP[CUR][0]!=="기타" && GRP[CUR].join(" · ")!==catLast(CUR) ? ' <span style="opacity:.6">· 품목 '+esc(GRP[CUR].join(" · "))+'</span>' : '')+'</div></div>'
+   +'<div class="hero-sub">대표 카테고리 '+(esc(catFull(CUR))||"미분류")+' · 의도 '+INTENT[intentOf(CUR)]+'</div></div>'
    +'<div class="hero-right"><div class="hero-tags">'
    +'<span class="htag '+cls+'">'+c.v+'</span>'
    +'<span class="htag">황금점수 '+c.gold+'</span>'
@@ -3045,7 +3131,7 @@ function renderHero(){
         "상품수는 네이버 공식 API 가 없다(쇼핑검색 API 2026-07-31 종료). <b>아이템스카우트 연관키워드 엑셀</b>을 엑셀 분석 탭에 떨구거나, 네이버쇼핑에서 본 숫자를 아래에 직접 넣는다."+form, true);
       return hcard("상품수 · 경쟁강도", src, fmt(pr)+"개",
         sp("경쟁강도", '<b style="color:'+(cp<=1?"var(--good)":cp<=5?"var(--ink)":"var(--down)")+'">'+cp.toFixed(2)+'</b>')
-        +sp("대표 카테고리", esc(catLast(CUR))||"—"),
+        +sp("대표 카테고리", esc(catFull(CUR))||"—"),
         "경쟁강도 = 상품수 ÷ 한 달 검색수 "+fmt(st.tot)+" (아이템스카우트와 같은 식). 낮을수록 좋다. 상품 1개에 검색 "+(st.tot/pr).toFixed(1)+"회."+form);
     })()
   +(function(){
