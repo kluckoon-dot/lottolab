@@ -587,6 +587,8 @@ th.srt[data-dir]::after{content:attr(data-dir);margin-left:3px;color:var(--brand
   background:var(--brand-soft);border:1px solid color-mix(in srgb,var(--brand) 30%, transparent);
   border-radius:10px;padding:10px 14px;font-size:13.5px;font-weight:700;color:var(--brand-ink)}
 .relbar b{font-size:15px}
+.ctr-hi{color:var(--good);font-weight:700}
+.pill.buyx{background:var(--skip-bg);color:var(--skip)}
 .relbar .rel-src{flex:1;font-size:11.5px;font-weight:500;color:var(--ink-3)}
 .relbar{flex-wrap:wrap}
 .relbar .rel-is{font-size:11px;font-weight:700;padding:2px 9px;border-radius:999px;background:var(--good-bg,rgba(27,175,122,.14));color:var(--good)}
@@ -738,36 +740,36 @@ th.srt[data-dir]::after{content:attr(data-dir);margin-left:3px;color:var(--brand
           </div>
         </div>
         <div class="isf-row">
-          <div class="isf-k">상품수</div>
+          <div class="isf-k">구매의도</div>
           <div class="isf-v">
-            <div class="chips rng" data-lo="pmin" data-hi="pmax">
+            <div class="chips rng" data-lo="bmin" data-hi="bmax">
               <button class="chip" data-a="" data-b="">전체</button>
-              <button class="chip" data-a="0" data-b="1000">0~1,000</button>
-              <button class="chip" data-a="0" data-b="2000">0~2,000</button>
-              <button class="chip" data-a="0" data-b="5000">0~5,000</button>
-              <button class="chip" data-a="0" data-b="10000">0~10,000</button>
+              <button class="chip" data-a="0.05" data-b="">낮음 이상</button>
+              <button class="chip" data-a="0.3" data-b="">보통 이상</button>
+              <button class="chip" data-a="1" data-b="">높음</button>
             </div>
+            <span class="isf-sub" style="margin-left:4px">검색이 쇼핑 클릭으로 이어지는 정도 · 닭가슴살 = 1배</span>
             <span class="f-sp"></span>
-            <input type="number" class="isf-in rin" data-k="pmin" placeholder="최소 입력" min="0">
+            <input type="number" class="isf-in rin" data-k="bmin" placeholder="최소 (배)" min="0" step="0.05">
             <span class="isf-dash">-</span>
-            <input type="number" class="isf-in rin" data-k="pmax" placeholder="최대 입력" min="0">
+            <input type="number" class="isf-in rin" data-k="bmax" placeholder="최대 (배)" min="0" step="0.05">
           </div>
         </div>
         <div class="isf-row">
-          <div class="isf-k">경쟁강도</div>
+          <div class="isf-k">광고 클릭률</div>
           <div class="isf-v">
-            <div class="chips rng" data-lo="kmin" data-hi="kmax">
+            <div class="chips rng" data-lo="cmin" data-hi="cmax">
               <button class="chip" data-a="" data-b="">전체</button>
-              <button class="chip" data-a="0" data-b="1">0~1</button>
-              <button class="chip" data-a="0" data-b="2">0~2</button>
-              <button class="chip" data-a="0" data-b="5">0~5</button>
-              <button class="chip" data-a="0" data-b="10">0~10</button>
+              <button class="chip" data-a="1" data-b="">1% 이상</button>
+              <button class="chip" data-a="2" data-b="">2% 이상</button>
+              <button class="chip" data-a="3" data-b="">3% 이상</button>
+              <button class="chip" data-a="5" data-b="">5% 이상</button>
             </div>
-            <span class="isf-sub" style="margin-left:4px">상품수 ÷ 한 달 검색수 · 낮을수록 좋다</span>
+            <span class="isf-sub" style="margin-left:4px">광고가 보였을 때 눌리는 비율 · 높을수록 광고가 잘 먹힌다</span>
             <span class="f-sp"></span>
-            <input type="number" class="isf-in rin" data-k="kmin" placeholder="최소 입력" min="0" step="0.1">
+            <input type="number" class="isf-in rin" data-k="cmin" placeholder="최소 %" min="0" step="0.1">
             <span class="isf-dash">-</span>
-            <input type="number" class="isf-in rin" data-k="kmax" placeholder="최대 입력" min="0" step="0.1">
+            <input type="number" class="isf-in rin" data-k="cmax" placeholder="최대 %" min="0" step="0.1">
           </div>
         </div>
         <div class="isf-row" id="goldOnly">
@@ -787,7 +789,6 @@ th.srt[data-dir]::after{content:attr(data-dir);margin-left:3px;color:var(--brand
             <span class="isf-sub">프리셋</span>
             <div class="chips" id="fPreset">
               <button class="chip" data-p="ours" title="린정·반린정 · 쇼핑성·품목 · 검색수 100 이상 · 황금점수 순">우리 판정 기준</button>
-              <button class="chip" data-p="is" title="쇼핑성 · 경쟁강도 0~1 · 판정 끔 · 검색수 순">아이템스카우트 기준</button>
             </div>
           </div>
         </div>
@@ -812,15 +813,15 @@ th.srt[data-dir]::after{content:attr(data-dir);margin-left:3px;color:var(--brand
               <tr>
                 <th rowspan="2">키워드</th>
                 <th rowspan="2" class="srt" data-sort="tot">월 검색수</th>
-                <th rowspan="2" class="srt" data-sort="click">월평균<br>클릭수</th>
-                <th rowspan="2" class="srt" data-sort="ctr">광고<br>클릭률</th>
+                <th rowspan="2" class="srt" data-sort="buy" title="검색이 식품 쇼핑 클릭으로 이어지는 정도. 식품 쇼핑 클릭 ÷ 검색수를 닭가슴살(= 1배)과 견준 값. 네이버 쇼핑인사이트">구매의도</th>
+                <th rowspan="2" class="srt" data-sort="click" title="이 키워드에 걸린 광고 하나가 한 달에 받는 평균 클릭수. 네이버 검색광고">월평균<br>클릭수</th>
+                <th rowspan="2" class="srt" data-sort="ctr" title="광고가 보였을 때 눌린 비율(클릭 ÷ 노출). 큰 숫자는 PC·모바일을 검색수로 가중한 값. 네이버 검색광고">광고<br>클릭률</th>
                 <th class="grp srt" colspan="2" data-sort="bid1">1위 입찰가</th>
                 <th class="grp" colspan="2">2위 입찰가</th>
                 <th class="grp" colspan="2">3위 입찰가</th>
-                <th rowspan="2" class="bidcell srt" data-sort="depth">광고<br>깊이</th>
-                <th rowspan="2" class="srt" data-sort="prod">상품수</th>
-                <th rowspan="2" class="srt" data-sort="comp">경쟁<br>강도</th>
-                <th rowspan="2" class="srt" data-sort="cvr">손익분기<br>전환율</th>
+                <th rowspan="2" class="srt" data-sort="eclk" title="3위 입찰가로 광고하면 한 달에 받을 클릭수(모바일 + PC). 아래 작은 글씨는 실제로 나가는 클릭 단가 = 예상 광고비 ÷ 예상 클릭. 네이버 검색광고 예상 실적">3위 광고<br>예상 클릭</th>
+                <th rowspan="2" class="bidcell srt" data-sort="depth" title="이 키워드를 검색했을 때 함께 뜨는 광고 수(PC 통합검색 월평균, 최대 15). 광고로 경쟁하는 판매자가 몇이나 되는지다. 네이버 이름은 '월평균 노출 광고수'">경쟁<br>광고 수</th>
+                <th rowspan="2" class="srt" data-sort="cvr" title="광고로 본전을 맞추려면 클릭 100번에 몇 번 팔려야 하는가 = 실제 클릭 단가 ÷ 주문 1건 마진. 목표 전환율보다 낮으면 광고가 남는다">손익분기<br>전환율</th>
                 <th rowspan="2" class="srt" data-sort="gold">황금<br>점수</th>
                 <th rowspan="2">판정</th>
               </tr>
@@ -935,7 +936,12 @@ if (window.KWROWS && window.KWROWS.length) {
 }
 var R = DATA.rows;   // [kw,pc,mo,depth,comp,clickPc,clickMo,ctrPc,ctrMo,bp1,bp2,bp3,bm1,bm2,bm3,masked,intent,hint,sec]
 var N = R.length;
-var K={KW:0,PC:1,MO:2,DEPTH:3,COMP:4,CPC_:5,CMO:6,TPC:7,TMO:8,BP1:9,BP2:10,BP3:11,BM1:12,BM2:13,BM3:14,MASK:15,INT:16,HINT:17,SEC:18,PROD:19,ICOMP:20,ICAT:21,MPC:22,MMO:23,DAY:24,FOOD:25,SEP:26,SHOP:27};
+var K={KW:0,PC:1,MO:2,DEPTH:3,COMP:4,CPC_:5,CMO:6,TPC:7,TMO:8,BP1:9,BP2:10,BP3:11,BM1:12,BM2:13,BM3:14,MASK:15,INT:16,HINT:17,SEC:18,PROD:19,ICOMP:20,ICAT:21,MPC:22,MMO:23,DAY:24,FOOD:25,SEP:26,SHOP:27,E3MC:28,E3MK:29,E3MI:30,E3PC:31,E3PK:32,E3PI:33,E1MC:34,E1MK:35,E1PC:36,E1PK:37};
+/* 28~37 네이버 예상 실적 (검색광고 /estimate/performance). 그 키워드를 3위 · 1위 입찰가로 광고하면 한 달에
+   몇 번 노출되고(Imp) 몇 번 눌리고(C) 얼마가 나가는지(K) 네이버가 추정한 값. 모바일(M) · PC(P). 모르면 28 번이 -1.
+   상품수 · 경쟁강도(아이템스카우트 엑셀이 있어야만 나오던 값) 대신 이것을 쓴다:
+     입찰가는 '낼 수 있는 상한' 이고 실제로 나가는 클릭 단가는 비용 ÷ 클릭이다 (공주밤 3위 350원 → 클릭당 265원).
+     손익분기 전환율도 이 실제 단가로 낸다. */
 /* 27 쇼핑 클릭 지수. 네이버 쇼핑인사이트 식품 분야 최근 한 달 클릭, 닭가슴살 = 100. 모르면 -1
    구매의도 = (지수 ÷ 검색수) ÷ (100 ÷ 닭가슴살 검색수). 1 이면 닭가슴살만큼 "검색하면 산다".
    아이템스카우트 분류(쇼핑성 287 · 정보성 39)로 재서 AUC 0.86. 문턱 0.05 에서 식품 쇼핑성 6% 만 잘못 버리고
@@ -1316,7 +1322,15 @@ function el(t,c,x){ var e=document.createElement(t); if(c)e.className=c; if(x!=n
    타입드 배열은 늘어나지 않는다. 한 번 검색에 연관키워드가 수백 개씩 오므로 넉넉히 둔다. */
 var CAP=N+60000;
 var S_tot=new Int32Array(CAP), S_mo=new Float32Array(CAP), S_dem=new Float32Array(CAP),
-    S_cmp=new Float32Array(CAP), S_cs=new Float32Array(CAP), S_ir=new Float32Array(CAP);
+    S_cmp=new Float32Array(CAP), S_cs=new Float32Array(CAP), S_ir=new Float32Array(CAP),
+    S_ec=new Int32Array(CAP), S_cpc=new Float32Array(CAP), S_ctr=new Float32Array(CAP);
+/* 3위 · 1위 입찰가로 광고할 때의 네이버 예상 (모바일 + PC) */
+function est(i){
+  var a=R[i]; if(a[K.E3MC]==null || a[K.E3MC]<0) return null;
+  var c3=(a[K.E3MC]||0)+(a[K.E3PC]||0), k3=(a[K.E3MK]||0)+(a[K.E3PK]||0), i3=(a[K.E3MI]||0)+(a[K.E3PI]||0),
+      c1=(a[K.E1MC]||0)+(a[K.E1PC]||0), k1=(a[K.E1MK]||0)+(a[K.E1PK]||0);
+  return { clk3:c3, cost3:k3, imp3:i3, cpc3: c3>0?k3/c3:0, clk1:c1, cost1:k1, cpc1: c1>0?k1/c1:0 };
+}
 function statRow(i){
   var a=R[i], tot=(a[K.PC]||0)+(a[K.MO]||0);
   /* 광고 경쟁도 = (광고 깊이/15 × 0.5 + 모바일 3위 입찰가/2000 × 0.5) × 10. 0~10.
@@ -1334,6 +1348,10 @@ function statRow(i){
   S_dem[i]=Math.max(0, Math.min(1.5, Math.log(Math.max(eff,1)/100)/Math.LN10/2));
   /* 기준선 5.0 이 옛 식과 같은 자리에 온다: 식품 키워드의 90% 가 5.0 아래 (옛 식 91%). 분위 50/90 은 옛 2.9/4.9, 이 식 3.5/5.0 */
   S_cmp[i]=comp; S_cs[i]=Math.min(10, comp*10);
+  /* 예상 클릭(3위) · 실제 클릭 단가 · 광고 클릭률(PC·모바일을 검색수로 가중) */
+  var ec= (a[K.E3MC]!=null && a[K.E3MC]>=0) ? (a[K.E3MC]||0)+(a[K.E3PC]||0) : -1;
+  S_ec[i]=ec; S_cpc[i]= ec>0 ? ((a[K.E3MK]||0)+(a[K.E3PK]||0))/ec : 0;
+  S_ctr[i]= tot ? ((a[K.PC]||0)*(a[K.TPC]||0)+(a[K.MO]||0)*(a[K.TMO]||0))/tot : 0;
 }
 for(var i=0;i<N;i++) statRow(i);
 var VN=["린정","반린정","패스"];
@@ -1346,8 +1364,8 @@ function recalc(){
   var mg=marginOf(), tgt=SET.tgtCvr, mult=roasMult(), m=mg.margin;
   var badMargin = mg.rate<RULE.marginMin;
   for(var i=0;i<N;i++){
-    var b=R[i][K.BM3];
-    var cvr = (m>0 && b) ? b*mult/m : Infinity;
+    var b=R[i][K.BM3], cpc= S_cpc[i]>0 ? S_cpc[i] : b;
+    var cvr = (m>0 && cpc) ? cpc*mult/m : Infinity;
     var af = (isFinite(cvr)&&cvr>0) ? Math.max(0,Math.min(1, tgt/cvr)) : 0;
     C_cvr[i]=cvr;
     /* 구매의도가 없으면(쇼핑 클릭이 검색에 비해 사실상 0) 점수도 판정도 주지 않는다. 모르는 것(-1)은 막지 않는다 */
@@ -1366,7 +1384,7 @@ function recalc(){
 /* 필터 상태 */
 var F={ intent:{0:true,1:false,2:false,3:false,4:true}, v:{"린정":true,"반린정":true,"패스":false},
         vmin:100, vmax:null, comp:10, q:"", hint:"", sec:0, rel:null,
-        pmin:null, pmax:null, kmin:null, kmax:null, cat:"" };
+        bmin:null, bmax:null, cmin:null, cmax:null, cat:"" };
 /* 정렬. 황금키워드는 황금점수, 연관은 검색수가 기본이다. 머리글을 누르면 바뀐다. */
 var SORT={ k:null, dir:-1 };
 var LIMIT=100, CUR=0;
@@ -1418,12 +1436,21 @@ function relUseIS(rec, seedKw){
   F.rel=new Set(idx); F.relOrder=order; F.relSeed=seedKw; F.relName="아이템스카우트"; F.relLabel="";
   F.relIS={ n:rec.rows.length, shown:idx.length, at:rec.at, file:rec.file||"" };
 }
-/* 연관 보기 방식. "" = 엑셀이 있으면 아이템스카우트 목록, "ours" = 네이버 연관 + 수집본 */
+/* 저장본에서의 네이버 연관: 수집할 때 이 씨앗이 물고 온 키워드(+ 이 키워드를 물고 온 씨앗의 형제) */
+function relNaver(i){
+  var seen={}, g=[], push=function(arr){ if(!arr) return; for(var x=0;x<arr.length;x++) if(!seen[arr[x]]){ seen[arr[x]]=1; g.push(arr[x]); } };
+  var isItem= typeof HIDX!=="undefined" && HIDX[R[i][K.KW]] && HIDX[R[i][K.KW]].length>1;
+  push([i]); push(HG[R[i][K.KW]]); if(!isItem) push(HG[R[i][K.HINT]]);
+  return g;
+}
+/* 연관 보기 방식.  "" = 네이버 키워드도구가 주는 목록(기본) · "wide" = 같은 품목 수집분까지 · "is" = 아이템스카우트 엑셀 목록(넣어 둔 씨앗만) */
 function relToggle(mode){
   var seed=F.relSeed, i=BYKW[seed]; F.relMode=mode;
   if(i==null) return;
-  if(mode==="ours"){ var g=relGroup(i).concat(F.relLive||[]); F.rel=new Set(g); F.relOrder=null; F.relIS=null; F.relName=relName(i); F.relLabel=""; }
-  else { var rec=isRecFor(seed); if(rec) relUseIS(rec, seed); }
+  if(LIVE && mode!=="is"){ liveFind(seed, false, mode==="wide"); return; }
+  if(mode==="is"){ var rec=isRecFor(seed); if(rec) relUseIS(rec, seed); }
+  else { var g= mode==="wide" ? relGroup(i) : relNaver(i); if(g.length<2) g=relGroup(i);
+    F.rel=new Set(g); F.relOrder=null; F.relIS=null; F.relName=relName(i); F.relLabel=""; }
   LIMIT=100; refresh();
 }
 function relName(i){
@@ -1467,11 +1494,11 @@ function passes(i){
   if(F.vmin!=null && S_tot[i]<F.vmin) return false;
   if(F.vmax!=null && S_tot[i]>F.vmax) return false;
   if(F.q && R[i][K.KW].indexOf(F.q)<0) return false;
-  /* 상품수·경쟁강도는 값이 있을 때만 잴 수 있다. 범위를 걸면 모르는 것은 뺀다 (0 으로 치지 않는다). */
-  if(F.pmin!=null || F.pmax!=null){ var pv=prodOf(i); if(pv==null) return false;
-    if(F.pmin!=null && pv<F.pmin) return false; if(F.pmax!=null && pv>F.pmax) return false; }
-  if(F.kmin!=null || F.kmax!=null){ var kv=realComp(i); if(kv==null) return false;
-    if(F.kmin!=null && kv<F.kmin) return false; if(F.kmax!=null && kv>F.kmax) return false; }
+  /* 구매의도는 쇼핑 클릭을 받은 키워드만 잴 수 있다. 범위를 걸면 모르는 것은 뺀다 */
+  if(F.bmin!=null || F.bmax!=null){ var bv=S_ir[i]; if(!(bv>=0)) return false;
+    if(F.bmin!=null && bv<F.bmin) return false; if(F.bmax!=null && bv>F.bmax) return false; }
+  if(F.cmin!=null || F.cmax!=null){ var cv2=S_ctr[i];
+    if(F.cmin!=null && cv2<F.cmin) return false; if(F.cmax!=null && cv2>F.cmax) return false; }
   if(F.cat){
     if(F.cat==="__none"){ if(catLast(i)!=="") return false; }
     else if(F.cat.slice(0,2)==="g:"){ if(!catLast(i) || catParent(i)!==F.cat.slice(2)) return false; }
@@ -1490,11 +1517,10 @@ function countPass(){ var c=0; for(var i=0;i<N;i++) if(passes(i)) c++; return c;
 var SORTKEY={
   tot:   function(i){ return S_tot[i]; },
   click: function(i){ return (R[i][K.CPC_]||0)+(R[i][K.CMO]||0); },
-  ctr:   function(i){ return R[i][K.TMO]||0; },
+  ctr:   function(i){ return S_ctr[i]; },
   bid1:  function(i){ return R[i][K.BM1]||0; },
   depth: function(i){ return R[i][K.DEPTH]||0; },
-  prod:  function(i){ var v=prodOf(i); return v==null?-1:v; },
-  comp:  function(i){ var v=realComp(i); return v==null?-1:v; },
+  eclk:  function(i){ return S_ec[i]; },
   cvr:   function(i){ var v=C_cvr[i]; return isFinite(v)?v:1e9; },
   gold:  function(i){ return C_gold[i]; },
   buy:   function(i){ return S_ir[i]; },
@@ -1680,8 +1706,8 @@ function renderFChips(){
     function(){ setType("all"); }]);
   if(F.cat) list.push(["대표 카테고리: "+(F.cat==="__none"?"미분류":F.cat.slice(0,2)==="g:"?F.cat.slice(2)+" 전체":F.cat), function(){ F.cat=""; }]);
   if(F.vmin!=null||F.vmax!=null) list.push(["검색수 "+rngText(F.vmin,F.vmax,""), function(){ F.vmin=null; F.vmax=null; }]);
-  if(F.pmin!=null||F.pmax!=null) list.push(["상품수 "+rngText(F.pmin,F.pmax,""), function(){ F.pmin=null; F.pmax=null; }]);
-  if(F.kmin!=null||F.kmax!=null) list.push(["경쟁강도 "+rngText(F.kmin,F.kmax,""), function(){ F.kmin=null; F.kmax=null; }]);
+  if(F.bmin!=null||F.bmax!=null) list.push(["구매의도 "+rngText(F.bmin,F.bmax,"배"), function(){ F.bmin=null; F.bmax=null; }]);
+  if(F.cmin!=null||F.cmax!=null) list.push(["광고 클릭률 "+rngText(F.cmin,F.cmax,"%"), function(){ F.cmin=null; F.cmax=null; }]);
   if(!F.rel && F.comp<10) list.push(["광고경쟁도 "+F.comp.toFixed(1)+" 이하", function(){ F.comp=10; document.getElementById("fComp").value=10; document.getElementById("fCompV").textContent="10.0"; }]);
   if(!F.rel && !(F.v["린정"]&&F.v["반린정"]&&F.v["패스"])) list.push(["판정: "+VN.filter(function(v){ return F.v[v]; }).join("·"),
     function(){ VN.forEach(function(v){ F.v[v]=true; }); document.querySelectorAll("#fVerdict .chip").forEach(function(c){ c.setAttribute("aria-pressed","true"); }); }]);
@@ -1698,32 +1724,20 @@ function renderFChips(){
     box.appendChild(b);
   });
 }
-/* ── 프리셋 ──
-   아이템스카우트 기준 = 그쪽 황금키워드 화면의 기본 조합.
-     쇼핑성 · 경쟁강도(상품수 ÷ 검색수) 0~1 · 검색수 많은 순 · 우리 판정은 끈다.
-   검색수 하한 100 은 우리 규칙이라 그대로 둔다.
-   경쟁강도는 상품수가 있어야 계산되므로, 아이템스카우트 엑셀로 상품수를 채운 키워드만 남는다. */
+/* ── 프리셋 ── 우리 판정 기준 하나. (아이템스카우트 기준 = 경쟁강도 0~1 은 상품수가 있어야 해서 뺐다) */
 function applyPreset(k){
   clearRel(); F.q=""; document.getElementById("q").value="";
-  F.cat=""; F.pmin=null; F.pmax=null;
+  F.cat=""; F.bmin=null; F.bmax=null; F.cmin=null; F.cmax=null;
   setType("shop"); F.vmin=100; F.vmax=null; F.comp=10;
   document.getElementById("fComp").value=10; document.getElementById("fCompV").textContent="10.0";
-  if(k==="is"){
-    F.kmin=0; F.kmax=1;
-    VN.forEach(function(v){ F.v[v]=true; });
-    SORT.k="tot"; SORT.dir=-1;
-  } else {
-    F.kmin=null; F.kmax=null;
-    F.v["린정"]=true; F.v["반린정"]=true; F.v["패스"]=false;
-    SORT.k=null;
-  }
+  F.v["린정"]=true; F.v["반린정"]=true; F.v["패스"]=false;
+  SORT.k=null;
   document.querySelectorAll("#fVerdict .chip").forEach(function(c){ c.setAttribute("aria-pressed", !!F.v[c.dataset.v]); });
   LIMIT=100; refresh();
 }
 function presetOf(){
-  var shop=typeOf()==="shop", base=shop && F.vmin===100 && F.vmax==null && !F.rel && !F.cat && F.pmin==null && F.pmax==null && F.comp>=10 && !F.q;
-  if(base && F.kmin===0 && F.kmax===1 && F.v["린정"]&&F.v["반린정"]&&F.v["패스"] && SORT.k==="tot" && SORT.dir===-1) return "is";
-  if(base && F.kmin==null && F.kmax==null && F.v["린정"]&&F.v["반린정"]&&!F.v["패스"] && !SORT.k) return "ours";
+  var shop=typeOf()==="shop", base=shop && F.vmin===100 && F.vmax==null && !F.rel && !F.cat && F.bmin==null && F.bmax==null && F.cmin==null && F.cmax==null && F.comp>=10 && !F.q;
+  if(base && F.v["린정"]&&F.v["반린정"]&&!F.v["패스"] && !SORT.k) return "ours";
   return "";
 }
 document.querySelectorAll("#fPreset .chip").forEach(function(c){ c.onclick=function(){ applyPreset(c.dataset.p); }; });
@@ -1760,35 +1774,41 @@ function renderTable(){
   var rb=document.getElementById("relBar");
   if(F.rel){
     rb.hidden=false;
-    var isRec2= F.relSeed ? isRecFor(F.relSeed) : null, relHead;
+    var isRec2= F.relSeed ? isRecFor(F.relSeed) : null, relHead, wideOn= F.relMode==="wide";
+    var btnIs= isRec2 ? '<button type="button" id="relIs">아이템스카우트 엑셀 목록 ('+fmt(isRec2.rows.length)+') →</button>' : '';
     if(F.relLabel) relHead=F.relLabel;
     else if(F.relIS){
-      var isDay=new Date(F.relIS.at), same= F.relIS.shown===F.relIS.n;
-      relHead='<b>'+esc(F.relSeed)+'</b> 의 연관 키워드 '+fmt(F.relIS.shown)+'개 <span class="rel-is">아이템스카우트와 같은 목록'+(same?'':' · '+fmt(F.relIS.n)+'개 중 '+fmt(F.relIS.shown))+'</span>'
-        +'<span class="rel-src">엑셀 '+(isDay.getMonth()+1)+'/'+isDay.getDate()+' · 순서도 같다 · 숫자는 네이버 값'+(total!==F.relIS.shown?' · 필터로 '+fmt(total)+'개만 보인다':'')+'</span>'
-        +'<button type="button" id="relOurs">키워드랩 확장 목록 →</button>';
+      var isDay=new Date(F.relIS.at);
+      relHead='<b>'+esc(F.relSeed)+'</b> 의 연관 키워드 '+fmt(F.relIS.shown)+'개 <span class="rel-no">아이템스카우트 엑셀 목록</span>'
+        +'<span class="rel-src">엑셀 '+(isDay.getMonth()+1)+'/'+isDay.getDate()+' · 숫자는 네이버 값</span>'
+        +'<button type="button" id="relNv">네이버 키워드도구 목록 →</button>';
+    } else if(wideOn){
+      relHead='<b>'+esc(F.relSeed)+'</b> 의 연관 키워드 '+fmt(total)+'개 <span class="rel-no">확장 목록</span>'
+        +'<span class="rel-src">네이버 연관 + 한 겹 더 + 같은 품목 수집분</span>'
+        +'<button type="button" id="relNv">네이버 키워드도구 목록 →</button>'+btnIs;
     } else {
+      var rt= F.relAt ? new Date(F.relAt) : null;
       relHead='<b>'+esc(F.relSeed)+'</b> 의 연관 키워드 '+fmt(total)+'개 '
-        +(isRec2 ? '' : '<span class="rel-no">아이템스카우트 목록 없음</span>')
-        +'<span class="rel-src">NAVER 검색광고 연관검색 + 같은 품목 수집분 · 씨앗 '+F.relName+'</span>'
-        +(isRec2 ? '<button type="button" id="relIs">아이템스카우트와 같은 목록 ('+fmt(isRec2.rows.length)+') →</button>' : '');
+        +(LIVE && rt ? '<span class="rel-is">네이버 키워드도구 목록</span>' : '<span class="rel-no">저장본 연관 · 식품 키워드만</span>')
+        +'<span class="rel-src">'+(LIVE && rt ? 'NAVER 검색광고가 지금 준 그대로 · 준 순서 · '+String(rt.getHours()).padStart(2,"0")+':'+String(rt.getMinutes()).padStart(2,"0")
+            : '수집할 때 이 씨앗에서 나온 연관 중 화면에 담긴 것 · 네이버가 지금 주는 목록 전부는 PC 의 실시간 서버에서 나온다')+'</span>'
+        +'<button type="button" id="relWide">확장 목록 →</button>'+btnIs;
     }
-    rb.innerHTML=relHead+'<button type="button" id="relOff">전체 목록으로 →</button>'
-      +(!F.relLabel && !F.relIS && !isRec2 && F.relSeed ? '<p class="rel-help">이 목록은 아이템스카우트와 다르다. 아이템스카우트는 여러 장터의 연관 · 자동완성까지 모은 목록이라 네이버 공식 자료만으로는 같게 만들 수 없다. '
-        +'같은 목록이 필요하면 아이템스카우트에서 <b>'+esc(F.relSeed)+'</b> 의 연관 키워드 엑셀을 받아 <b>넣는곳\\아이템스카우트</b> 에 두면 그 목록 그대로 보여준다.</p>' : '');
+    rb.innerHTML=relHead+'<button type="button" id="relOff">전체 목록으로 →</button>';
     document.getElementById("relOff").onclick=function(){ clearRel(); LIMIT=100; refresh(); };
-    var ro=document.getElementById("relOurs"); if(ro) ro.onclick=function(){ relToggle("ours"); };
-    var ri=document.getElementById("relIs"); if(ri) ri.onclick=function(){ relToggle(""); };
+    var rw=document.getElementById("relWide"); if(rw) rw.onclick=function(){ relToggle("wide"); };
+    var rn=document.getElementById("relNv"); if(rn) rn.onclick=function(){ relToggle(""); };
+    var ri=document.getElementById("relIs"); if(ri) ri.onclick=function(){ relToggle("is"); };
   } else rb.hidden=true;
   var mb=document.getElementById("moreBtn");
   mb.style.display=total<=LIMIT?"none":"block";
   mb.textContent="더 보기 (남은 "+fmt(total-LIMIT)+"개)";
   if(!shown.length){
-    var noProd = (F.kmin!=null||F.kmax!=null||F.pmin!=null||F.pmax!=null) && !(function(){ for(var z=0;z<N;z++) if(prodOf(z)!=null) return true; return false; })();
+    var noProd = (F.bmin!=null||F.bmax!=null) && !(function(){ for(var z=0;z<N;z++) if(S_ir[z]>=0) return true; return false; })();
     var tr=el("tr"), td=el("td","empty", noProd
-      ? "상품수가 있는 키워드가 아직 없다. 아이템스카우트 연관키워드 엑셀을 엑셀 분석 탭에 넣으면 경쟁강도로 거를 수 있다."
+      ? "쇼핑 클릭을 받은 키워드가 아직 없어 구매의도로 거를 수 없다."
       : "조건에 맞는 키워드가 없다. 필터를 넓히거나 목표 전환율을 올려봐라.");
-    td.colSpan=17; tr.appendChild(td); body.appendChild(tr); return;
+    td.colSpan=16; tr.appendChild(td); body.appendChild(tr); return;
   }
   var frag=document.createDocumentFragment();
   shown.forEach(function(i){
@@ -1806,7 +1826,6 @@ function renderTable(){
     var top=el("div"); top.appendChild(el("span","kw",a[K.KW]));
     top.appendChild(document.createTextNode(" "));
     var _ti=intentOf(i); top.appendChild(el("span","pill mini intent"+_ti, INTENT[_ti]));
-    var _bl=buyLevel(i); if(_bl>=0){ top.appendChild(document.createTextNode(" ")); top.appendChild(el("span","pill mini buy"+_bl, "구매 "+BUY[_bl])); }
     c1.appendChild(top);
     var sub=el("div","sub"), ck=catLast(i);
     if(ck){ sub.appendChild(el("span","catk",ck)); sub.appendChild(document.createTextNode(" · ")); }
@@ -1818,25 +1837,31 @@ function renderTable(){
     c2.appendChild(el("div",null,fmt(s.tot)));
     c2.appendChild(el("div","sub","PC "+fmt(a[K.PC])+" / MO "+fmt(a[K.MO])));
     tr.appendChild(c2);
-    /* 아이템스카우트에서 제일 많이 보는 두 칸. 상세에 들어가야만 보이던 것을 표로 꺼냈다. */
+    /* 구매의도 — 검색이 쇼핑 클릭으로 이어지는 정도. 상품수 · 경쟁강도가 빠진 자리의 첫 번째 잣대다 */
+    var _bl=buyLevel(i), cb=el("td","num");
+    var bw=el("div"); bw.appendChild(el("span","pill buy"+(_bl<0?"x":_bl), _bl<0?"미확인":BUY[_bl])); cb.appendChild(bw);
+    cb.appendChild(el("div","sub", _bl<0 ? "쇼핑 클릭 없음" : irFmt(S_ir[i])+" · 지수 "+shopFmt(a[K.SHOP])));
+    tr.appendChild(cb);
     var clk=(a[K.CPC_]||0)+(a[K.CMO]||0), c3=el("td","num");
     c3.appendChild(el("div",null, clk>=10?fmt(clk):clk.toFixed(1)));
     c3.appendChild(el("div","sub","PC "+(a[K.CPC_]||0).toFixed(1)+" / MO "+(a[K.CMO]||0).toFixed(1)));
     tr.appendChild(c3);
+    /* 광고 클릭률 — 큰 숫자는 PC·모바일을 검색수로 가중한 값, 아래에 둘 다 */
     var c4=el("td","num");
-    c4.appendChild(el("div",null,(a[K.TMO]||0).toFixed(2)+"%"));
-    c4.appendChild(el("div","sub","PC "+(a[K.TPC]||0).toFixed(2)+"%"));
+    c4.appendChild(el("div", S_ctr[i]>=3?"ctr-hi":null, S_ctr[i].toFixed(2)+"%"));
+    c4.appendChild(el("div","sub","PC "+(a[K.TPC]||0).toFixed(2)+"% / MO "+(a[K.TMO]||0).toFixed(2)+"%"));
     tr.appendChild(c4);
     [[K.BP1,K.BM1],[K.BP2,K.BM2],[K.BP3,K.BM3]].forEach(function(p){
       tr.appendChild(el("td","num bidcell",fmt(a[p[0]])));
       tr.appendChild(el("td","num",fmt(a[p[1]])));
     });
-    tr.appendChild(el("td","num bidcell dim",String(a[K.DEPTH])));
-    var pv=prodOf(i), rc=realComp(i);
-    tr.appendChild(el("td","num"+(pv==null?" dim":""), pv==null?"—":fmt(pv)));
-    var rcTd=el("td","num"+(rc==null?" dim":""), rc==null?"—":rc.toFixed(2));
-    rcTd.title = rc==null ? "상품수 원본이 없다. 21단계로 넣으면 계산된다." : "상품수 ÷ 검색수";
-    tr.appendChild(rcTd);
+    /* 3위 광고 예상 클릭 · 실제 클릭 단가 (네이버 예상 실적) */
+    var e3=est(i), ce=el("td","num"+(e3?"":" dim"));
+    ce.appendChild(el("div",null, e3 ? fmt(e3.clk3) : "—"));
+    ce.appendChild(el("div","sub", e3 ? (e3.clk3>0 ? "클릭당 "+fmt(e3.cpc3)+"원" : "예상 클릭 없음") : "예상 없음"));
+    if(e3) ce.title="3위 입찰가로 한 달 광고 · 예상 광고비 "+fmt(e3.cost3)+"원 · 노출 "+fmt(e3.imp3)+"회\n1위로 올리면 클릭 "+fmt(e3.clk1)+"회 · 광고비 "+fmt(e3.cost1)+"원";
+    tr.appendChild(ce);
+    var cd=el("td","num bidcell dim",String(a[K.DEPTH])); cd.title="함께 뜨는 광고 "+a[K.DEPTH]+"개 · NAVER 경쟁정도 "+NCOMP[a[K.COMP]]; tr.appendChild(cd);
     var cc=el("td","num");
     cc.innerHTML = isFinite(c.cvr)
       ? '<span class="'+(c.adOk?"cvr-ok":"cvr-no")+'">'+(c.cvr*100).toFixed(1)+'%</span>'
@@ -1883,8 +1908,11 @@ var XCOLS=[
   ["구매의도 단계",function(i){var l=buyLevel(i);return l<0?"":BUY[l];}],
   ["광고깊이",function(i){return R[i][K.DEPTH];}],
   ["경쟁정도",function(i){return NCOMP[R[i][K.COMP]];}],
-  ["상품수",function(i){var v=prodOf(i);return v==null?"":v;}],
-  ["경쟁강도",function(i){var v=realComp(i);return v==null?"":+v.toFixed(2);}],
+  ["3위 광고 예상 클릭(월)",function(i){return S_ec[i]<0?"":S_ec[i];}],
+  ["3위 광고 예상 광고비(월)",function(i){var e=est(i);return e?e.cost3:"";}],
+  ["실제 클릭 단가(3위)",function(i){return S_cpc[i]>0?Math.round(S_cpc[i]):"";}],
+  ["1위 광고 예상 클릭(월)",function(i){var e=est(i);return e?e.clk1:"";}],
+  ["1위 광고 예상 광고비(월)",function(i){var e=est(i);return e?e.cost1:"";}],
   ["손익분기 전환율 %",function(i){return isFinite(C_cvr[i])?+(C_cvr[i]*100).toFixed(2):"";}],
   ["황금점수",function(i){return C_gold[i];}],
   ["판정",function(i){return VN[C_v[i]];}],
@@ -1973,11 +2001,12 @@ function timingOf(D){
 /* 모바일·PC 3위로 한 달 광고하면. 클릭수는 네이버가 주는 이 키워드 광고의 월평균 클릭수다.
    광고비는 클릭수 × 3위 입찰가 — 입찰가는 상한이라 실제로는 이보다 적게 나간다 */
 function adSim(i){
-  var a=R[i], mg=marginOf(), cp=a[K.CPC_]||0, cm=a[K.CMO]||0, clicks=cp+cm;
-  if(!(clicks>0) || !a[K.BM3]) return null;
-  var cost=(cp*(a[K.BP3]||0)+cm*(a[K.BM3]||0))*roasMult();
+  var a=R[i], mg=marginOf(), e=est(i), clicks, cost, real=false;
+  if(e && e.clk3>0){ clicks=e.clk3; cost=e.cost3*roasMult(); real=true; }          /* 네이버 예상 실적 */
+  else { var cp=a[K.CPC_]||0, cm=a[K.CMO]||0; clicks=cp+cm; if(!(clicks>0) || !a[K.BM3]) return null;
+    cost=(cp*(a[K.BP3]||0)+cm*(a[K.BM3]||0))*roasMult(); }                          /* 없으면 월평균 클릭수 × 3위 입찰가 (상한) */
   var orders=clicks*SET.tgtCvr;
-  return { clicks:clicks, cost:cost, be: mg.margin>0 ? cost/mg.margin : Infinity, orders:orders, profit:orders*mg.margin-cost };
+  return { clicks:clicks, cost:cost, real:real, be: mg.margin>0 ? cost/mg.margin : Infinity, orders:orders, profit:orders*mg.margin-cost };
 }
 /* 같은 품목 묶음에서 점수가 높은 키워드. 품목을 못 붙인 키워드는 대표 카테고리로 묶는다 */
 function siblings(i, k){
@@ -2025,10 +2054,10 @@ function playbook(i){
     h2= A.profit>=0 ? "한 달 +"+won(A.profit)+" 남는다" : "한 달 "+won(A.profit)+" 손해"; c2= A.profit>=0?"good":"down";
     l2='<ul class="pb-l">'
       +li("예상 클릭", '<b>'+(A.clicks>=10?fmt(A.clicks):A.clicks.toFixed(1))+'회</b>')
-      +li("광고비 (상한)", '<b>'+won(A.cost)+'</b>')
+      +li(A.real?"광고비 (네이버 예상)":"광고비 (상한)", '<b>'+won(A.cost)+'</b>')
       +li("본전 주문", '<b>'+(A.be>=10?fmt(Math.ceil(A.be)):A.be.toFixed(1))+'건 · 전환율 '+(beC*100).toFixed(1)+'%</b>')
       +li("목표 "+(SET.tgtCvr*100).toFixed(1)+"% 면", '<b>'+(A.orders>=10?fmt(A.orders):A.orders.toFixed(1))+'건 · 마진 '+won(A.orders*mg.margin)+'</b>')
-      +'</ul><p class="pb-n">3위 입찰가 × 네이버 월평균 광고 클릭수. 주문 1건 마진 '+fmt(mg.margin)+'원 기준.</p>';
+      +'</ul><p class="pb-n">'+(A.real?"네이버 검색광고 예상 실적(3위 입찰가 · 모바일 + PC)":"3위 입찰가 × 네이버 월평균 광고 클릭수")+'. 주문 1건 마진 '+fmt(mg.margin)+'원 기준.</p>';
   }
   /* 3 같은 품목에서 더 볼 키워드 */
   var l3= S.list.length
@@ -2065,10 +2094,9 @@ function renderDetail0(){
   +cell("구매의도", buyLevel(CUR)<0?"미확인":BUY[buyLevel(CUR)], S_ir[CUR]<0?"쇼핑 클릭을 아직 안 받았다":"닭가슴살의 "+irFmt(S_ir[CUR])+" · 쇼핑 클릭 지수 "+shopFmt(a[K.SHOP]))
   +cell("3위 입찰가", fmt(a[K.BM3])+"원", "모바일 · 1위 "+fmt(a[K.BM1])+"원 · 5위 "+fmt(a[K.MMO]||0)+"원")
   +cell("광고경쟁도", s.compScore.toFixed(1), "광고 "+a[K.DEPTH]+"단 · NAVER "+NCOMP[a[K.COMP]]+" · 기준 "+RULE.maxComp.toFixed(1)+" 이하")
-  +cell("경쟁강도", realComp(CUR)==null?"—":realComp(CUR).toFixed(2),
-        realComp(CUR)==null?"상품수 없음 · 아이템스카우트 엑셀을 넣으면 계산된다"
-                           :"상품수 "+fmt(prodOf(CUR))+" ÷ 검색수 "+fmt(s.tot))
-  +cell("손익분기 전환율", isFinite(c.cvr)?(c.cvr*100).toFixed(1)+"%":"불가", "3위 기준 · 목표 "+(SET.tgtCvr*100).toFixed(1)+"%")
+  +(function(){ var e=est(CUR); return cell("실제 클릭 단가", e&&e.clk3>0 ? fmt(e.cpc3)+"원" : "—",
+        e ? "3위 광고 · 한 달 예상 클릭 "+fmt(e.clk3)+"번 · 광고비 "+won(e.cost3) : "네이버 예상 실적 없음"); })()
+  +cell("손익분기 전환율", isFinite(c.cvr)?(c.cvr*100).toFixed(1)+"%":"불가", (S_cpc[CUR]>0?"실제 클릭 단가 기준":"3위 입찰가 기준")+" · 목표 "+(SET.tgtCvr*100).toFixed(1)+"%")
   +cell("황금점수", String(c.gold), "100점 만점 · "+why)
   +'</div>'
   +playbook(CUR);
@@ -2397,7 +2425,6 @@ async function syncInbox(){
     }
     await INGEST(files);
     INBOX_NOTE="넣는곳에서 새 파일 "+files.length+"개를 읽었다 — "+todo.map(function(x){ return x.dir+"\\"+x.name; }).join(", ");
-    if(F.rel && F.relSeed && !F.relIS && F.relMode!=="ours"){ var nr=isRecFor(F.relSeed); if(nr) relUseIS(nr, F.relSeed); }
     buildCats(); recalc(); refresh();
     var n=document.getElementById("exactNote");
     if(n) n.insertAdjacentHTML("beforeend",' <span class="note">· '+esc(INBOX_NOTE)+'</span>');
@@ -3216,14 +3243,13 @@ function CURPAGE(){ LIMIT=100; }
 var GOLD_DEFAULT={ intent:[0,4], vmin:100, vmax:null };
 function openRelFilters(){ setType("all"); F.vmin=null; F.vmax=null; SORT.k=null; }
 function setRel(i){
-  var g=relGroup(i);
+  var g= F.relMode==="wide" ? relGroup(i) : relNaver(i); if(g.length<2) g=relGroup(i);
   if(!F.rel) openRelFilters();
   F.rel = g.length>1 ? new Set(g) : null;
   F.relName = F.rel ? relName(i) : "";
   F.relSeed = F.rel ? R[i][K.KW] : "";
   F.relLabel=""; F.relOrder=null; F.relIS=null; F.relLive=null;
-  var rec=isRecFor(R[i][K.KW]);
-  if(rec && F.relMode!=="ours") relUseIS(rec, R[i][K.KW]);
+  if(F.relMode==="is"){ var rec=isRecFor(R[i][K.KW]); if(rec) relUseIS(rec, R[i][K.KW]); else F.relMode=""; }
 }
 function clearRel(){
   F.rel=null; F.relName=""; F.relSeed=""; F.relLabel=""; F.relOrder=null; F.relIS=null; F.relLive=null; F.relMode=""; SORT.k=null;
@@ -3281,21 +3307,15 @@ function renderHero(){
      sp("PC",fmt(a[K.PC])+"회")+sp("모바일",fmt(a[K.MO])+"회"),
      "모바일 비중 "+moP+"% · 네이버 최근 30일 · "+srcLabel(CUR)+" 기준"+(staleDays(CUR)>7?". <b>"+staleDays(CUR)+"일 지난 값</b>이다. 제철 품목은 지금과 크게 다를 수 있다":""))
   +(function(){
-      /* 상품수는 쇼핑검색 API 가 끝나 아이템스카우트 엑셀로만 채운다.
-         경쟁강도 = 상품수 ÷ 한 달 검색수. 아이템스카우트와 같은 식이다 (48/48 대조). */
-      var pr=prodOf(CUR), cp=realComp(CUR), ph=PRODH[a[K.KW]], last=ph&&ph[ph.length-1];
-      var src = last ? (last.src==="직접"?"직접 입력 ":"아이템스카우트 ")+(new Date(last.at).getMonth()+1)+"/"+new Date(last.at).getDate()
-              : pr!=null ? "9월 수집본" : "원본 없음";
-      var shopUrl="https://search.shopping.naver.com/search/all?query="+encodeURIComponent(a[K.KW]);
-      var form='<div class="prodin"><a href="'+shopUrl+'" target="_blank" rel="noopener">네이버쇼핑에서 상품수 보기 ↗</a>'
-        +'<span><input type="number" id="prodIn" min="0" step="1" placeholder="상품수" value="'+(pr!=null?pr:"")+'"><button type="button" class="chip" id="prodSave">'+(pr!=null?"고치기":"넣기")+'</button></span></div>';
-      if(pr==null) return hcard("상품수 · 경쟁강도", src, "—",
-        sp("경쟁강도","—")+sp("광고경쟁도", st.compScore.toFixed(1)),
-        "상품수는 네이버 공식 API 가 없다(쇼핑검색 API 2026-07-31 종료). <b>아이템스카우트 연관키워드 엑셀</b>을 엑셀 분석 탭에 떨구거나, 네이버쇼핑에서 본 숫자를 아래에 직접 넣는다."+form, true);
-      return hcard("상품수 · 경쟁강도", src, fmt(pr)+"개",
-        sp("경쟁강도", '<b style="color:'+(cp<=1?"var(--good)":cp<=5?"var(--ink)":"var(--down)")+'">'+cp.toFixed(2)+'</b>')
-        +sp("대표 카테고리", esc(catFull(CUR))||"—"),
-        "경쟁강도 = 상품수 ÷ 한 달 검색수 "+fmt(st.tot)+" (아이템스카우트와 같은 식). 낮을수록 좋다. 상품 1개에 검색 "+(st.tot/pr).toFixed(1)+"회."+form);
+      /* 3위로 광고하면 — 네이버 검색광고 예상 실적. 상품수 · 경쟁강도(엑셀이 있어야만 나오던 값) 자리에 둔다 */
+      var e=est(CUR);
+      if(!e) return hcard("3위로 광고하면 · 네이버 예상", "원본 없음", "—",
+        sp("실제 클릭 단가","—")+sp("예상 광고비","—"),
+        "네이버 예상 실적을 아직 못 받은 키워드다. PC 의 실시간 서버에서 찾으면 바로 받아온다. 경쟁 광고 "+a[K.DEPTH]+"개 · NAVER 경쟁정도 "+NCOMP[a[K.COMP]]+".", true);
+      return hcard("3위로 광고하면 · 네이버 예상", srcLabel(CUR), "한 달 "+fmt(e.clk3)+"번 클릭",
+        sp("실제 클릭 단가", e.clk3>0 ? fmt(e.cpc3)+"원" : "—")+sp("예상 광고비", won(e.cost3))+sp("1위로 올리면", fmt(e.clk1)+"번 · 클릭당 "+(e.clk1>0?fmt(e.cpc1)+"원":"—")),
+        "네이버 검색광고가 추정한 값이다(모바일 + PC). 3위 입찰가 "+fmt(a[K.BM3])+"원은 낼 수 있는 상한이고 실제로는 클릭당 <b>"+(e.clk3>0?fmt(e.cpc3)+"원":"—")+"</b>쯤 나간다. "
+        +"함께 뜨는 경쟁 광고 "+a[K.DEPTH]+"개 · NAVER 경쟁정도 "+NCOMP[a[K.COMP]]+" · 광고경쟁도 "+st.compScore.toFixed(1)+".");
     })()
   +(function(){
       /* 구매의도. 검색이 쇼핑 클릭으로 얼마나 이어지나. 네이버 쇼핑인사이트 원본이고 상품수 없이도 선다 */
@@ -3334,17 +3354,17 @@ function renderHero(){
         +'실제 결제 금액이 아니라 그 순위를 노릴 때의 추정 최대 CPC다.</p></div>';
     })()
   +(function(){
-      /* 상품수는 쇼핑검색 API 종료로 원본이 없다. 빈칸으로 두느니 판단에 직접 쓰는 값을 둔다.
-         손익분기 전환율 = 그 순위에 광고를 걸었을 때 본전이 되는 전환율이다.
-         목표 전환율보다 낮아야 광고가 남는다. */
-      var bs=[a[K.BM1],a[K.BM2],a[K.BM3]];
-      var cv=bs.map(function(b){ return beCvr(b,mg.margin); });
-      var f=function(x){ return isFinite(x) ? (x*100).toFixed(2)+"%" : "—"; };
-      var ok=isFinite(cv[2]) && cv[2]<=SET.tgtCvr;
-      return hcard("손익분기 전환율 · 모바일","마진에서 계산", f(cv[2])+"<span class=\'hc-u\'>3위 기준</span>",
-        sp("1위",f(cv[0]))+sp("2위",f(cv[1]))+sp("3위",f(cv[2])),
+      /* 손익분기 전환율 = 광고로 본전을 맞추려면 클릭 100번에 몇 번 팔려야 하는가.
+         네이버 예상 실적이 있으면 실제로 나가는 클릭 단가(광고비 ÷ 클릭)로 낸다. 입찰가는 상한이라 그걸로 내면 실제보다 나쁘게 나온다 */
+      var e=est(CUR), f=function(x){ return isFinite(x) ? (x*100).toFixed(2)+"%" : "—"; };
+      var real3= e&&e.clk3>0 ? beCvr(e.cpc3,mg.margin) : NaN, real1= e&&e.clk1>0 ? beCvr(e.cpc1,mg.margin) : NaN;
+      var bid3=beCvr(a[K.BM3],mg.margin), head= isFinite(real3) ? real3 : bid3;
+      var ok=isFinite(head) && head<=SET.tgtCvr;
+      return hcard("손익분기 전환율", isFinite(real3)?"실제 클릭 단가로 계산":"3위 입찰가로 계산", f(head)+"<span class='hc-u'>3위 광고</span>",
+        sp("3위 · 실제 단가", isFinite(real3)?f(real3):"—")+sp("1위 · 실제 단가", isFinite(real1)?f(real1):"—")+sp("3위 · 입찰가 상한", f(bid3)),
         "목표 "+(SET.tgtCvr*100).toFixed(1)+"% 보다 낮아야 광고가 남는다. "
-        +(ok?"<b style=\'color:var(--good)\'>3위는 남는다.</b>":"<b>3위도 목표를 넘는다 — 이 설정으로는 안 남는다.</b>"));
+        +(ok?"<b style='color:var(--good)'>3위 광고는 남는다.</b>":"<b>3위 광고도 목표를 넘는다 — 이 마진 · 목표 전환율로는 안 남는다.</b>")
+        +(isFinite(real3)?" 주문 1건 마진 "+fmt(mg.margin)+"원, 클릭당 "+fmt(e.cpc3)+"원이면 클릭 "+Math.ceil(mg.margin/Math.max(e.cpc3,1))+"번에 한 번 팔려야 본전이다.":""));
     })();
 
   var ps=document.getElementById("prodSave");
@@ -3375,7 +3395,7 @@ var COMPI={"낮음":0,"중간":1,"높음":2};
 
 function newRow(kw, hint){
   var i=N; N++;
-  R[i]=[kw,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,intentGuess(kw),hint,0,0,0,"",0,0,0,-1,0,-1];
+  R[i]=[kw,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,intentGuess(kw),hint,0,0,0,"",0,0,0,-1,0,-1,-1,0,0,0,0,0,0,0,0,0];
   BYKW[kw]=i;
   (HG[hint]||(HG[hint]=[])).push(i);
   groupRow(i);
@@ -3403,6 +3423,8 @@ function upsertLive(j, src){
     if(md){ a[K.MPC]=md[0]||0; a[K.MMO]=md[1]||0; }
     var shv=(j.shop||{})[x.kw];
     if(shv!=null) a[K.SHOP]=shv;
+    var pf=(j.perf||{})[x.kw];
+    if(pf) for(var pq=0;pq<10;pq++) a[K.E3MC+pq]=pf[pq];
     a[K.DAY]=todayInt(j.at);
     statRow(i);
     LIVEAT[x.kw]={ at:j.at, bid:!!b, src:src||"live" };
@@ -3430,17 +3452,18 @@ function liveLabel(kw){
    둘 다 따로 남겨야 하므로 물어본 철자 그대로도 한 줄을 만든다. 숫자는 네이버가 준 같은 값이다. */
 function applyMulti(j){
   var by={}; (j.related||[]).forEach(function(x){ by[x.kw]=x; });
-  var rows=[], bids=Object.assign({}, j.bids||{}), med=Object.assign({}, j.med||{}), shop=Object.assign({}, j.shop||{}), map={};
+  var rows=[], bids=Object.assign({}, j.bids||{}), med=Object.assign({}, j.med||{}), shop=Object.assign({}, j.shop||{}), perf=Object.assign({}, j.perf||{}), map={};
   (j.asked||[]).forEach(function(k){
     var nk=(j.found||{})[k]; if(!nk||!by[nk]) return;
     var x=Object.assign({}, by[nk], { kw:k, hint:k });
     if(k!==nk && bids[nk]) bids[k]=bids[nk];
     if(k!==nk && med[nk]) med[k]=med[nk];
     if(k!==nk && shop[nk]!=null) shop[k]=shop[nk];
+    if(k!==nk && perf[nk]) perf[k]=perf[nk];
     rows.push(x); map[k]=k;
     if(k!==nk){ rows.push(Object.assign({}, by[nk], { hint:k })); }
   });
-  upsertLive({ kw:"", at:j.at, related:rows, bids:bids, med:med, shop:shop }, "live");
+  upsertLive({ kw:"", at:j.at, related:rows, bids:bids, med:med, shop:shop, perf:perf }, "live");
   return map;
 }
 function splitKws(v){
@@ -3500,11 +3523,11 @@ function ensureFresh(i){
     renderKpi(); renderTable();
   }).catch(function(){});
 }
-async function liveFind(v, fresh){
+async function liveFind(v, fresh, wide){
   var note=document.getElementById("exactNote");
-  note.innerHTML='<b>'+esc(v)+'</b> 네이버에서 받아오는 중… <span style="opacity:.7">연관키워드를 세 겹으로 모은다. 처음 찾는 씨앗은 15초쯤 걸린다.</span>';
+  note.innerHTML='<b>'+esc(v)+'</b> 네이버에서 받아오는 중…'+(wide?' <span style="opacity:.7">확장 목록은 세 겹으로 모은다. 처음에는 15초쯤 걸린다.</span>':'');
   try{
-    var res=await fetch("/api/live?kw="+encodeURIComponent(v)+(fresh?"&fresh=1":""));
+    var res=await fetch("/api/live?kw="+encodeURIComponent(v)+(fresh?"&fresh=1":"")+(wide?"&wide=1":""));
     var j=await res.json();
     if(!res.ok) throw new Error(j.error||("응답 "+res.status));
     var idx=upsertLive(j);
@@ -3516,13 +3539,17 @@ async function liveFind(v, fresh){
     } else CUR=ex;
     F.q=""; document.getElementById("q").value="";
     if(!F.rel) openRelFilters();
-    F.rel=new Set(idx.concat(sameItem(CUR))); F.relSeed=v; F.relName="네이버 실시간 연관"; F.relLabel=""; F.relOrder=null; F.relIS=null; F.relLive=idx;
-    var isRec=isRecFor(v); if(isRec && F.relMode!=="ours") relUseIS(isRec, v);
+    /* 기본은 네이버 키워드도구가 준 목록 그대로, 준 순서 그대로. 확장(wide)일 때만 같은 품목 수집분을 더한다 */
+    F.rel= j.wide ? new Set(idx.concat(sameItem(CUR))) : new Set(idx);
+    F.relSeed=v; F.relName="네이버 실시간 연관"; F.relLabel=""; F.relIS=null; F.relLive=idx; F.relAt=j.at;
+    F.relOrder=null; if(!j.wide){ F.relOrder={}; idx.forEach(function(i2,n2){ if(F.relOrder[i2]==null) F.relOrder[i2]=n2; }); }
+    F.relMode= j.wide ? "wide" : (F.relMode==="is" ? "is" : "");
+    if(F.relMode==="is"){ var isRec=isRecFor(v); if(isRec) relUseIS(isRec, v); else F.relMode=""; }
     var t=liveStamp(R[CUR][K.KW]);
     note.innerHTML='<span class="live-dot"></span> <b class="live-k">실시간</b> '+t+' 조회'+(j.cached?' (3시간 안에 받은 것)':'')
       +' · 연관 '+idx.length+'개'+(j.deep||j.own?' (네이버 연관 '+j.first+' + 한 겹 더 '+(j.deep||0)+' + 우리 수집본 · 꼬리말 조회 '+(j.own||0)+')':'')+' · 입찰가 '+Object.keys(j.bids||{}).length+'개'
       +' <button type="button" class="chip" id="liveAgain" style="margin-left:6px">↻ 새로 받기</button>';
-    document.getElementById("liveAgain").onclick=function(){ liveFind(v,true); };
+    document.getElementById("liveAgain").onclick=function(){ liveFind(v,true,!!j.wide); };
     CURPAGE(); refresh();
   }catch(e){
     /* 실패를 덮어쓰면 안 된다. 전에는 staticFind 가 "정확 원본을 확인했다" 로 이 문구를
@@ -3846,7 +3873,7 @@ function drawCombo(){
     +(CB.range==="custom"?'<input type="date" id="cbFrom" value="'+dayKey(rg.from)+'"><span class="isf-dash">~</span><input type="date" id="cbTo" value="'+dayKey(rg.to)+'">':'')+'</div>'
     +'<div class="cb-g"><span class="cb-k">단위</span>'+seg("cbUnit",[["date","일간",D.daily?"":"저장된 수집본은 주간뿐이다. 일간은 PC 의 실시간 서버에서 받는다"],["week","주간"],["month","월간"]],CB.unit)+'</div>'
     +'<div class="cb-g cb-items"><span class="cb-k">그래프 항목</span>'
-    +KEYS.map(function(k){
+    +KEYS.filter(function(k){ return have[k] || k==="vol" || k==="clk"; }).map(function(k){
         return '<button type="button" class="cb-tg" data-s="'+k+'" style="--c:'+C[k]+'" aria-pressed="'+on[k]+'"'+(have[k]?'':' disabled title="'+esc(why[k])+'"')+'><i></i>'+NAMES[k]+'</button>'; }).join("")
     +'</div></div>';
 
@@ -4044,11 +4071,12 @@ document.getElementById("fCompV").textContent=F.comp.toFixed(1);
 document.getElementById("foot").innerHTML=
   "<b>실데이터</b> · 월 검색수 · 클릭수 · CTR · 광고 깊이 · 경쟁정도 · 1~3위 입찰가(PC·모바일)는 NAVER 검색광고 API 에서 받은 값이다. "
  +"수확 캘린더 202품종과 마진 공식은 업로드한 시트에서 왔다.<br>"
- +"<b>경쟁강도와 광고경쟁도는 다른 값이다.</b> 아이템스카우트의 경쟁강도는 상품수 ÷ 검색수이고, 48개 키워드로 대조해 식을 확인했다. "
- +"쇼핑검색 API 가 2026-07-31 종료되어 상품수 원본이 없으므로 그 칸은 <b>미수집</b>으로 비워둔다 — 비슷한 값으로 채우지 않는다. "
- +"<b>광고경쟁도</b>는 광고 깊이와 모바일 3위 입찰가로 만든 별개의 지표다 — 광고로 들어가는 데 드는 값이지 상품수의 대용이 아니다. "
- +"<b>구매의도</b>는 네이버 쇼핑인사이트 식품 분야 쇼핑 클릭 ÷ 검색수다(닭가슴살 = 1). 검색은 되는데 사지 않는 키워드를 이걸로 거른다. "
- +"상품수는 21단계(내 아이템스카우트 내보내기 가져오기)로만 채워진다.<br>"
+ +"<b>상품수 · 경쟁강도는 뺐다.</b> 네이버가 주지 않는 값이라 아이템스카우트 엑셀이 있어야만 나왔다. 그 자리에 네이버가 직접 주는 세 가지를 둔다 — "
+ +"<b>구매의도</b>(식품 쇼핑 클릭 ÷ 검색수, 닭가슴살 = 1배 · 쇼핑인사이트), <b>광고 클릭률</b>(광고가 보였을 때 눌리는 비율 · 검색광고), "
+ +"<b>3위 광고 예상 클릭 · 실제 클릭 단가</b>(그 입찰가로 광고하면 한 달에 몇 번 눌리고 얼마가 나가는지 네이버가 추정한 값 · 검색광고 예상 실적).<br>"
+ +"<b>입찰가와 실제 클릭 단가는 다르다.</b> 입찰가는 낼 수 있는 상한이고 실제로 나가는 돈은 예상 광고비 ÷ 예상 클릭이다. 손익분기 전환율은 이 실제 단가로 낸다. "
+ +"<b>경쟁 광고 수</b>는 그 키워드에 함께 뜨는 광고 수(최대 15)이고, <b>광고경쟁도</b>는 그 수와 모바일 3위 입찰가로 만든 0~10 점수다.<br>"
+ +"<b>연관 키워드</b>는 네이버 키워드도구가 주는 목록 그대로다(PC 실시간). 저장본에서는 수집할 때 그 씨앗에서 나온 연관을 보여준다.<br>"
  +"<b>의도는 다섯 칸이다.</b> 넷일 때 97.1%가 쇼핑성으로 쏠려 사실상 분류가 안 됐다. "
  +"요리·조리를 따로 뒀다.<br>"+"<b>대표 카테고리</b>는 네이버플러스 스토어의 신선식품 분류(과일 · 채소 · 견과류 · 쌀/잡곡 · 건과류 · 계란/알류 · 정육 · 수산물 · 건어물 · 김치 · 반찬 · 전통주)를 그대로 쓴다. 키워드가 어느 칸인지는 키워드 글자에서 품목을 읽어 정했고(네이버가 API 로 주지 않는다), 아이템스카우트 엑셀을 넣은 키워드는 그 값을 쓴다. 신선식품 밖(가공식품 · 건강식품)의 이름은 임시다.<br>"
  +"<b>클릭률과 전환율은 다른 지표다.</b> 클릭률은 노출 대비 클릭이고, 손익분기 계산에 들어가는 것은 클릭 대비 구매인 전환율이다. "

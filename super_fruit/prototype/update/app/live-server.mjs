@@ -144,14 +144,14 @@ const MOD_TAIL = ["가격","시세","10kg","5kg","3kg","2kg","1kg","파는곳","
   "농장","껍질","까는법","까는기계","가위","칼","조림","파이","양갱","라떼","꿀"];
 const MOD_HEAD = ["햇","국산","국내산","냉동","유기농","무농약","못난이","가정용","토종","특대","깐","생"];
 
-async function lookup(kw, fresh) {
+async function lookup(kw, fresh, wide) {
   const hint = cleanHint(kw);
   if (!hint) throw Object.assign(new Error("키워드가 비었다"), { code: 400 });
-  const file = path.join(CACHE, encodeURIComponent(hint) + ".json");
+  const file = path.join(CACHE, encodeURIComponent(hint) + (wide ? ".wide" : "") + ".json");
   if (!fresh) {
     try {
       const c = JSON.parse(await fsp.readFile(file, "utf8"));
-      if (Date.now() - Date.parse(c.at) < CACHE_MIN * 60000) return { ...c, cached: true };
+      if (c.wide === !!wide && c.perf && Date.now() - Date.parse(c.at) < CACHE_MIN * 60000) return { ...c, cached: true };
     } catch {}
   }
 
@@ -174,7 +174,7 @@ async function lookup(kw, fresh) {
   const first = list.length, seen = new Set(list.map(x => x.kw)), H = hint.toUpperCase();
   const fam = list.filter(x => !same(x.kw, hint) && x.kw.toUpperCase().includes(H))
     .sort((a, b) => (b.pc + b.mo) - (a.pc + a.mo)).slice(0, 40).map(x => cleanHint(x.kw)).filter(Boolean);
-  for (let i = 0; i < fam.length; i += 5) {
+  for (let i = 0; wide && i < fam.length; i += 5) {
     const r2 = await ad("GET", "/keywordstool", { qs: "?hintKeywords=" + fam.slice(i, i + 5).map(encodeURIComponent).join(",") + "&showDetail=1" });
     if (r2.status === 429) break;
     if (r2.ok) for (const row of (r2.json?.keywordList || [])) {
@@ -186,9 +186,9 @@ async function lookup(kw, fresh) {
   /* 1-3. 우리 전체 수집본에서 씨앗 글자가 든 키워드 (당시 검색수 큰 순 120개).
         이름만 가져오고 값은 네이버에 지금 다시 묻는다. 묻는 김에 딸려 오는 연관도 씨앗 글자가 들었으면 같이 담는다 */
   const deep1 = list.length - first;
-  const mine = (await kwIndex()).filter(x => x[2].includes(H) && !seen.has(x[0])).sort((a, b) => b[1] - a[1]).slice(0, 100).map(x => x[0]);
+  const mine = wide ? (await kwIndex()).filter(x => x[2].includes(H) && !seen.has(x[0])).sort((a, b) => b[1] - a[1]).slice(0, 100).map(x => x[0]) : [];
   /* 씨앗이 품목 이름처럼 짧을 때만 꼬리말을 붙여 묻는다 */
-  const combos = hint.length <= 6 ? [...MOD_TAIL.map(m => hint + m), ...MOD_HEAD.map(m => m + hint)].filter(k => !seen.has(k) && !mine.includes(k)) : [];
+  const combos = wide && hint.length <= 6 ? [...MOD_TAIL.map(m => hint + m), ...MOD_HEAD.map(m => m + hint)].filter(k => !seen.has(k) && !mine.includes(k)) : [];
   const ask = [...combos, ...mine];
   const mg = []; for (let i = 0; i < ask.length; i += 5) mg.push(ask.slice(i, i + 5));
   let mi = 0, halt = false;
@@ -220,8 +220,9 @@ async function lookup(kw, fresh) {
   list.slice().sort((a, b) => (b.pc + b.mo) - (a.pc + a.mo))
     .forEach(x => { if (want.length < 500 && !want.includes(x.kw)) want.push(x.kw); });
   /* 쇼핑 클릭 지수는 검색한 키워드와 연관 상위 60개만. HUB 호출이 4개에 한 번이라 전부는 느리다 */
-  const [{ bids, ad5 }, shop] = await Promise.all([bidsFor(want), shopIdxFor(want.slice(0, 60))]);
-  const out = { at: new Date().toISOString(), kw, hint, exact, related: list, first, deep: deep1, own: list.length - first - deep1, bids, med: ad5, shop };   // med = 광고 단가(5위 입찰가). 이름은 화면과의 약속이라 그대로 둔다
+  const [{ bids, ad5 }, shop] = await Promise.all([bidsFor(want), shopIdxFor(want.slice(0, wide ? 60 : 120))]);
+  const perf = await perfFor(want, bids);
+  const out = { at: new Date().toISOString(), kw, hint, exact, related: list, first, deep: deep1, own: list.length - first - deep1, wide: !!wide, bids, med: ad5, shop, perf };   // med = 광고 단가(5위 입찰가). 이름은 화면과의 약속이라 그대로 둔다
   await fsp.mkdir(CACHE, { recursive: true });
   await fsp.writeFile(file, JSON.stringify(out), "utf8");
   return { ...out, cached: false };
@@ -246,6 +247,26 @@ async function bidsFor(want) {
     }
   }
   return { bids, ad5 };
+}
+/* ── 예상 실적 ── 네이버가 추정한 "그 입찰가로 광고하면 한 달에 몇 번 노출 · 클릭되고 얼마가 나가는가".
+   키워드마다 넷(모바일 3위 · PC 3위 · 모바일 1위 · PC 1위 입찰가). 한 번에 200항목. refresh-naver.mjs 의 perf 와 같은 모양으로 돌려준다 */
+async function perfFor(want, bids) {
+  const out = {}, bidOf = v => +v > 0 ? Math.max(70, Math.round(+v / 10) * 10) : 0;
+  const list = want.filter(k => bids[k]);
+  for (let i = 0; i < list.length; i += 50) {
+    const g = list.slice(i, i + 50), items = [], seen = new Set();
+    const add = (k, device, bid) => { if (!bid) return; const id = k + "|" + device + "|" + bid; if (seen.has(id)) return; seen.add(id); items.push({ device, keywordplus: false, keyword: k, bid }); };
+    for (const k of g) { const b = bids[k]; add(k, "MOBILE", bidOf(b.mo[2])); add(k, "PC", bidOf(b.pc[2])); add(k, "MOBILE", bidOf(b.mo[0])); add(k, "PC", bidOf(b.pc[0])); }
+    if (!items.length) continue;
+    const r = await ad("POST", "/estimate/performance-bulk", { body: { items } });
+    if (!r.ok) { await sleep(200); continue; }
+    const got = {}; for (const e of r.json?.items || []) got[e.keyword + "|" + e.device + "|" + e.bid] = e;
+    for (const k of g) { const b = bids[k], pick = (device, v) => got[k + "|" + device + "|" + bidOf(v)] || null, n = (x, f) => x ? Math.round(+x[f] || 0) : 0;
+      const m3 = pick("MOBILE", b.mo[2]), p3 = pick("PC", b.pc[2]), m1 = pick("MOBILE", b.mo[0]), p1 = pick("PC", b.pc[0]);
+      if (m3 || p3 || m1 || p1) out[k] = [n(m3, "clicks"), n(m3, "cost"), n(m3, "impressions"), n(p3, "clicks"), n(p3, "cost"), n(p3, "impressions"), n(m1, "clicks"), n(m1, "cost"), n(p1, "clicks"), n(p1, "cost")]; }
+    await sleep(60);
+  }
+  return out;
 }
 /* ── 쇼핑 클릭 지수 (닭가슴살 = 100) ──
    쇼핑인사이트는 한 번에 넣은 키워드 중 제일 큰 값을 100 으로 둔 상대값만 준다. 닻을 같이 넣어 한 눈금으로 만든다.
@@ -330,8 +351,9 @@ async function multi(kws) {
   const rows = Object.values(found);
   const uniq = [...new Set(rows.map(x => x.kw))];
   const [{ bids, ad5: med }, shop] = await Promise.all([bidsFor(uniq), shopIdxFor(uniq)]);
+  const perf = await perfFor(uniq, bids);
   return { at: new Date().toISOString(), asked, found: Object.fromEntries(Object.entries(found).map(([k, v]) => [k, v.kw])),
-           miss, related: rows, bids, med, shop };
+           miss, related: rows, bids, med, shop, perf };
 }
 
 /* ── 추세 · 쇼핑 구매층 (NAVER API HUB) ──
@@ -470,7 +492,7 @@ const server = http.createServer(async (req, res) => {
     if (u.pathname === "/api/live") {
       if (!(KEY && SECRET && CUSTOMER)) return send(res, 500, { error: "key.txt 에 검색광고 키가 없다." });
       const kw = (u.searchParams.get("kw") || "").trim();
-      return send(res, 200, await lookup(kw, u.searchParams.get("fresh") === "1"));
+      return send(res, 200, await lookup(kw, u.searchParams.get("fresh") === "1", u.searchParams.get("wide") === "1"));
     }
     /* 판정 기록 — 내린 판정과 실제 결과. 이 PC 의 naver-out/verdict-log.json 하나에 통째로 둔다 */
     if (u.pathname === "/api/log" && req.method === "GET") {

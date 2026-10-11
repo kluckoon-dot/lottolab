@@ -180,6 +180,7 @@ try {
     const f = FRESH[r.kw]; if (!f) continue;
     if (f.s) { r.sepTot = (+r.pc || 0) + (+r.mo || 0); [r.pc, r.mo, r.masked, r.clickPc, r.clickMo, r.ctrPc, r.ctrMo, r.depth, r.compIdx] = f.s; r.masked = !!r.masked; r.total = r.pc + r.mo; r.at = f.sAt; nS++; }
     if (f.b) { r.bid = { pc: f.b.slice(0, 3), mo: f.b.slice(3, 6) }; nB++; }
+    if (f.e) r.perf = f.e;                       // 예상 실적 [모3클릭, 모3비용, 모3노출, PC3클릭, PC3비용, PC3노출, 모1클릭, 모1비용, PC1클릭, PC1비용]
     if (f.m) { r.med = f.m; nM++; }
     if (f.f != null) { r.food = f.f; nF++; if (!f.f) nNo++; }
     if (f.c != null) r.shop = f.c; else if (f.f === 0) r.shop = 0;
@@ -256,7 +257,8 @@ const packedAll = rows.map(r => {
     bidOf(r, "mo", 0), bidOf(r, "mo", 1), bidOf(r, "mo", 2),
     r.masked ? 1 : 0, intentOf(r.kw), (r.hints && r.hints[0]) || "", sec,
     SHOPCNT[r.kw] || 0, SHOPCMP[r.kw] || 0, SHOPCAT[r.kw] || "",
-    r.med ? num(r.med[0]) : 0, r.med ? num(r.med[1]) : 0, dayInt(r.at), r.food == null ? -1 : r.food, r.sepTot || 0, r.shop == null ? -1 : r.shop
+    r.med ? num(r.med[0]) : 0, r.med ? num(r.med[1]) : 0, dayInt(r.at), r.food == null ? -1 : r.food, r.sepTot || 0, r.shop == null ? -1 : r.shop,
+    ...(r.perf && r.perf.length === 10 ? r.perf : [-1, 0, 0, 0, 0, 0, 0, 0, 0, 0])
   ];
 });
 { /* 제대로 담겼는지 바로 확인한다. 전부 0 이면 또 이름을 잘못 짚은 것이다. */
@@ -319,7 +321,7 @@ if (want) console.log(`  걸러낸 뒤 ${packed.length.toLocaleString()}개를 �
    kw.js 가 27 MB 가 됐다. 키워드도 똑같이 나눈다. */
 const CAP = 10 * 1048576;   // 실측 103 bytes/키워드. 16 MB 한도에 여유를 둔다
 const head = { fetchedAt: kj.fetchedAt || "", calls: kj.calls || 0, failed: (kj.failed || []).length,
-  cols: "kw,pc,mo,depth,comp,clickPc,clickMo,ctrPc,ctrMo,bp1,bp2,bp3,bm1,bm2,bm3,masked,intent,hint,sec,prod,icomp,icat,adPc,adMo,day,food,sepTot,shop",
+  cols: "kw,pc,mo,depth,comp,clickPc,clickMo,ctrPc,ctrMo,bp1,bp2,bp3,bm1,bm2,bm3,masked,intent,hint,sec,prod,icomp,icat,adPc,adMo,day,food,sepTot,shop,e3mClk,e3mCost,e3mImp,e3pClk,e3pCost,e3pImp,e1mClk,e1mCost,e1pClk,e1pCost",
   freshAt, anchor,
   intentNames: INTENT_NAMES,
   sections: SEC ? SEC.map(x => ({ id: x.id, name: x.name, naver: x.naver })) : [] };

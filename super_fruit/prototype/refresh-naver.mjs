@@ -11,6 +11,7 @@
  * 받는 것 (전부 네이버 공식 API)
  *   stats  검색광고 /keywordstool              검색수 PC·모바일 · 클릭수 · 클릭률 · 광고 깊이 · 경쟁정도
  *   bids   /estimate/average-position-bid      1~3위 · 5위 평균 입찰가 PC·모바일
+ *   perf   /estimate/performance-bulk          예상 실적 — 3위 · 1위 입찰가로 광고할 때 한 달 예상 노출 · 클릭 · 광고비
  *          5위 입찰가가 아이템스카우트의 "광고 단가" 다. 2026-10-11 같은 날 받은 파일 330개로 가렸다
  *          (70원이 아닌 줄에서 5위가 제일 가깝다. 중간 입찰가 · 최소 노출 입찰가는 아니었다).
  *   food   API HUB 쇼핑인사이트 (식품 50000006)  식품 분야에서 쇼핑 클릭이 있는가
@@ -36,7 +37,7 @@ const OUTDIR = path.join(ROOT, "naver-out");
 const OUT = path.join(OUTDIR, "fresh.json");
 const args = process.argv.slice(2);
 const val = f => { const i = args.indexOf(f); return i >= 0 ? args[i + 1] : null; };
-const STEPS = new Set((val("--steps") || "stats,bids,food").split(","));
+const STEPS = new Set((val("--steps") || "stats,bids,perf,food").split(","));
 const MAX_AGE_H = +(val("--max-age") || 12);
 /* 식품 판정은 천천히 바뀐다. 매번 8,400번을 다시 부를 이유가 없다. 기본 일주일 */
 const FOOD_AGE_H = +(val("--food-age") || 24 * 7);
@@ -199,6 +200,38 @@ async function doBids() {
   save(true);
 }
 
+/* 2-2. 예상 실적 — 네이버가 추정한 "그 입찰가로 광고하면 한 달에 몇 번 노출되고, 몇 번 눌리고, 얼마가 나가는가"
+   /estimate/performance-bulk · 한 번에 200항목(실측). 키워드마다 넷: 모바일 3위 · PC 3위 · 모바일 1위 · PC 1위 입찰가.
+   상품수 · 경쟁강도를 대신하는 지표의 원본이다. 입찰가는 '낼 수 있는 값' 이고 실제로 나가는 클릭 단가는 비용 ÷ 클릭이다
+   (공주밤 모바일 3위 350원 → 클릭 1,171 · 비용 310,532원 → 클릭당 265원. 1위 530원 → 클릭 2,653 · 클릭당 385원).
+     e = [모3클릭, 모3비용, 모3노출, PC3클릭, PC3비용, PC3노출, 모1클릭, 모1비용, PC1클릭, PC1비용] */
+async function doPerf() {
+  const list = targets.filter(k => { const r = F.rows[k]; return r && r.b && !fresh(k, "eAt"); });
+  console.error(`예상 실적  ${list.length.toLocaleString()}개`);
+  const bidOf = v => +v > 0 ? Math.max(70, Math.round(+v / 10) * 10) : 0;
+  for (let i = 0; i < list.length; i += 50) {
+    const g = list.slice(i, i + 50), items = [], seen = new Set();
+    const add = (k, device, bid) => { if (!bid) return; const id = clean(k) + "|" + device + "|" + bid; if (seen.has(id)) return; seen.add(id); items.push({ device, keywordplus: false, keyword: clean(k), bid }); };
+    for (const k of g) { const b = F.rows[k].b; add(k, "MOBILE", bidOf(b[5])); add(k, "PC", bidOf(b[2])); add(k, "MOBILE", bidOf(b[3])); add(k, "PC", bidOf(b[0])); }
+    if (!items.length) continue;
+    const r = await ad("POST", "/estimate/performance-bulk", { body: { items } });
+    stat.calls++;
+    if (!r.ok) { stat.fail.push({ step: "perf", n: g.length, status: r.status, text: safe(r.text).slice(0, 120) }); await sleep(300); continue; }
+    const got = {}; for (const e of r.json?.items || []) got[clean(e.keyword) + "|" + e.device + "|" + e.bid] = e;
+    const at = new Date().toISOString();
+    for (const k of g) { const b = F.rows[k].b, pick = (device, v) => got[clean(k) + "|" + device + "|" + bidOf(v)] || null;
+      const m3 = pick("MOBILE", b[5]), p3 = pick("PC", b[2]), m1 = pick("MOBILE", b[3]), p1 = pick("PC", b[0]);
+      if (!m3 && !p3 && !m1 && !p1) continue;
+      const n = (x, f) => x ? Math.round(+x[f] || 0) : 0;
+      row(k).e = [n(m3, "clicks"), n(m3, "cost"), n(m3, "impressions"), n(p3, "clicks"), n(p3, "cost"), n(p3, "impressions"), n(m1, "clicks"), n(m1, "cost"), n(p1, "clicks"), n(p1, "cost")];
+      row(k).eAt = at; dirty++; stat.perf = (stat.perf || 0) + 1; }
+    if ((i / 50) % 80 === 0) console.error(`  예상 실적 ${Math.min(i + 50, list.length).toLocaleString()}/${list.length.toLocaleString()}`);
+    save();
+    await sleep(60);
+  }
+  save(true);
+}
+
 /* 3. 식품 쇼핑 클릭 + 쇼핑 클릭 지수 — API HUB 쇼핑인사이트(식품 50000006), 최근 한 달
    쇼핑인사이트는 한 번에 넣은 키워드들 중 제일 큰 값을 100 으로 둔 상대값만 준다.
    그래서 따로따로 부르면 키워드끼리 견줄 수 없다 (9월에 "쇼핑클릭÷검색량" 이 뒤집혀 보였던 이유).
@@ -242,7 +275,7 @@ console.error(`\n대상 ${targets.length.toLocaleString()}개 · 단계 ${[...ST
 const t0 = Date.now();
 /* 검색광고 쪽(stats → bids → med)은 한 줄로, HUB(food)는 옆줄로 같이 돈다 */
 await Promise.all([
-  (async () => { if (STEPS.has("stats")) await doStats(); if (STEPS.has("bids")) await doBids(); })(),
+  (async () => { if (STEPS.has("stats")) await doStats(); if (STEPS.has("bids")) await doBids(); if (STEPS.has("perf")) await doPerf(); })(),
   (async () => { if (STEPS.has("food")) await doFood(); })()
 ]);
 save(true);
