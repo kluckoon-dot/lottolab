@@ -14,6 +14,9 @@
  * 추세는 모양만 쓰므로 키워드마다 자기 최고점을 100 으로 다시 맞춰 한 주를 한 글자로 접는다 (pack-data.mjs 와 같은 90단계).
  * 마지막 주가 덜 차면 곡선 끝이 꺾여 보이므로 지난 일요일까지만 받는다.
  *
+ * 쇼핑 클릭은 한 주를 두 글자(8,100단계)로 접는다. 쇼핑인사이트 클릭은 3년 사이에 전체가 크게 줄어서
+ * (사과 · 밤 · 고구마 모두 2023~24년 최고점의 2~5% 수준) 90단계로는 최근 1년이 두세 칸에 뭉개져 계단이 됐다.
+ *
  * 실행:  node refresh-trend.mjs            화면 목록 중 식품 판정을 통과한 것 전부
  *        node refresh-trend.mjs --keywords 청도반시,밤
  * 멈춰도 다시 실행하면 남은 것만 받는다. 결과: naver-out/trend-fresh.json
@@ -87,9 +90,11 @@ else {
 }
 targets = [...new Set(targets)].filter(k => clean(k) && clean(k).length <= 40);
 
-let F = { start: START, end: END, unit: "week", periods, search: {}, click: {} };
+let F = { start: START, end: END, unit: "week", periods, search: {}, click: {}, clickChars: 2 };
 try { const p = JSON.parse(fs.readFileSync(OUT, "utf8")); if (p.start === START && p.end === END) F = p; else console.error(`기간이 바뀌었다 (${p.start}~${p.end} → ${START}~${END}). 처음부터 다시 받는다.`); } catch {}
-const todo = targets.filter(k => !(k in F.search));
+/* 한 글자로 접어 둔 옛 클릭 추세는 버리고 클릭만 다시 받는다 (검색 추세는 그대로 둔다) */
+if (F.clickChars !== 2) { console.error("쇼핑 클릭 추세를 두 글자 정밀도로 다시 받는다."); F.click = {}; F.clickChars = 2; }
+const todo = targets.filter(k => !(k in F.search) || !(k in F.click));
 console.error(`\n3년 주간 추세  ${START} ~ ${END} (${WEEKS}주) · 대상 ${targets.length.toLocaleString()}개 · 남은 것 ${todo.length.toLocaleString()}개\n`);
 
 const encode = data => {
@@ -98,6 +103,13 @@ const encode = data => {
   if (!(mx > 0)) return "";
   return v.map(x => A[Math.round(x / mx * (A.length - 1))]).join("");
 };
+const A2 = A.length * A.length - 1;
+const encode2 = data => {
+  const v = new Array(WEEKS).fill(0); let mx = 0;
+  for (const d of data || []) { const i = pidx.get(d.period); if (i != null) { v[i] = +d.ratio || 0; if (v[i] > mx) mx = v[i]; } }
+  if (!(mx > 0)) return "";
+  return v.map(x => { const q = Math.round(x / mx * A2); return A[Math.floor(q / A.length)] + A[q % A.length]; }).join("");
+};
 const save = () => { F.at = new Date().toISOString(); fs.mkdirSync(OUTDIR, { recursive: true }); fs.writeFileSync(OUT + ".tmp", JSON.stringify(F), "utf8"); fs.renameSync(OUT + ".tmp", OUT); };
 
 const groups = []; for (let i = 0; i < todo.length; i += 5) groups.push(todo.slice(i, i + 5));
@@ -105,16 +117,17 @@ let gi = 0, done = 0, calls = 0, fails = 0, stop = false; const t0 = Date.now();
 async function worker() {
   while (gi < groups.length && !stop) {
     const g = groups[gi++];
+    const needS = g.some(k => !(k in F.search)), needC = g.some(k => !(k in F.click)), NO = { ok: false, status: 0 };
     const [s, c] = await Promise.all([
-      hub("/search-trend/v1/search", { startDate: START, endDate: END, timeUnit: "week", keywordGroups: g.map(k => ({ groupName: k, keywords: [clean(k)] })) }),
-      hub("/shopping/v1/category/keywords", { startDate: START, endDate: END, timeUnit: "week", category: CAT, keyword: g.map(k => ({ name: k, param: [clean(k)] })) })
+      needS ? hub("/search-trend/v1/search", { startDate: START, endDate: END, timeUnit: "week", keywordGroups: g.map(k => ({ groupName: k, keywords: [clean(k)] })) }) : NO,
+      needC ? hub("/shopping/v1/category/keywords", { startDate: START, endDate: END, timeUnit: "week", category: CAT, keyword: g.map(k => ({ name: k, param: [clean(k)] })) }) : NO
     ]);
-    calls += 2;
+    calls += (needS ? 1 : 0) + (needC ? 1 : 0);
     if (s.status === 401 || s.status === 403 || c.status === 401 || c.status === 403) { console.error("API HUB 가 키를 거부했다 " + (s.text || c.text)); stop = true; break; }
-    if (!s.ok && !c.ok) { fails++; if (fails <= 3) console.error("  실패", g.join(","), s.status, c.status, s.text || c.text); continue; }
+    if ((!needS || !s.ok) && (!needC || !c.ok)) { fails++; if (fails <= 3) console.error("  실패", g.join(","), s.status, c.status, s.text || c.text); if (needS) for (const k of g) F.search[k] ??= ""; if (needC) for (const k of g) F.click[k] ??= ""; continue; }
     for (const k of g) {
-      F.search[k] = s.ok ? encode(s.json.results.find(x => x.title === k)?.data) : "";
-      F.click[k] = c.ok ? encode(c.json.results.find(x => x.title === k)?.data) : "";
+      if (needS) F.search[k] = s.ok ? encode(s.json.results.find(x => x.title === k)?.data) : "";
+      if (needC) F.click[k] = c.ok ? encode2(c.json.results.find(x => x.title === k)?.data) : "";
     }
     done += g.length;
     if (gi % 100 === 0) { save(); console.error(`  ${done.toLocaleString()}/${todo.length.toLocaleString()} · 호출 ${calls} · ${((Date.now() - t0) / 60000).toFixed(1)}분`); }

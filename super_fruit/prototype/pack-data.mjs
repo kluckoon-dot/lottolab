@@ -351,12 +351,14 @@ const cut = v => vols.length - vols.findIndex(x => x >= v);
 meta.volume = { total: vols.length, ge10: cut(10), ge100: cut(100), ge500: cut(500), ge1000: cut(1000), ge5000: cut(5000) };
 console.log(`  검색량 분포  월 10↑ ${cut(10).toLocaleString()} · 100↑ ${cut(100).toLocaleString()} · 500↑ ${cut(500).toLocaleString()} · 1,000↑ ${cut(1000).toLocaleString()} · 5,000↑ ${cut(5000).toLocaleString()}`);
 
-/* ── 2. 구매층 ── */
-const sj = read("shop.json");
-if (sj) {
-  const AG = ["10","20","30","40","50","60"], out = {};
+/* ── 2. 구매층 ──
+   9월에 받은 shop.json(2,200개) 위에 새로 받은 것(refresh-buyers.mjs → buyers-fresh.json)을 덮는다.
+   d: [모바일‰, 여성‰, 10대‰ … 60대‰] · w: 요일별 쇼핑 클릭 [월‰ … 일‰] */
+{
+  const sj = read("shop.json"), bf = read("buyers-fresh.json");
+  const AG = ["10","20","30","40","50","60"], out = {}, wk = {};
   const keepS = new Set(packed.map(r => r[0]));
-  for (const [k, v] of Object.entries(sj.data || {})) {
+  for (const [k, v] of Object.entries((sj && sj.data) || {})) {
     if (!keepS.has(k)) continue;
     const d = v.device, g = v.gender, a = v.age;
     if (!d || !g || !a) continue;
@@ -367,11 +369,19 @@ if (sj) {
     out[k] = [Math.round((d.mo||0)/td*1000), Math.round((g.f||0)/tg*1000)]
       .concat(AG.map(x => Math.round((a[x]||0)/ta*1000)));
   }
-  const js = "window.SHOPDATA=" + JSON.stringify({ category: sj.category, from: sj.startDate, to: sj.endDate, d: out }) + ";";
-  fs.writeFileSync(path.join(DST, "shop.js"), js, "utf8");
-  meta.shop = Object.keys(out).length; total += Buffer.byteLength(js);
-  console.log(`구매층 ${Object.keys(out).length.toLocaleString()}개  (원본 ${MB(size("shop.json"))})  → pack/shop.js  ${MB(Buffer.byteLength(js))}`);
-} else console.log("구매층 shop.json 없음 — 건너뛴다");
+  const old = Object.keys(out).length; let nd = 0, nw = 0;
+  if (bf) {
+    for (const [k, v] of Object.entries(bf.d || {})) if (v && keepS.has(k)) { out[k] = v; nd++; }
+    for (const [k, v] of Object.entries(bf.w || {})) if (v && keepS.has(k)) { wk[k] = v; nw++; }
+  }
+  if (sj || bf) {
+    const js = "window.SHOPDATA=" + JSON.stringify({ category: (sj && sj.category) || "50000006", from: bf ? bf.start : sj.startDate, to: bf ? bf.end : sj.endDate,
+      at: bf ? bf.at : "", d: out, w: wk }) + ";";
+    fs.writeFileSync(path.join(DST, "shop.js"), js, "utf8");
+    meta.shop = Object.keys(out).length; meta.shopWeekday = nw; total += Buffer.byteLength(js);
+    console.log(`구매층 기기·성별·연령 ${Object.keys(out).length.toLocaleString()}개 (9월 ${old.toLocaleString()} · 새로 ${nd.toLocaleString()}) · 요일 ${nw.toLocaleString()}개  → pack/shop.js  ${MB(Buffer.byteLength(js))}`);
+  } else console.log("구매층 shop.json · buyers-fresh.json 없음 — 건너뛴다");
+}
 
 /* ── 큰 파일 흘려 읽기 ──
    trend.json 이 512.3 MB 였다. Node 가 만들 수 있는 문자열이 512 MB 라
@@ -453,7 +463,7 @@ if (TF && TF.search) {
   w("trend-000.js", "TRENDDATA", ts); w("click-000.js", "CLICKDATA", tc);
   console.log(`  검색 추세 ${ns.toLocaleString()}개 · 쇼핑 클릭 추세 ${nc.toLocaleString()}개`);
   meta.trend = ns; meta.click = nc; meta.trendFiles = ["trend-000.js"];
-  meta.trendWeeks = { start: TF.start, end: TF.end, unit: "week", periods: TF.periods, fresh: TF.at };
+  meta.trendWeeks = { start: TF.start, end: TF.end, unit: "week", periods: TF.periods, fresh: TF.at, clickChars: TF.clickChars || 1 };
 } else if (fs.existsSync(trendPath)) {
   console.log(`3년 추세 (원본 ${MB(size("trend.json"))}) — 흘려 읽는다`);
   const keep = new Set(packed.map(r => r[0]));

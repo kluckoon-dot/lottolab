@@ -522,6 +522,35 @@ th.srt[data-dir]::after{content:attr(data-dir);margin-left:3px;color:var(--brand
 .cb-it i{width:10px;height:10px;border-radius:3px;display:inline-block}
 .cb-it.off{color:var(--ink-3);cursor:not-allowed;text-decoration:line-through;text-decoration-thickness:1px}
 .cb-pk{fill:var(--ink-2);font-size:11.5px;font-weight:700}
+.cb-tg{display:inline-flex;align-items:center;gap:6px;font:inherit;font-size:12.5px;font-weight:600;padding:5px 12px;border-radius:999px;
+  border:1px solid var(--line-strong);background:var(--surface);color:var(--ink-3);cursor:pointer}
+.cb-tg i{width:10px;height:10px;border-radius:50%;background:var(--line-strong)}
+.cb-tg[aria-pressed="true"]{color:var(--ink);border-color:var(--c);box-shadow:inset 0 0 0 1px var(--c)}
+.cb-tg[aria-pressed="true"] i{background:var(--c)}
+.cb-tg:disabled{cursor:not-allowed;opacity:.5;text-decoration:line-through;text-decoration-thickness:1px}
+/* 상세 작전 보드 */
+.pb{display:grid;grid-template-columns:repeat(3,minmax(0,1fr))}
+.pb-c{padding:16px 20px;border-right:1px solid var(--line);min-width:0}
+.pb-c:last-child{border-right:0}
+@media (max-width:900px){.pb{grid-template-columns:1fr}.pb-c{border-right:0;border-bottom:1px solid var(--line)}.pb-c:last-child{border-bottom:0}}
+.pb-k{font-size:10.5px;letter-spacing:.06em;font-weight:700;color:var(--ink-3);margin-bottom:6px}
+.pb-h{font-family:Hahmlet,serif;font-size:19px;font-weight:700;line-height:1.3;margin-bottom:10px;color:var(--ink);text-wrap:balance}
+.pb-h.good{color:var(--good)} .pb-h.warn{color:var(--warn)} .pb-h.down{color:var(--down)} .pb-h.skip{color:var(--ink-3)}
+.pb-l{list-style:none;margin:0;padding:0;display:grid;gap:5px;font-size:12.5px}
+.pb-l li{display:flex;justify-content:space-between;gap:10px;color:var(--ink-2)}
+.pb-l b{color:var(--ink);font-variant-numeric:tabular-nums;text-align:right}
+.pb-l b.up{color:var(--good)} .pb-l b.down{color:var(--down)}
+.pb-n{margin:9px 0 0;font-size:11.5px;color:var(--ink-3);line-height:1.5}
+.pb-sib{display:grid;gap:5px}
+.pb-sib button{display:flex;align-items:center;gap:8px;width:100%;text-align:left;font:inherit;font-size:12.5px;padding:6px 9px;
+  border:1px solid var(--line);border-radius:8px;background:var(--surface);color:var(--ink);cursor:pointer}
+.pb-sib button:hover{border-color:var(--line-strong);background:var(--surface-2)}
+.pb-sib u{flex:1;min-width:0;text-decoration:none;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-weight:600}
+.pb-sib em{font-style:normal;color:var(--ink-3);font-variant-numeric:tabular-nums;font-size:11.5px}
+.pill.cat{background:var(--surface-2);color:var(--ink-2);border:1px solid var(--line)}
+.v-top{flex-wrap:wrap}
+.v-who{font-size:12px;color:var(--ink-3)} .v-who b{color:var(--ink-2)}
+.sub .catk{color:var(--ink-2);font-weight:600}
 .cb-season{display:flex;gap:8px 22px;flex-wrap:wrap;margin-top:10px;padding:10px 12px;background:var(--surface-2);
   border-radius:9px;font-size:12.5px;color:var(--ink-2)}
 .cb-season b{color:var(--ink)} .cb-season b.up{color:var(--good)} .cb-season b.down{color:var(--down)}
@@ -934,14 +963,141 @@ function realComp(i){
   var p=prodOf(i); return p==null?null:p/Math.max(S_tot[i],1);
 }
 function catOf(i){ return R[i][K.ICAT]||""; }
-/* 아이템스카우트의 "대표 카테고리: 감" 처럼 마지막 칸만 쓴다 */
-function catLast(i){ var c=R[i][K.ICAT]; if(!c) return ""; var p=String(c).split(">"); return p[p.length-1].trim(); }
-function buildCats(){
-  var cnt={}; for(var i=0;i<N;i++){ var c=catLast(i); if(c) cnt[c]=(cnt[c]||0)+1; }
+/* ── 대표 카테고리 ──
+   아이템스카우트의 "대표 카테고리" 는 그 키워드로 팔리는 상품이 제일 많이 들어 있는 네이버 쇼핑 카테고리의 끝 칸이다
+   (밤 → 밤, 밤묘목 → 조경수/묘목, 밤양갱 → 양갱). 상품 목록을 봐야 알 수 있는 값이고, 네이버는 그것을 API 로 주지 않는다.
+   그래서 엑셀을 넣은 키워드는 아이템스카우트 값을 그대로 쓰고, 나머지는 키워드 글자에서 낸다:
+     1) 품목 — 우리말 합성어는 뒤가 머리다. 제일 뒤에서 끝나는 품목을 고른다 (청송사과 → 사과, 밤고구마 → 고구마)
+     2) 품종 — 품목 글자가 없는 품종명은 사전으로 잇는다 (부사 → 사과, 신고 → 배, 샤인머스캣 → 포도)
+     3) 형태 — 품목 뒤에 가공·용도 말이 붙으면 그 칸으로 보낸다 (사과즙 → 건강즙/과일즙, 밤묘목 → 묘목/씨앗/재배)
+   한 글자 품목(밤 · 배 · 감 · 귤 · 쌀 …)은 가격 · 10kg · 햇 · 국산 같은 꾸밈말을 떼고 나서 본다.
+   아이템스카우트 엑셀 385개로 재면 식품 키워드의 약 80% 가 같은 칸에 든다. 나머지는 CJ · 프리미엄 · 10kg 처럼
+   글자만으로는 품목을 알 수 없는 말이고, 그런 것은 비워둔다 — 짐작으로 채우지 않는다. */
+var CAT_VAR={"포항초":"시금치","섬초":"시금치","밤호박":"단호박","다다기":"오이","다대기":"오이","참다래":"키위","블랙사파이어":"포도","알프스오토메":"사과","오톰크리스피":"포도",
+"하미과":"멜론","노루궁뎅이":"버섯","대저짭짤이":"토마토","짭짤이":"토마토","베니하루카":"고구마","샤인머스캣":"포도","샤인머스켓":"포도","시나노골드":"사과","윈터프린스":"감귤",
+"그린시스":"배","델라웨어":"포도","땅콩호박":"단호박","레드샤인":"포도","레이니어":"체리","루비에스":"사과","마이하트":"포도","마하차녹":"망고","슈퍼골드":"배","옐로드림":"복숭아",
+"청도반시":"감","반시":"감","카라카라":"오렌지","캔디하트":"포도","킹스베리":"딸기","플럼코트":"살구","거반도":"복숭아","대극천":"복숭아","만년설":"딸기","만다린":"감귤",
+"머스크":"멜론","보우짱":"단호박","서머킹":"사과","썸머킹":"사과","설국향":"감귤","수라향":"감귤","아리수":"사과","아오리":"사과","알타리":"무","얼갈이":"배추","조생귤":"감귤",
+"카라향":"감귤","탐라향":"감귤","허니듀":"멜론","홍매향":"감귤","홍미향":"감귤","홍장군":"사과","황금향":"감귤","후무사":"자두","감홍":"사과","거봉":"포도","대봉":"감","둥시":"감",
+"백도":"복숭아","부사":"사과","부유":"감","설향":"딸기","수미":"감자","신고":"배","신비":"복숭아","양광":"사과","엔비":"사과","원황":"배","장희":"딸기","죽향":"딸기","금실":"딸기",
+"천도":"복숭아","청귤":"감귤","추황":"배","추희":"자두","캠벨":"포도","켐벨":"포도","태추":"감","홍로":"사과","홍옥":"사과","황도":"복숭아","후지":"사과","타이벡":"감귤",
+"느타리":"버섯","새송이":"버섯","양송이":"버섯","팽이":"버섯","표고":"버섯","능이":"버섯","송이":"버섯","목이":"버섯","상황":"버섯","초당":"옥수수","대학찰":"옥수수","미백":"옥수수",
+"햅쌀":"쌀","찹쌀":"쌀","현미":"쌀","백미":"쌀","흑미":"쌀","옥광":"밤","대보밤":"밤","단택":"밤","생율":"밤","참마":"마","산마":"마","둥근마":"마","단마":"마","홍시":"감","연시":"감",
+"절임배추":"절임배추","절인배추":"절임배추","한우":"쇠고기","소고기":"쇠고기","한돈":"돼지고기","삼겹살":"돼지고기","목살":"돼지고기",
+"살치살":"쇠고기","업진살":"쇠고기","부채살":"쇠고기","토시살":"쇠고기","채끝":"쇠고기","우둔살":"쇠고기","홍두깨살":"쇠고기","아롱사태":"쇠고기","우삼겹":"쇠고기","차돌":"쇠고기","양지":"쇠고기","육우":"쇠고기","안심":"쇠고기",
+"항정살":"돼지고기","가브리살":"돼지고기","갈매기살":"돼지고기","뒷다리살":"돼지고기","앞다리살":"돼지고기","오겹살":"돼지고기",
+"닭다리":"닭고기","닭날개":"닭고기","닭봉":"닭고기","닭염통":"닭고기","백숙":"닭고기","삼계탕":"닭고기","닭볶음탕":"닭고기","토종닭":"닭고기",
+"곰장어":"장어","꼼장어":"장어","먹장어":"장어","갯장어":"장어","먹태":"명태","동태":"명태","북어":"명태","노가리":"명태","황태":"명태","코다리":"명태","생태":"명태",
+"한치":"오징어","석화":"굴","피칸":"견과류","피스타치오":"견과류","헤이즐넛":"견과류","해바라기씨":"견과류","호박씨":"견과류","브라질너트":"견과류","하루견과":"견과류","캐슈넛":"견과류",
+"유과":"한과","오란다":"한과","약과":"한과","전병":"한과"};
+/* 품목 사전(SEEDS)에 없지만 화면 키워드에 자주 나오는 품목 */
+var CAT_MORE=["오징어","골뱅이","게장","장어","방어","민어","전어","가자미","아귀","병어","명태","임연수","메로","꼬막","조개","소라","옥돔","홍어","가오리","학꽁치","박대","생선","맛살","파래","감태","해초",
+"굴비","꽁치","수수","염통","족발","보쌈","돈까스","함박스테이크","육포","훈제오리","오리고기","잣","오트밀","퀴노아","메밀","병아리콩","치아씨드","기장","누룽지","한과","정과","수삼","청국장","고들빼기","유정란","견과류","쇠고기"];
+/* 품목이 아니라 '때' 와 '쓰임' 을 찾는 말. 품목을 못 찾았을 때만 */
+var CAT_GIFT=/추석|명절|설날|설선물|차례|제사|성묘|답례품|집들이|상견례|선물/;
+/* 끝 이름을 네이버 카테고리 이름에 맞춘다 */
+var CAT_ALIAS={"주스":"주스/음료","소스":"식초/소스/기름","젤리":"젤리/양갱/간식","사탕":"젤리/양갱/간식","쿠키":"빵/과자","한과":"떡/한과","정과":"젤리/양갱/간식","귤":"감귤","단감":"감","차":"차류","녹차":"차류","빵":"빵/과자","과자":"빵/과자","떡":"떡/한과","식초":"식초/소스/기름","드레싱":"식초/소스/기름","마요네즈":"식초/소스/기름","김치":"김치/반찬","달걀":"계란"};
+/* 한 글자 품목이 낱말 끝에 붙었을 때 품목으로 봐도 되는 것. 마(고구마) · 딜 · 햄 은 뺀다 */
+var CAT_ONE_END={"잣":1,"톳":1,"배":1,"감":1,"밤":1,"귤":1,"쌀":1,"김":1,"무":1,"콩":1,"꿀":1,"굴":1,"팥":1,"쑥":1,"차":1,"빵":1,"떡":1};
+var CAT_ONE_NOT={"곶감":1,"감귤":1,"땅콩":1,"열무":1};
+/* 더 짧은 품목으로 접지 않는 이름. 네이버 쇼핑에 따로 칸이 있다 */
+var CAT_KEEP={"절임배추":1,"단호박":1,"방울토마토":1,"곶감":1,"감귤":1,"땅콩":1,"열무":1};
+/* 품목 뒤에 붙어 카테고리를 바꾸는 말. 위에서부터 먼저 맞는 것 */
+var CAT_FORM=[
+ [/묘목|모종|종자|씨앗|씨감자|종구|종근|삽수|접목|접순|나무|재배|키우기|농사|전정|가지치기|비료|농약|방제|화분/, "묘목/씨앗/재배"],
+ [/즙|진액|엑기스|농축액|원액|착즙/, "건강즙/과일즙"],
+ [/주스|쥬스|에이드|스무디|음료|탄산|우유|라떼/, "주스/음료"],
+ [/잼|청$|청만|시럽|조청|콩포트|퓨레/, "잼/청"],
+ [/말랭이|건조|말린|동결|부각|튀각/, "건과류/말랭이"],
+ [/가루|분말|파우더|전분/, "가루/분말"],
+ [/양갱|젤리|사탕|캔디|초콜릿|초콜렛|정과/, "젤리/양갱/간식"],
+ [/빵|케이크|케익|파이|타르트|쿠키|만주|만쥬|페이스트|다이스|카스테라|마들렌|스콘|도넛|몽블랑|티라미수|과자|스낵|칩/, "빵/과자"],
+ [/떡|인절미|송편|약과|한과|강정|약밥/, "떡/한과"],
+ [/김치|깍두기|장아찌|절임|피클|무침|조림|젓갈|반찬/, "김치/반찬"],
+ [/통조림|병조림|캔$/, "통조림/캔"],
+ [/막걸리|와인|담금주|술$|주$/, "전통주/와인"],
+ [/식초|소스|드레싱|기름|오일/, "식초/소스/기름"],
+ [/차$|티백/, "차류"],
+ [/칼$|가위|깎는|까는|깎기|탈피|기계|집게|따개|수확망|그물|장대|박스$|상자$|포장|보관함|보관용기|세척기/, "도구/자재"],
+ [/축제|체험|맛집|카페|식당|줍기|따기|휴게소/, "축제/체험/맛집"]
+];
+/* 떼고 보는 꾸밈말. 한 글자 품목을 찾을 때만 쓴다 */
+var CAT_STRIP=new RegExp("([0-9]+([.][0-9]+)?(kg|키로|킬로|g|그램|개|입|과|포기|단|근|말|되|리터|l|ml|박스|봉|망|수)|가격|시세|판매|파는곳|구매|구입|주문|직거래|택배|배송|추천|순위|효능|부작용|칼로리|영양|보관법|보관|손질|세척|레시피|요리|만들기|만드는법|삶는법|삶기|삶는시간|찌는법|찌기|굽기|굽는법|까는법|까기|먹는법|선물세트|선물용|선물|세트|특품|특대|대과|중과|소과|햇|햅|깐|냉동|국산|국내산|수입|중국산|산지직송|직송|유기농|무농약|친환경|못난이|흠과|가정용|제수용|제사용|차례용|업소용|추석|명절|설날|당일|수확|제철|시기|도매|소매|농협|한박스|한봉지|박스|대용량|소포장|맛있는|달콤한|올해|[0-9]{4}년?|kg|키로|농장|농원|농가|영농조합|공주|정안|상주|나주|청송|제주|성주|영동|의성|해남|영주|산청|하동|청도|안동|충주|부여|고창)","g");
+function catMake(seeds){
+  var M={}, one=[], mx=0, k;
+  for(var i=0;i<seeds.length;i++){ var w=String(seeds[i]).replace(/\([^)]*\)/g,"").replace(/[\s&\/]+/g,"");
+    if(w.length===1) one.push(w); else if(w.length>=2 && !/[0-9]/.test(w) && !/세트$|바구니$/.test(w)){ M[w]=w; if(w.length>mx) mx=w.length; } }
+  one.push("잣","톳");
+  for(i=0;i<CAT_MORE.length;i++){ M[CAT_MORE[i]]=CAT_MORE[i]; if(CAT_MORE[i].length>mx) mx=CAT_MORE[i].length; }
+  for(k in CAT_VAR){ M[k]=CAT_VAR[k]; if(k.length>mx) mx=k.length; }
+  /* 대표 이름으로 접는다. 감홍사과 · 꿀사과 → 사과, 거봉포도 → 포도, 신고배 → 배. 뒤에 더 짧은 품목이 붙어 있으면 그것이 품목이다 */
+  var canon=function(w){ var c=M[w]; if(c!==w) return c; if(CAT_KEEP[w]) return w;
+    for(var s=1;s<w.length-1;s++){ var t=w.slice(s); if(M[t]) return M[t]===t ? t : M[t]; }
+    var e=w.slice(-1); if(CAT_ONE_END[e] && !CAT_ONE_NOT[w] && w.length<=4 && e!=="차" && e!=="빵" && e!=="떡") return e;
+    return w; };
+  var GEN={"과일":1,"농산물":1,"가공식품":1,"건강식품":1,"간편식":1,"냉동식품":1,"디저트":1,"다이어트식품":1,"건과일":1,"냉동과일":1,"나물":1,"채소":1,"야채":1,"수산물":1,"축산물":1,"잡곡":1,"견과류":1};
+  var fin=function(c){ return CAT_ALIAS[c]||c; };
+  var form=function(t){ if(!t) return ""; for(var f=0;f<CAT_FORM.length;f++) if(CAT_FORM[f][0].test(t)) return CAT_FORM[f][1]; return ""; };
+  /* 한 글자 품목 뒤에 가공 말이 바로 붙었는가 (공주밤파이 → 빵/과자). 낱말 앞머리에서만 본다 */
+  var formAt=function(t){ if(!t) return ""; for(var f=0;f<CAT_FORM.length;f++) if(t.search(CAT_FORM[f][0])===0) return CAT_FORM[f][1]; return ""; };
+  return function(kw){
+    kw=String(kw).replace(/\s+/g,"").toLowerCase();
+    var best=null, i, L, p, j, c, q, bare=kw.replace(CAT_STRIP,"");
+    /* 꾸밈말을 떼면 한 글자 품목만 남는가 (배추천 = 배 + 추천, 추석배, 밤10kg). 배추 · 밤고구마 같은 긴 품목보다 먼저 본다 */
+    if(bare.length===1 && one.indexOf(bare)>=0) return fin(bare);
+    for(i=0;i<kw.length;i++) for(L=Math.min(mx,kw.length-i);L>=2;L--){
+      p=kw.slice(i,i+L); if(!M[p]) continue;
+      var end=i+L, gen=GEN[p]?1:0;
+      /* 뒤에서 끝나는 것이 이긴다. 다만 '과일' 같은 뭉뚱그린 말은 진짜 품목이 있으면 진다 */
+      if(!best || (best.gen&&!gen) || (best.gen===gen && (end>best.end || (end===best.end && L>best.L)))) best={ s:i, end:end, L:L, w:p, gen:gen };
+    }
+    if(best){
+      var tail=kw.slice(best.end), item=canon(best.w), f=form(tail);
+      if(!f && /말린|건조|동결|반건조/.test(kw.slice(0,best.s))) f="건과류/말랭이";
+      /* 품목 이름 자체가 가공품이면(감귤즙 · 감말랭이 · 갓김치) 그 형태로 */
+      if(!f && item===best.w) f=form(best.w.slice(1));
+      if(f) return f;
+      /* 곱창김 처럼 품목 뒤에 한 글자 품목이 낱말을 끝내면 그쪽이 머리다 */
+      var tb=tail.replace(CAT_STRIP,""); if(tb.length===1 && CAT_ONE_END[tb] && one.indexOf(tb)>=0) return fin(tb);
+      return fin(item);
+    }
+    if(/나무$/.test(bare)) return "묘목/씨앗/재배";
+    for(j=0;j<one.length;j++){ c=one[j]; if(bare===c || kw===c) return fin(c); }
+    /* 한 글자 품목 + 가공 말 (밤묘목 · 배즙 · 공주밤파이 · 쌀전분) */
+    for(q=0;q<bare.length-1;q++) if(one.indexOf(bare.charAt(q))>=0 && (q===0 || CAT_ONE_END[bare.charAt(q)])){ var f2=formAt(bare.slice(q+1)); if(f2) return f2; }
+    /* 낱말을 끝내는 한 글자 품목 (알밤 · 찹쌀 · 돌김) */
+    var e2=bare.slice(-1); if(bare.length>=2 && bare.length<=7 && CAT_ONE_END[e2] && one.indexOf(e2)>=0 && !CAT_ONE_NOT[bare]) return fin(e2);
+    var h=bare.charAt(0); if((h==="밤"||h==="쌀"||h==="귤"||h==="팥") && bare.length<=4) return fin(h);   // 밤속껍질 · 쌀유통
+    if(CAT_GIFT.test(kw)) return "명절/선물/답례품";
+    return "";
+  };
+}
+
+/* 줄마다 한 번만 낸다. 아이템스카우트 엑셀이 준 값이 있으면 그 끝 칸, 없으면 키워드에서 읽는다.
+   전에는 아이템스카우트 값만 써서, 엑셀을 넣은 적 있는 '배' 34개 말고는 전부 빈칸이었다 —
+   사과를 찾아도 고를 수 있는 칸이 '배' 하나뿐이던 까닭이다. */
+var CATFN=null, CATC=[];
+function itemCat(kw){ if(!CATFN) CATFN=catMake(SEEDS); return CATFN(kw); }
+function catLast(i){
+  var c=CATC[i];
+  if(c===undefined){ var ic=R[i][K.ICAT]; c = ic ? String(ic).split(">").pop().trim() : itemCat(R[i][K.KW]); CATC[i]=c; }
+  return c;
+}
+/* 엑셀이 들어와 카테고리가 바뀌면 다시 낸다 */
+function buildCats(){ CATC=[]; }
+/* 고르는 칸. 지금 걸린 다른 조건을 통과한 키워드로만 센다 —
+   사과를 찾았으면 사과의 연관 키워드가 들어 있는 칸들이 나온다 */
+function catFacet(){
   var sel=document.getElementById("fCat"); if(!sel) return;
-  var cur=F.cat;
-  sel.innerHTML='<option value="">전체</option>'+Object.keys(cnt).sort(function(a,b){ return cnt[b]-cnt[a]||a.localeCompare(b); })
-    .map(function(c){ return '<option value="'+esc(c)+'"'+(c===cur?" selected":"")+'>'+esc(c)+' ('+fmt(cnt[c])+')</option>'; }).join("");
+  var keep=F.cat, cnt={}, none=0; F.cat="";
+  for(var i=0;i<N;i++){ if(!passes(i)) continue; var c=catLast(i); if(c) cnt[c]=(cnt[c]||0)+1; else none++; }
+  F.cat=keep;
+  var keys=Object.keys(cnt).sort(function(a,b){ return cnt[b]-cnt[a]||a.localeCompare(b); });
+  if(keep && keep!=="__none" && !cnt[keep]) keys.unshift(keep);
+  sel.innerHTML='<option value="">전체 · '+fmt(keys.length)+'칸</option>'
+    +keys.map(function(c){ return '<option value="'+esc(c)+'">'+esc(c)+' ('+fmt(cnt[c]||0)+')</option>'; }).join("")
+    +(none||keep==="__none" ? '<option value="__none">미분류 ('+fmt(none)+')</option>' : '');
+  sel.value=keep;
 }
 var INTENT=["쇼핑성","정보성","브랜드성","요리·조리","품목"];
 var NCOMP=["낮음","중간","높음"];
@@ -1046,8 +1202,16 @@ function relGroup(i){
   var seen={}, g=[];
   var push=function(arr){ if(!arr) return;
     for(var x=0;x<arr.length;x++) if(!seen[arr[x]]){ seen[arr[x]]=1; g.push(arr[x]); } };
-  push([i]); push(HG[R[i][K.KW]]); push(HG[R[i][K.HINT]]);
+  var isItem= typeof HIDX!=="undefined" && HIDX[R[i][K.KW]] && HIDX[R[i][K.KW]].length>1;
+  push([i]); push(HG[R[i][K.KW]]); if(!isItem) push(HG[R[i][K.HINT]]);
+  push(sameItem(i));
   return g;
+}
+/* 같은 품목 줄. 씨앗이 품목 이름이면 그 품목 묶음, 아니면 씨앗 글자가 들어간 키워드 */
+function sameItem(i){
+  var kw=R[i][K.KW], out=(typeof HIDX!=="undefined" && HIDX[kw]) ? HIDX[kw].slice() : [];
+  if(kw.length>=2) for(var j=0;j<N;j++) if(j!==i && R[j][K.KW].indexOf(kw)>=0) out.push(j);
+  return out;
 }
 function relName(i){
   var a=(HG[R[i][K.KW]]||[]).length, b=(HG[R[i][K.HINT]]||[]).length;
@@ -1095,7 +1259,7 @@ function passes(i){
     if(F.pmin!=null && pv<F.pmin) return false; if(F.pmax!=null && pv>F.pmax) return false; }
   if(F.kmin!=null || F.kmax!=null){ var kv=realComp(i); if(kv==null) return false;
     if(F.kmin!=null && kv<F.kmin) return false; if(F.kmax!=null && kv>F.kmax) return false; }
-  if(F.cat && catLast(i)!==F.cat) return false;
+  if(F.cat && (F.cat==="__none" ? catLast(i)!=="" : catLast(i)!==F.cat)) return false;
   if(F.rel) return true;
   if(!F.v[VN[C_v[i]]]) return false;
   if(S_cs[i]>F.comp) return false;
@@ -1240,7 +1404,7 @@ function syncFilters(){
   });
   document.querySelectorAll(".rin").forEach(function(inp){
     if(document.activeElement!==inp) inp.value = F[inp.dataset.k]==null ? "" : F[inp.dataset.k]; });
-  var fc=document.getElementById("fCat"); if(fc && fc.value!==F.cat) fc.value=F.cat;
+  catFacet();
   var pz=presetOf(); document.querySelectorAll("#fPreset .chip").forEach(function(c){ c.setAttribute("aria-pressed", c.dataset.p===pz); });
   renderFChips();
   document.querySelectorAll("th.srt").forEach(function(h){
@@ -1297,7 +1461,7 @@ function renderFChips(){
   if(F.rel) list.push([F.relLabel? "목록: "+F.relLabel.replace(/<span class="rel-src">[\s\S]*$/,"").replace(/<[^>]+>/g,"").trim() : "연관: "+F.relSeed, function(){ clearRel(); }]);
   if(t!=="all") list.push([t==="shop"?"쇼핑성":t==="info"?"정보성":"유형: "+[0,1,2,3,4].filter(function(k){ return F.intent[k]; }).map(function(k){ return INTENT[k]; }).join("·"),
     function(){ setType("all"); }]);
-  if(F.cat) list.push(["대표 카테고리: "+F.cat, function(){ F.cat=""; }]);
+  if(F.cat) list.push(["대표 카테고리: "+(F.cat==="__none"?"미분류":F.cat), function(){ F.cat=""; }]);
   if(F.vmin!=null||F.vmax!=null) list.push(["검색수 "+rngText(F.vmin,F.vmax,""), function(){ F.vmin=null; F.vmax=null; }]);
   if(F.pmin!=null||F.pmax!=null) list.push(["상품수 "+rngText(F.pmin,F.pmax,""), function(){ F.pmin=null; F.pmax=null; }]);
   if(F.kmin!=null||F.kmax!=null) list.push(["경쟁강도 "+rngText(F.kmin,F.kmax,""), function(){ F.kmin=null; F.kmax=null; }]);
@@ -1381,7 +1545,7 @@ function renderTable(){
     rb.hidden=false;
     rb.innerHTML=(F.relLabel ? F.relLabel
       : '<b>'+esc(F.relSeed)+'</b> 의 연관 키워드 '+fmt(total)+'개'
-        +'<span class="rel-src">NAVER 검색광고 연관검색 · 씨앗 '+F.relName+'</span>')
+        +'<span class="rel-src">NAVER 검색광고 연관검색 + 같은 품목 수집분 · 씨앗 '+F.relName+'</span>')
       +'<button type="button" id="relOff">전체 목록으로 →</button>';
     document.getElementById("relOff").onclick=function(){ clearRel(); LIMIT=100; refresh(); };
   } else rb.hidden=true;
@@ -1413,8 +1577,11 @@ function renderTable(){
     var _ti=intentOf(i); top.appendChild(el("span","pill mini intent"+_ti, INTENT[_ti]));
     var _bl=buyLevel(i); if(_bl>=0){ top.appendChild(document.createTextNode(" ")); top.appendChild(el("span","pill mini buy"+_bl, "구매 "+BUY[_bl])); }
     c1.appendChild(top);
-    c1.appendChild(el("div","sub", NCOMP[a[K.COMP]]+" 경쟁 · 모바일 "+Math.round(s.moShare*100)+"%"
+    var sub=el("div","sub"), ck=catLast(i);
+    if(ck){ sub.appendChild(el("span","catk",ck)); sub.appendChild(document.createTextNode(" · ")); }
+    sub.appendChild(document.createTextNode(NCOMP[a[K.COMP]]+" 경쟁 · 모바일 "+Math.round(s.moShare*100)+"%"
       +(a[K.MASK]?" · 검색량 가려짐":"")+(liveLabel(a[K.KW])?" · "+liveLabel(a[K.KW]):"")));
+    c1.appendChild(sub);
     tr.appendChild(c1);
     var c2=el("td","num");
     c2.appendChild(el("div",null,fmt(s.tot)));
@@ -1468,6 +1635,7 @@ function renderTable(){
 var XCOLS=[
   ["키워드",function(i){return R[i][K.KW];}],
   ["분류",function(i){return INTENT[intentOf(i)];}],
+  ["대표 카테고리",function(i){return catLast(i);}],
   ["검색수",function(i){return S_tot[i];}],
   ["검색수 PC",function(i){return R[i][K.PC];}],
   ["검색수 모바일",function(i){return R[i][K.MO];}],
@@ -1547,59 +1715,132 @@ function cell(k,v,s){ return '<div class="v-cell"><div class="v-k">'+k+'</div><d
 
 /* ── 상세 ── */
 function renderDetail(){ renderDetail0(); drawCombo(); ratioCards(); }
-function renderDetail0(){
-  var a=R[CUR], s=ST(CUR), c=CA(CUR), mg=marginOf();
-  var cls=c.v==="린정"?"good":c.v==="반린정"?"warn":"skip";
-  var why, care;
-  if(c.v==="린정"){
-    why="월 검색 "+fmt(s.tot)+" · 광고경쟁도 "+s.compScore.toFixed(1)+" · 3위 광고 필요 전환율 "+(c.cvr*100).toFixed(1)+"% 로 목표 "+(SET.tgtCvr*100).toFixed(1)+"% 안에 들어온다";
-    care = s.moShare>0.8 ? "모바일 검색이 "+Math.round(s.moShare*100)+"%다. PC 입찰은 줄이고 모바일에 몰아라."
-      : "1위 입찰가 "+fmt(a[K.BM1])+"원이면 필요 전환율이 "+(beCvr(a[K.BM1],mg.margin)*100).toFixed(1)+"%다. 3위부터 시험해라.";
-  } else if(c.v==="반린정"){
-    why=(c.adOk?"광고는 감당된다":"광고 필요 전환율 "+(c.cvr*100).toFixed(1)+"% 로 목표를 넘는다")
-      +" / "+(c.cmpOk?"광고경쟁도 "+s.compScore.toFixed(1)+" 는 기준 안":"광고경쟁도 "+s.compScore.toFixed(1)+" 로 기준 초과");
-    care = !c.adOk ? "광고로는 본전이 안 나온다. 상세페이지와 자연 순위로 먹어라." 
-      : "광고 깊이 "+a[K.DEPTH]+"단이다. 상위 노출 비용이 빠르게 오른다.";
-  } else {
-    why = mg.rate<RULE.marginMin ? "마진율 "+(mg.rate*100).toFixed(1)+"% — 기준 미달"
-      : s.tot<RULE.minVol ? "월 검색 "+fmt(s.tot)+" — 기준 "+RULE.minVol+" 미달"
-      : !a[K.BM3] ? "네이버 입찰가를 아직 못 받았다 — 경쟁도 손익도 계산할 수 없다"
-      : c.noBuy ? "구매의도 "+irFmt(S_ir[CUR])+" — 검색은 되는데 쇼핑으로 이어지지 않는다 (기준 "+RULE.buyNone+"배)"
-      : "광고도 경쟁도 기준 미달";
-    care= c.noBuy ? "축제 · 맛집 · 레시피 · 정보 검색에 가까운 키워드다. 상품 키워드로 쓰지 말고, 필요하면 콘텐츠 소재로만 봐라." : "지금은 넘어가라.";
+/* ── 작전 보드 ──
+   상세 맨 위. 숫자 풀이 대신 "언제 · 얼마에 · 무엇으로" 를 바로 보여준다.
+   (전에는 여기에 발견 경로 · 왜 ○○ · 주의 · 의도 판정이 있었다. 보갬이 쓰지 않는 칸이라 뺐다) */
+function timingOf(D){
+  if(!D || !D.vol) return null;
+  var n=D.days.length, w=D.daily?30:4, yr=D.daily?365:52;
+  if(n<w*2) return null;
+  var sum=function(e){ var s=0; for(var k=e-w+1;k<=e;k++) s+=D.vol[k]||0; return s; };   /* e 에서 끝나는 창 */
+  var T={ now:sum(n-1), prev:sum(n-1-w), ly: n-1-yr>=w-1 ? sum(n-1-yr) : null, w:w };
+  /* 달별 — 최근 12개 완결된 달. seasonLine 과 같은 셈이다 */
+  var last=D.days[n-1], endM=new Date(last.getFullYear(), last.getMonth(), 1), startM=new Date(endM.getFullYear()-1, endM.getMonth(), 1);
+  var mon={}, cnt={}, order=[];
+  for(var k=0;k<n;k++){ var d=D.days[k]; if(d>=endM||d<startM) continue; var m=d.getMonth(); if(mon[m]==null){ mon[m]=0; cnt[m]=0; order.push(m); } mon[m]+=D.vol[k]; cnt[m]++; }
+  if(order.length<6) return T;
+  if(!D.daily) order.forEach(function(m){ mon[m]=mon[m]/cnt[m]*30.4/7; });
+  var mx=Math.max.apply(null, order.map(function(m){ return mon[m]; })); if(!(mx>0)) return T;
+  T.peak=order.filter(function(m){ return mon[m]===mx; })[0]; T.peakVol=mx;
+  T.pct=Math.round((D.daily?T.now:T.now*30/28)/mx*100);
+  /* 다음 피크 달 1일까지 몇 주 남았나. 지금이 그 달이면 0 */
+  var cm=last.getMonth();
+  T.weeks = T.peak===cm ? 0 : Math.max(0, Math.round((new Date(T.peak>cm?last.getFullYear():last.getFullYear()+1, T.peak, 1)-last)/(7*864e5)));
+  return T;
+}
+/* 모바일·PC 3위로 한 달 광고하면. 클릭수는 네이버가 주는 이 키워드 광고의 월평균 클릭수다.
+   광고비는 클릭수 × 3위 입찰가 — 입찰가는 상한이라 실제로는 이보다 적게 나간다 */
+function adSim(i){
+  var a=R[i], mg=marginOf(), cp=a[K.CPC_]||0, cm=a[K.CMO]||0, clicks=cp+cm;
+  if(!(clicks>0) || !a[K.BM3]) return null;
+  var cost=(cp*(a[K.BP3]||0)+cm*(a[K.BM3]||0))*roasMult();
+  var orders=clicks*SET.tgtCvr;
+  return { clicks:clicks, cost:cost, be: mg.margin>0 ? cost/mg.margin : Infinity, orders:orders, profit:orders*mg.margin-cost };
+}
+/* 같은 품목 묶음에서 점수가 높은 키워드. 품목을 못 붙인 키워드는 대표 카테고리로 묶는다 */
+function siblings(i, k){
+  var g=(GRP[i]||[])[0], c=catLast(i), out=[], use= g && g!=="기타" ? "g" : c ? "c" : "";
+  if(!use) return { name:"", list:out };
+  var pool = use==="g" ? (HIDX[g]||[]) : null;
+  var take=function(j){ if(j!==i && C_gold[j]>0 && (use==="g" || catLast(j)===c)) out.push(j); };
+  if(pool) for(var x=0;x<pool.length;x++) take(pool[x]); else for(var j=0;j<N;j++) take(j);
+  out.sort(function(x,y){ return C_gold[y]-C_gold[x] || S_tot[y]-S_tot[x]; });
+  return { name: use==="g"?g:c, list:out.slice(0,k), all:out.length };
+}
+function near(v){ return v>=10000 ? (v/10000).toFixed(1).replace(/[.]0$/,"")+"만" : fmt(Math.round(v/10)*10); }
+function won(v){ var s=v<0?"−":""; v=Math.abs(v); return s+(v>=1e8?(v/1e8).toFixed(1)+"억":v>=1e4?fmt(v/1e4)+"만":fmt(v))+"원"; }
+function pctArrow(p){ if(p==null||!isFinite(p)) return '<b>—</b>'; var r=Math.round(p);
+  return '<b class="'+(r>=5?"up":r<=-5?"down":"")+'">'+(r>0?"▲ ":r<0?"▼ ":"")+Math.abs(r)+'%</b>'; }
+function pickKw(j){
+  CUR=j; document.getElementById("exact").value=R[j][K.KW];
+  renderHero(); renderBuy(); renderTable(); setTab("detail"); window.scrollTo({top:0,behavior:"smooth"});
+}
+function playbook(i){
+  var a=R[i], mg=marginOf(), T=timingOf(comboData(i)), A=adSim(i), S=siblings(i,5), li=function(k,v){ return '<li><span>'+k+'</span>'+v+'</li>'; };
+  /* 1 타이밍 */
+  var h1, c1="", l1="";
+  if(!T){ h1="추세 자료 없음"; c1="skip"; l1='<p class="pb-n">이 키워드는 저장된 주간 추세가 없다. PC 에서 실시간 서버로 열면 3년 일간 추세를 받아온다.</p>'; }
+  else {
+    var up= T.prev>0 ? (T.now/T.prev-1)*100 : null, yoy= T.ly>0 ? (T.now/T.ly-1)*100 : null;
+    if(T.pct==null){ h1= up==null?"추세 확인 중" : up>=15?"올라가는 중" : up<=-15?"내려가는 중" : "평소 수준"; c1= up>=15?"good":up<=-15?"warn":""; }
+    else if(T.pct>=70){ h1="지금이 성수기"; c1="good"; }
+    else if(up!=null && up>=15 && T.weeks<=10){ h1="올라가는 중 · 피크까지 "+T.weeks+"주"; c1="good"; }
+    else if(T.pct<=30){ h1="비수기 · 피크는 "+(T.peak+1)+"월"; c1="skip"; }
+    else if(up!=null && up<=-15){ h1="내려가는 중"; c1="warn"; }
+    else { h1= T.weeks>0 && T.weeks<=10 ? "피크 "+T.weeks+"주 전" : "평소 수준"; }
+    l1='<ul class="pb-l">'
+      +(T.pct!=null ? li("피크", '<b>'+(T.peak+1)+'월 · 한 달 약 '+near(T.peakVol)+'회</b>')+li("지금", '<b>피크의 '+T.pct+'%</b>') : "")
+      +li("최근 "+(T.w===30?"30일":"4주")+" · 그 전 대비", pctArrow(up))
+      +li("작년 같은 때 대비", T.ly==null?'<b>—</b>':pctArrow(yoy))
+      +'</ul>';
   }
+  /* 2 광고 한 달 */
+  var h2, c2="", l2;
+  if(mg.margin<=0){ h2="마진이 없다"; c2="down"; l2='<p class="pb-n">지금 판매가 · 공급가로는 팔수록 손해다. 위 설정에서 값을 고쳐라.</p>'; }
+  else if(!A){ h2="광고 자료 부족"; c2="skip"; l2='<p class="pb-n">네이버가 이 키워드의 광고 클릭수나 입찰가를 주지 않았다.</p>'; }
+  else {
+    var beC=A.be/A.clicks;
+    h2= A.profit>=0 ? "한 달 +"+won(A.profit)+" 남는다" : "한 달 "+won(A.profit)+" 손해"; c2= A.profit>=0?"good":"down";
+    l2='<ul class="pb-l">'
+      +li("예상 클릭", '<b>'+(A.clicks>=10?fmt(A.clicks):A.clicks.toFixed(1))+'회</b>')
+      +li("광고비 (상한)", '<b>'+won(A.cost)+'</b>')
+      +li("본전 주문", '<b>'+(A.be>=10?fmt(Math.ceil(A.be)):A.be.toFixed(1))+'건 · 전환율 '+(beC*100).toFixed(1)+'%</b>')
+      +li("목표 "+(SET.tgtCvr*100).toFixed(1)+"% 면", '<b>'+(A.orders>=10?fmt(A.orders):A.orders.toFixed(1))+'건 · 마진 '+won(A.orders*mg.margin)+'</b>')
+      +'</ul><p class="pb-n">3위 입찰가 × 네이버 월평균 광고 클릭수. 주문 1건 마진 '+fmt(mg.margin)+'원 기준.</p>';
+  }
+  /* 3 같은 품목에서 더 볼 키워드 */
+  var l3= S.list.length
+    ? '<div class="pb-sib">'+S.list.map(function(j){ var v=VN[C_v[j]];
+        return '<button type="button" data-j="'+j+'"><u>'+esc(R[j][K.KW])+'</u><em>'+fmt(S_tot[j])+'</em><span class="pill mini '+(v==="린정"?"good":v==="반린정"?"warn":"skip")+'">'+C_gold[j]+'</span></button>'; }).join("")+'</div>'
+    : '<p class="pb-n">같은 품목으로 묶인 다른 키워드가 없다.</p>';
+  return '<div class="pb">'
+    +'<div class="pb-c"><div class="pb-k">타이밍</div><div class="pb-h '+c1+'">'+h1+'</div>'+l1+'</div>'
+    +'<div class="pb-c"><div class="pb-k">3위로 한 달 광고하면</div><div class="pb-h '+c2+'">'+h2+'</div>'+l2+'</div>'
+    +'<div class="pb-c"><div class="pb-k">'+(S.name?'「'+esc(S.name)+'」 에서 점수 높은 키워드'+(S.all>5?' · '+fmt(S.all)+'개 중 5':''):"같이 볼 키워드")+'</div>'+l3+'</div>'
+    +'</div>';
+}
+function renderDetail0(){
+  var a=R[CUR], s=ST(CUR), c=CA(CUR), mg=marginOf(), kw=a[K.KW];
+  var cls=c.v==="린정"?"good":c.v==="반린정"?"warn":"skip";
+  /* 판정 근거는 판정 알약에 마우스를 올리면 나온다 */
+  var why = c.v==="린정" ? "월 검색 "+fmt(s.tot)+" · 광고경쟁도 "+s.compScore.toFixed(1)+" · 3위 광고 필요 전환율 "+(c.cvr*100).toFixed(1)+"%"
+    : c.v==="반린정" ? (c.adOk?"광고는 감당된다":"광고 필요 전환율 "+(c.cvr*100).toFixed(1)+"% 로 목표를 넘는다")+" / "+(c.cmpOk?"광고경쟁도 기준 안":"광고경쟁도 "+s.compScore.toFixed(1)+" 로 기준 초과")
+    : mg.rate<RULE.marginMin ? "마진율 "+(mg.rate*100).toFixed(1)+"% — 기준 미달"
+    : s.tot<RULE.minVol ? "월 검색 "+fmt(s.tot)+" — 기준 "+RULE.minVol+" 미달"
+    : !a[K.BM3] ? "네이버 입찰가를 아직 못 받았다"
+    : c.noBuy ? "구매의도 "+irFmt(S_ir[CUR])+" — 검색은 되는데 쇼핑으로 이어지지 않는다"
+    : "광고도 경쟁도 기준 미달";
+  var cat=catLast(CUR), sv=SHOP[kw], who="";
+  if(sv){ var ag=sv.slice(2), top=ag.indexOf(Math.max.apply(null,ag));
+    who='<span class="v-who">주 구매층 <b>'+AGEK[top]+'대 '+(sv[1]>=500?"여성":"남성")+'</b> · 모바일 '+Math.round(sv[0]/10)+'%</span>'; }
   document.getElementById("vCard").innerHTML=
-   '<div class="v-top"><h3>'+a[K.KW]+'</h3><span class="pill mini intent'+intentOf(CUR)+'">'+INTENT[intentOf(CUR)]+'</span>'
-   +'<span class="pill '+cls+'" style="font-size:13px;padding:4px 13px">'+c.v+'</span></div>'
+   '<div class="v-top"><h3>'+esc(kw)+'</h3>'+who
+   +(cat?'<span class="pill mini cat" title="'+(a[K.ICAT]?"아이템스카우트 대표 카테고리":"키워드에서 읽은 품목 · 형태")+'">'+esc(cat)+'</span>':'')
+   +'<span class="pill mini intent'+intentOf(CUR)+'">'+INTENT[intentOf(CUR)]+'</span>'
+   +'<span class="pill '+cls+'" style="font-size:13px;padding:4px 13px" title="'+esc(why)+'">'+c.v+'</span></div>'
   +'<div class="v-body">'
   +cell("월 검색수", fmt(s.tot), "PC "+fmt(a[K.PC])+" · 모바일 "+fmt(a[K.MO])+(a[K.MASK]?" · 가려진 값 포함":""))
   +cell("구매의도", buyLevel(CUR)<0?"미확인":BUY[buyLevel(CUR)], S_ir[CUR]<0?"쇼핑 클릭을 아직 안 받았다":"닭가슴살의 "+irFmt(S_ir[CUR])+" · 쇼핑 클릭 지수 "+shopFmt(a[K.SHOP]))
   +cell("3위 입찰가", fmt(a[K.BM3])+"원", "모바일 · 1위 "+fmt(a[K.BM1])+"원 · 5위 "+fmt(a[K.MMO]||0)+"원")
-  +cell("광고경쟁도", s.compScore.toFixed(1), "광고 "+a[K.DEPTH]+"단 · 3위 "+fmt(a[K.BM3])+"원 · NAVER "+NCOMP[a[K.COMP]])
+  +cell("광고경쟁도", s.compScore.toFixed(1), "광고 "+a[K.DEPTH]+"단 · NAVER "+NCOMP[a[K.COMP]]+" · 기준 "+RULE.maxComp.toFixed(1)+" 이하")
   +cell("경쟁강도", realComp(CUR)==null?"—":realComp(CUR).toFixed(2),
         realComp(CUR)==null?"상품수 없음 · 아이템스카우트 엑셀을 넣으면 계산된다"
-                           :"상품수 "+fmt(prodOf(CUR))+" ÷ 검색수 "+fmt(s.tot)+" · 아이템스카우트와 같은 식")
+                           :"상품수 "+fmt(prodOf(CUR))+" ÷ 검색수 "+fmt(s.tot))
   +cell("손익분기 전환율", isFinite(c.cvr)?(c.cvr*100).toFixed(1)+"%":"불가", "3위 기준 · 목표 "+(SET.tgtCvr*100).toFixed(1)+"%")
-  +cell("황금점수", String(c.gold), "100점 만점")
-  +cell("발견 경로", a[K.HINT]||"—", "이 키워드를 데려온 시드")
+  +cell("황금점수", String(c.gold), "100점 만점 · "+why)
   +'</div>'
-  +'<div class="why"><div class="why-k why-'+(c.v==="린정"?"good":"warn")+'">왜 '+c.v+'</div><p>'+why+'</p></div>'
-  +'<div class="why"><div class="why-k why-warn">주의</div><p>'+care+'</p></div>'
-  +'<div class="why"><div class="why-k">의도 판정</div>'
-    +'<p style="margin-bottom:8px">규칙이 매긴 값은 <b>'+INTENT[a[K.INT]]+'</b>'
-    +(MYINT[a[K.KW]]!=null?' · 내가 <b>'+INTENT[MYINT[a[K.KW]]]+'</b> 로 고쳤다':'')
-    +'. 틀렸으면 여기서 바로 고쳐라. 고친 건 이 브라우저에 남는다.</p>'
-    +'<div class="chips" id="myInt">'
-    +INTENT.map(function(n,i){ return '<button class="chip" data-v="'+i+'" aria-pressed="'+(intentOf(CUR)===i)+'">'+n+'</button>'; }).join("")
-    +(MYINT[a[K.KW]]!=null?'<button class="chip" data-v="x">되돌리기</button>':'')
-    +'</div></div>';
-  var mi=document.getElementById("myInt");
-  if(mi) mi.querySelectorAll(".chip").forEach(function(b){
-    b.onclick=function(){
-      setIntent(a[K.KW], b.dataset.v==="x"?null:+b.dataset.v);
-      renderDetail(); renderHero(); renderTable(); renderStatus();
-    };
-  });
+  +playbook(CUR);
+  document.getElementById("vCard").querySelectorAll(".pb-sib button").forEach(function(b){ b.onclick=function(){ pickKw(+b.dataset.j); }; });
   drawDevice(a,s); drawCvr(a,c,mg); drawClick(a);
 }
 
@@ -2757,8 +2998,8 @@ function renderHero(){
     '<div class="hero-em">'+emojiFor(a[K.KW],GRP[CUR].join(""))+'</div>'
    +'<div class="hero-mid"><div class="hero-eyebrow">EXACT KEYWORD INTELLIGENCE</div>'
    +'<div class="hero-kw">'+a[K.KW]+'</div>'
-   +'<div class="hero-sub">품목 '+(GRP[CUR].join(" · "))+' · 의도 '+INTENT[intentOf(CUR)]
-   +' <span style="opacity:.6">· 수집 경로 '+(a[K.HINT]||"—")+'</span></div></div>'
+   +'<div class="hero-sub">대표 카테고리 '+(esc(catLast(CUR))||"미분류")+' · 의도 '+INTENT[intentOf(CUR)]
+   +(GRP[CUR][0]!=="기타" && GRP[CUR].join(" · ")!==catLast(CUR) ? ' <span style="opacity:.6">· 품목 '+esc(GRP[CUR].join(" · "))+'</span>' : '')+'</div></div>'
    +'<div class="hero-right"><div class="hero-tags">'
    +'<span class="htag '+cls+'">'+c.v+'</span>'
    +'<span class="htag">황금점수 '+c.gold+'</span>'
@@ -3012,7 +3253,7 @@ function ensureFresh(i){
 }
 async function liveFind(v, fresh){
   var note=document.getElementById("exactNote");
-  note.innerHTML='<b>'+esc(v)+'</b> 네이버에서 받아오는 중…';
+  note.innerHTML='<b>'+esc(v)+'</b> 네이버에서 받아오는 중… <span style="opacity:.7">연관키워드를 세 겹으로 모은다. 처음 찾는 씨앗은 15초쯤 걸린다.</span>';
   try{
     var res=await fetch("/api/live?kw="+encodeURIComponent(v)+(fresh?"&fresh=1":""));
     var j=await res.json();
@@ -3026,10 +3267,10 @@ async function liveFind(v, fresh){
     } else CUR=ex;
     F.q=""; document.getElementById("q").value="";
     if(!F.rel) openRelFilters();
-    F.rel=new Set(idx); F.relSeed=v; F.relName="네이버 실시간 연관"; F.relLabel=""; F.relOrder=null;
+    F.rel=new Set(idx.concat(sameItem(CUR))); F.relSeed=v; F.relName="네이버 실시간 연관"; F.relLabel=""; F.relOrder=null;
     var t=liveStamp(R[CUR][K.KW]);
     note.innerHTML='<span class="live-dot"></span> <b class="live-k">실시간</b> '+t+' 조회'+(j.cached?' (3시간 안에 받은 것)':'')
-      +' · 연관 '+idx.length+'개 · 입찰가 '+Object.keys(j.bids||{}).length+'개'
+      +' · 연관 '+idx.length+'개'+(j.deep||j.own?' (네이버 연관 '+j.first+' + 한 겹 더 '+(j.deep||0)+' + 우리 수집본 · 꼬리말 조회 '+(j.own||0)+')':'')+' · 입찰가 '+Object.keys(j.bids||{}).length+'개'
       +' <button type="button" class="chip" id="liveAgain" style="margin-left:6px">↻ 새로 받기</button>';
     document.getElementById("liveAgain").onclick=function(){ liveFind(v,true); };
     CURPAGE(); refresh();
@@ -3091,8 +3332,12 @@ document.getElementById("exactClear").onclick=function(){
    두 값을 더해도 100이 안 된다(중앙값 90.7). 그래서 비중으로 쓰려면 직접 나눠야 한다.
    여기 담긴 숫자는 이미 나눠서 천분율 정수로 접어둔 것이다.
    [모바일, 여성, 10대, 20대, 30대, 40대, 50대, 60대]
-   1,406개만 있다. 화면 키워드 13,662개 중 10.3%다. 없는 건 없다고 적는다. */
+   기기·성별·연령은 구매로 이어지는 검색이 큰 키워드부터 받아 둔 것이고(refresh-buyers.mjs), 요일은 전부 있다.
+   없는 건 없다고 적는다. PC 의 실시간 서버에서는 고르는 키워드마다 바로 받는다. */
 var SHOP=(window.SHOPDATA&&window.SHOPDATA.d)||{};
+/* 요일별 쇼핑 클릭 [월 … 일] 천분율. 일간 클릭 1년을 요일로 모았다 */
+var SHOPW=(window.SHOPDATA&&window.SHOPDATA.w)||{};
+var SHOP_LBL=(window.SHOPDATA&&window.SHOPDATA.at) ? "수집본 "+mdOf(String(window.SHOPDATA.at).slice(0,10)) : "9월 수집본";
 var SHOP_META={ from:(window.SHOPDATA&&window.SHOPDATA.from)||"?", to:(window.SHOPDATA&&window.SHOPDATA.to)||"?",
                 cat:"식품("+((window.SHOPDATA&&window.SHOPDATA.category)||"?")+")", n:Object.keys(SHOP).length };
 var AGEK=["10","20","30","40","50","60"];
@@ -3104,9 +3349,8 @@ function renderBuy(){
   if(!v){
     box.innerHTML='<div class="buy-top"><span class="buy-k">쇼핑 구매층 · 기기 · 성별 · 연령</span>'
       +'<span class="buy-src" style="background:var(--skip-bg);color:var(--skip)">아직 없음</span></div>'
-      +'<div class="na">이 키워드는 아직 안 받아왔다.<br>'
-      +'지금까지 '+fmt(SHOP_META.n)+'개를 확보했다. 화면에 있는 '+fmt(R.length)+'개 중 '
-      +(SHOP_META.n/R.length*100).toFixed(1)+'% 다.</div>';
+      +'<div class="na">이 키워드의 기기 · 성별 · 연령은 아직 저장본에 없다.<br>'
+      +'구매로 이어지는 검색이 큰 순서로 '+fmt(SHOP_META.n)+'개를 받아 두었다. PC 의 실시간 서버에서 열면 이 키워드도 바로 받아온다.</div>';
     return;
   }
   var mo=v[0]/10, pc=100-mo, f=v[1]/10, m=100-f;
@@ -3115,7 +3359,7 @@ function renderBuy(){
   var pct=function(x){ return x.toFixed(1)+"%"; };
   box.innerHTML=
    '<div class="buy-top"><span class="buy-k">쇼핑 구매층 · 기기 · 성별 · 연령</span>'
-  +'<span class="buy-src">NAVER 쇼핑인사이트'+(live?" · 실시간":" · 9월 수집본")+'</span></div>'
+  +'<span class="buy-src">NAVER 쇼핑인사이트'+(live?" · 실시간":" · "+SHOP_LBL)+'</span></div>'
   +'<div class="buy-grid">'
   +'<div class="bcol"><div class="buy-t">기기</div><div class="bvis two"><div class="bar2">'
     +'<span class="a" style="width:'+mo+'%" data-t="모바일 '+pct(mo)+'">'+(mo>=18?"모바일 "+pct(mo):"")+'</span>'
@@ -3184,6 +3428,12 @@ function trendOf(kw){
 /* 쇼핑 클릭 추세. 검색 추세와 같은 주, 같은 접는 법. 자기 최고점이 100 */
 function clickOf(kw){
   var t=window.CLICKDATA&&window.CLICKDATA[kw]; if(!t||!TA) return null;
+  /* 한 주 = 두 글자(8,100단계). 쇼핑 클릭은 3년 사이 전체가 크게 줄어, 한 글자(90단계)로는 최근 1년이 계단으로 뭉개졌다 */
+  if(TW.clickChars===2){
+    var n=t.length>>1, o2=new Array(n), top=TA.length*TA.length-1;
+    for(var w=0;w<n;w++){ var a1=TA.indexOf(t[w*2]), a2=TA.indexOf(t[w*2+1]); o2[w]= a1<0||a2<0 ? 0 : (a1*TA.length+a2)/top*100; }
+    return o2;
+  }
   var out=new Array(t.length);
   for(var i=0;i<t.length;i++){ var k=TA.indexOf(t[i]); out[i]= k<0?0 : k/(TA.length-1)*100; }
   return out;
@@ -3307,6 +3557,13 @@ function prodPoints(i, D){
   return pts;
 }
 
+/* 마우스를 올린 칸의 기간. 아이템스카우트처럼 "2025.10.13~2025.10.19" */
+function bRange(b, unit){
+  var d=b.start, f=function(x){ return x.getFullYear()+"."+pad2(x.getMonth()+1)+"."+pad2(x.getDate()); };
+  if(unit==="month") return d.getFullYear()+"년 "+(d.getMonth()+1)+"월";
+  if(unit==="week") return f(d)+"~"+f(addD(d,6));
+  return f(d)+" ("+WD[d.getDay()]+")";
+}
 function drawCombo(){
   var box=document.getElementById("combo"), srcEl=document.getElementById("cbSrc"); if(!box) return;
   var i=CUR, a=R[i], kw=a[K.KW], D=comboData(i);
@@ -3329,76 +3586,80 @@ function drawCombo(){
       return '<button type="button" data-v="'+o[0]+'" aria-pressed="'+(cur===o[0])+'"'+(o[2]?' disabled title="'+o[2]+'"':'')+'>'+o[1]+'</button>'; }).join("")+'</div>'; };
   var C={vol:"#3b6be0", clk:"#22a06b", prod:"#d4930d", comp:"#e2564c"};
   var have={ vol:!!D.vol, clk:!!D.clk, prod:pts.length>0, comp:pts.some(function(p){ return p.comp!=null; }) };
-  var why={ vol:"", clk: D.src==="live" ? ((D.ins.errors||{}).click||"쇼핑 클릭 기록 없음") : "API HUB 키가 있어야 받는다",
-    prod:"아이템스카우트 엑셀을 넣으면 그 날짜에 점이 찍힌다", comp:"상품수가 있어야 계산된다" };
-  var NAMES={vol:"검색수",clk:"클릭량(%)",prod:"상품수",comp:"경쟁강도"};
+  var why={ vol:"", clk: D.src==="live" ? ((D.ins.errors||{}).click||"쇼핑 클릭 기록 없음") : "이 키워드는 저장된 쇼핑 클릭 추세가 없다",
+    prod:"아이템스카우트 엑셀을 넣거나 상품수를 직접 넣으면 그 날짜에 점이 찍힌다", comp:"상품수가 있어야 계산된다" };
+  var NAMES={vol:"검색수",clk:"클릭량(%)",prod:"상품수",comp:"경쟁강도"}, KEYS=["vol","clk","prod","comp"], on={};
+  KEYS.forEach(function(k){ on[k]=!!(CB.show[k] && have[k]); });
+  var any=KEYS.some(function(k){ return on[k]; });
   var h='<div class="cb-ctl">'
     +'<div class="cb-g"><span class="cb-k">기간</span>'+seg("cbRange",[["1m","1개월"],["1y","1년"],["3y","3년"],["custom","직접 선택"]],CB.range)
     +(CB.range==="custom"?'<input type="date" id="cbFrom" value="'+dayKey(rg.from)+'"><span class="isf-dash">~</span><input type="date" id="cbTo" value="'+dayKey(rg.to)+'">':'')+'</div>'
     +'<div class="cb-g"><span class="cb-k">단위</span>'+seg("cbUnit",[["date","일간",D.daily?"":"저장된 수집본은 주간뿐이다. 일간은 PC 의 실시간 서버에서 받는다"],["week","주간"],["month","월간"]],CB.unit)+'</div>'
     +'<div class="cb-g cb-items"><span class="cb-k">그래프 항목</span>'
-    +["vol","clk","prod","comp"].map(function(k){
-        return '<label class="cb-it'+(have[k]?"":" off")+'" title="'+esc(have[k]?"":why[k])+'"><input type="checkbox" data-s="'+k+'"'+(CB.show[k]&&have[k]?" checked":"")+(have[k]?"":" disabled")+'>'
-          +'<i style="background:'+C[k]+'"></i>'+NAMES[k]+'</label>'; }).join("")
+    +KEYS.map(function(k){
+        return '<button type="button" class="cb-tg" data-s="'+k+'" style="--c:'+C[k]+'" aria-pressed="'+on[k]+'"'+(have[k]?'':' disabled title="'+esc(why[k])+'"')+'><i></i>'+NAMES[k]+'</button>'; }).join("")
     +'</div></div>';
 
-  /* 패널 — 항목마다 따로 쌓고 가로축을 같이 쓴다. 단위가 다른 값을 한 축에 겹치지 않는다. */
-  var W=Math.max(320, Math.round(box.clientWidth||980)), L=W<600?50:66, Rr=W<600?8:18, iw=W-L-Rr, gap=18, y0=30, panels=[];
-  if(CB.show.vol && have.vol) panels.push({k:"vol", h:170});
-  if(CB.show.clk && have.clk) panels.push({k:"clk", h:110});
-  if(CB.show.prod && have.prod) panels.push({k:"prod", h:84});
-  if(CB.show.comp && have.comp) panels.push({k:"comp", h:84});
+  /* 한 그림에 겹친다. 왼쪽 눈금 = 검색수(없으면 상품수 · 경쟁강도), 오른쪽 눈금 = 클릭량(%).
+     상품수 · 경쟁강도는 점마다 값을 적는다 — 단위가 달라 눈금을 같이 쓸 수 없다 */
+  var W=Math.max(320, Math.round(box.clientWidth||980)), nar=W<600, L=nar?50:68, Rr=on.clk?(nar?40:52):(nar?12:22), T=28, ph=nar?220:300, iw=W-L-Rr, H=T+ph+30;
   var X=function(j){ return L+(n<2? iw/2 : j/(n-1)*iw); };
   var bidx=function(d){ if(d<rg.from||d>rg.to) return -1; var r=-1; for(var j=0;j<n;j++) if(B[j].start<=d) r=j; return r; };
-  var svg="", y=y0;
-  panels.forEach(function(P){
-    P.y=y; var ph=P.h, vals, mx, fmtY;
-    if(P.k==="vol"){ vals=B.map(function(b){ return b.vol; }); fmtY=function(v){ return fmt(v); }; }
-    else if(P.k==="clk"){ vals=B.map(function(b){ return b.clkP; }); fmtY=function(v){ return Math.round(v)+"%"; }; }
-    else if(P.k==="prod"){ vals=null; fmtY=function(v){ return fmt(v); }; }
-    else { vals=null; fmtY=function(v){ return v<10?v.toFixed(2):fmt(v); }; }
-    var dots = vals ? null : pts.map(function(p){ return { j:bidx(p.d), v:P.k==="prod"?p.prod:p.comp, p:p }; })
-      .filter(function(o){ return o.j>=0 && o.v!=null; });
-    mx = P.k==="clk" ? 100 : niceMax(Math.max.apply(null, (vals||dots.map(function(o){ return o.v; })).concat([0]))*1.05);
-    var Y=function(v){ return P.y+ph - v/mx*ph; };
-    svg+='<text class="cb-pk" x="0" y="'+(P.y-14)+'">'+NAMES[P.k]+'</text>';
-    for(var g=0;g<=2;g++){ var gy=P.y+ph-g/2*ph;
-      svg+='<line class="gl" x1="'+L+'" y1="'+gy.toFixed(1)+'" x2="'+(L+iw)+'" y2="'+gy.toFixed(1)+'"/>'
-        +'<text class="ax" x="'+(L-8)+'" y="'+(gy+3.5).toFixed(1)+'" text-anchor="end">'+fmtY(mx*g/2)+'</text>'; }
-    if(vals){
-      var full="", area="", lastFull=n-1;
-      if(n>1 && B[n-1].partial) lastFull=n-2;
-      for(var j=0;j<=lastFull;j++) full+=(j?"L":"M")+X(j).toFixed(1)+" "+Y(vals[j]).toFixed(1);
-      if(P.k==="vol" && lastFull>0) area=full+"L"+X(lastFull).toFixed(1)+" "+(P.y+ph)+"L"+X(0).toFixed(1)+" "+(P.y+ph)+"Z";
-      if(area) svg+='<path d="'+area+'" fill="'+C[P.k]+'" opacity=".1"/>';
-      svg+='<path d="'+full+'" fill="none" stroke="'+C[P.k]+'" stroke-width="1.9" stroke-linejoin="round"/>';
-      if(lastFull<n-1 && n>1) svg+='<path d="M'+X(n-2).toFixed(1)+" "+Y(vals[n-2]).toFixed(1)+"L"+X(n-1).toFixed(1)+" "+Y(vals[n-1]).toFixed(1)+'" fill="none" stroke="'+C[P.k]+'" stroke-width="1.9" stroke-dasharray="4 4"/>';
-      if(n===1) svg+='<circle cx="'+X(0)+'" cy="'+Y(vals[0]).toFixed(1)+'" r="4" fill="'+C[P.k]+'"/>';
-    } else {
-      if(dots.length>1) svg+='<path d="'+dots.map(function(o,q){ return (q?"L":"M")+X(o.j).toFixed(1)+" "+Y(o.v).toFixed(1); }).join("")+'" fill="none" stroke="'+C[P.k]+'" stroke-width="1.5" stroke-dasharray="3 3"/>';
-      dots.forEach(function(o){
-        var right=X(o.j)>L+iw-70;
-        svg+='<circle cx="'+X(o.j).toFixed(1)+'" cy="'+Y(o.v).toFixed(1)+'" r="4.5" fill="'+C[P.k]+'" stroke="var(--surface)" stroke-width="2"/>'
-          +'<text class="vlabel" x="'+(X(o.j)+(right?-9:9)).toFixed(1)+'" y="'+(Y(o.v)+4).toFixed(1)+'"'+(right?' text-anchor="end"':'')+'>'+fmtY(o.v)+'</text>'; });
-      if(!dots.length) svg+='<text class="ax" x="'+(L+iw/2)+'" y="'+(P.y+ph/2)+'" text-anchor="middle">이 기간에는 기록이 없다 — 기록 날짜 '+pts.map(function(p){ return dayKey(p.d); }).join(", ")+'</text>';
-    }
-    P.vals=vals; P.dots=dots; P.fmtY=fmtY;
-    y+=ph+gap+26;
-  });
-  var H=y+4, xl="";
-  var ticks=Math.min(n, W<600?4:7);
+  var dotsOf=function(k){ return pts.map(function(p){ return { j:bidx(p.d), v:k==="prod"?p.prod:p.comp, p:p }; }).filter(function(o){ return o.j>=0 && o.v!=null; }); };
+  var S={ vol:{ vals:B.map(function(b){ return b.vol; }) }, clk:{ vals:B.map(function(b){ return b.clkP; }), max:100 }, prod:{ dots:dotsOf("prod") }, comp:{ dots:dotsOf("comp") } };
+  var topOf=function(ds){ return Math.max.apply(null, ds.map(function(o){ return o.v; }).concat([0])); };
+  S.vol.max=niceMax(Math.max.apply(null, S.vol.vals.concat([0]))*1.05)||1;
+  S.prod.max=niceMax(topOf(S.prod.dots)*1.2)||1; S.comp.max=niceMax(topOf(S.comp.dots)*1.2)||1;
+  var Y=function(k,v){ return T+ph - Math.min(1,(v||0)/S[k].max)*ph; };
+  var FM={ vol:function(v){ return fmt(v); }, clk:function(v){ return String(Math.round(v)); }, prod:function(v){ return fmt(v); }, comp:function(v){ return v<10?v.toFixed(2):fmt(v); } };
+  var left= on.vol?"vol" : on.prod?"prod" : on.comp?"comp" : null;
+  var svg="";
+  for(var g=0;g<=4;g++){ var gy=T+ph-g/4*ph;
+    svg+='<line class="gl" x1="'+L+'" y1="'+gy.toFixed(1)+'" x2="'+(L+iw)+'" y2="'+gy.toFixed(1)+'"/>';
+    if(left) svg+='<text class="ax" x="'+(L-8)+'" y="'+(gy+3.5).toFixed(1)+'" text-anchor="end">'+FM[left](S[left].max*g/4)+'</text>';
+    if(on.clk) svg+='<text class="ax" x="'+(L+iw+8)+'" y="'+(gy+3.5).toFixed(1)+'">'+(g*25)+'%</text>';
+  }
+  if(left) svg+='<text class="cb-pk" x="'+(L-8)+'" y="13" text-anchor="end" style="fill:'+C[left]+'">'+NAMES[left]+'</text>';
+  if(on.clk) svg+='<text class="cb-pk" x="'+(W-2)+'" y="13" text-anchor="end" style="fill:'+C.clk+'">클릭량</text>';
+  var line=function(k, area){
+    var vals=S[k].vals, col=C[k], full="", lastFull=n-1, out="";
+    if(n>1 && B[n-1].partial) lastFull=n-2;
+    for(var j=0;j<=lastFull;j++) full+=(j?"L":"M")+X(j).toFixed(1)+" "+Y(k,vals[j]).toFixed(1);
+    if(area && lastFull>0) out+='<path d="'+full+"L"+X(lastFull).toFixed(1)+" "+(T+ph)+"L"+X(0).toFixed(1)+" "+(T+ph)+'Z" fill="'+col+'" opacity=".10"/>';
+    if(lastFull>0) out+='<path d="'+full+'" fill="none" stroke="'+col+'" stroke-width="2" stroke-linejoin="round" stroke-linecap="round"/>';
+    if(lastFull<n-1 && n>1) out+='<path d="M'+X(n-2).toFixed(1)+" "+Y(k,vals[n-2]).toFixed(1)+"L"+X(n-1).toFixed(1)+" "+Y(k,vals[n-1]).toFixed(1)+'" fill="none" stroke="'+col+'" stroke-width="2" stroke-dasharray="4 4"/>';
+    if(n===1) out+='<circle cx="'+X(0)+'" cy="'+Y(k,vals[0]).toFixed(1)+'" r="4" fill="'+col+'"/>';
+    return out;
+  };
+  var dotLine=function(k){
+    var ds=S[k].dots, col=C[k], out="";
+    if(ds.length>1) out+='<path d="'+ds.map(function(o,q){ return (q?"L":"M")+X(o.j).toFixed(1)+" "+Y(k,o.v).toFixed(1); }).join("")+'" fill="none" stroke="'+col+'" stroke-width="1.6" stroke-dasharray="3 3"/>';
+    ds.forEach(function(o){ var right=X(o.j)>L+iw-70;
+      out+='<circle cx="'+X(o.j).toFixed(1)+'" cy="'+Y(k,o.v).toFixed(1)+'" r="4.5" fill="'+col+'" stroke="var(--surface)" stroke-width="2"/>'
+        +'<text class="vlabel" x="'+(X(o.j)+(right?-9:9)).toFixed(1)+'" y="'+(Y(k,o.v)+4).toFixed(1)+'"'+(right?' text-anchor="end"':'')+' style="fill:'+col+'">'+FM[k](o.v)+'</text>'; });
+    return out;
+  };
+  if(on.vol) svg+=line("vol", true);
+  if(on.clk) svg+=line("clk", false);
+  if(on.prod) svg+=dotLine("prod");
+  if(on.comp) svg+=dotLine("comp");
+  var xl="", ticks=Math.min(n, nar?4:7);
   for(var t2=0;t2<ticks;t2++){ var j2= ticks<2?0:Math.round(t2/(ticks-1)*(n-1));
-    xl+='<text class="ax" x="'+X(j2).toFixed(1)+'" y="'+(H-6)+'" text-anchor="'+(ticks<2?"middle":t2===0?"start":t2===ticks-1?"end":"middle")+'">'+bLabel(B[j2],CB.unit,true)+'</text>'; }
-  h+= panels.length && n
-    ? '<div class="tw-wrap"><div class="tw-tip" id="cbTip"></div><svg id="cbSvg" viewBox="0 0 '+W+' '+H+'" role="img" aria-label="'+esc(kw)+' 종합 차트">'
-      +svg+xl+'<line id="cbX" x1="0" y1="'+(y0)+'" x2="0" y2="'+(H-22)+'" stroke="var(--line-strong)" opacity="0"/>'
-      +'<rect id="cbHit" x="'+(L-6)+'" y="0" width="'+(iw+12)+'" height="'+(H-20)+'" fill="transparent"/></svg></div>'
-    : '<div class="na">'+(n?"그릴 항목을 하나 이상 켜라.":"이 기간에는 자료가 없다.")+'</div>';
+    xl+='<text class="ax" x="'+X(j2).toFixed(1)+'" y="'+(H-8)+'" text-anchor="'+(ticks<2?"middle":t2===0?"start":t2===ticks-1?"end":"middle")+'">'+bLabel(B[j2],CB.unit,true)+'</text>'; }
+  h+= any && n
+    ? '<div class="tw-wrap"><div class="tw-tip" id="cbTip" style="min-width:176px"></div><svg id="cbSvg" viewBox="0 0 '+W+' '+H+'" role="img" aria-label="'+esc(kw)+' 종합 차트">'
+      +svg+xl+'<line id="cbX" x1="0" y1="'+T+'" x2="0" y2="'+(T+ph)+'" stroke="var(--line-strong)" opacity="0"/>'
+      +(on.vol?'<circle id="cbDv" r="4.5" fill="'+C.vol+'" stroke="var(--surface)" stroke-width="2" opacity="0"/>':'')
+      +(on.clk?'<circle id="cbDc" r="4.5" fill="'+C.clk+'" stroke="var(--surface)" stroke-width="2" opacity="0"/>':'')
+      +'<rect id="cbHit" x="'+(L-6)+'" y="0" width="'+(iw+12)+'" height="'+(H-22)+'" fill="transparent" style="touch-action:pan-y"/></svg></div>'
+    : '<div class="na">'+(n?"그래프 항목을 하나 이상 켜라.":"이 기간에는 자료가 없다.")+'</div>';
 
-  /* 한 줄 요약 — 제철이 언제인지가 광고·입고 타이밍을 정한다 */
+  var outside=["prod","comp"].filter(function(k){ return on[k] && !S[k].dots.length; });
   h+=seasonLine(D)+'<p class="tw-note">'
-    +(D.vol ? '<b>검색수는 환산값이다.</b> 네이버는 0~100 상대지수만 준다. 한 달 검색수 '+fmt(D.src==="static"?(D.base||S_tot[i]):S_tot[i])+'회('+(D.src==="static"?(TREND_FRESH?"수집본 "+mdOf(PACK_DAY):"9월 14일 수집 당시"):mdOf(D.anchor))+' 기준 30일)에 맞춰 눈금을 매겼다. 모양은 원본 그대로다. ':'')
-    +(D.src==="static" ? '저장된 추세는 '+mdOf(TREND_END)+'까지 주간이다. PC 의 실시간 서버에서 열면 어제까지 일간으로 바뀐다. '+(D.clk?'클릭량은 쇼핑 클릭의 모양이다(그 구간 최고점 = 100%). ':''):'')
+    +(D.vol ? '<b>검색수는 환산값이다.</b> 네이버는 0~100 상대지수만 준다. 한 달 검색수 '+fmt(D.src==="static"?(D.base||S_tot[i]):S_tot[i])+'회('+(D.src==="static"?(TREND_FRESH?"수집본 "+mdOf(PACK_DAY):"9월 14일 수집 당시"):mdOf(D.anchor))+' 기준 30일)에 맞춰 눈금을 매겼다. ':'')
+    +(D.clk ? '<b>클릭량(%)</b>은 쇼핑 클릭의 모양이다 — 보이는 기간에서 제일 높은 칸이 100. ':'')
+    +(D.src==="static" ? '저장된 추세는 '+mdOf(TREND_END)+'까지 주간이다. PC 의 실시간 서버에서 열면 어제까지 일간으로 바뀐다. ':'')
+    +(outside.length ? NAMES[outside[0]]+' 기록('+pts.map(function(p){ return dayKey(p.d); }).join(", ")+')은 이 기간 밖이다. ':'')
     +(n>1&&B[n-1].partial ? '마지막 '+(CB.unit==="week"?"주":CB.unit==="month"?"달":"칸")+'은 아직 덜 찼다(점선). ':'')
     +'</p>';
   box.innerHTML=h;
@@ -3409,25 +3670,33 @@ function drawCombo(){
     if(CB.range==="3y" && CB.unit==="date") CB.unit="week";
     saveCB(); drawCombo(); }; });
   box.querySelectorAll("#cbUnit button").forEach(function(b){ b.onclick=function(){ CB.unit=b.dataset.v; saveCB(); drawCombo(); }; });
-  box.querySelectorAll("[data-s]").forEach(function(c){ c.onchange=function(){ CB.show[c.dataset.s]=c.checked; saveCB(); drawCombo(); }; });
+  box.querySelectorAll(".cb-tg").forEach(function(b){ b.onclick=function(){ var k=b.dataset.s; CB.show[k]=!on[k]; saveCB(); drawCombo(); }; });
   ["cbFrom","cbTo"].forEach(function(id){ var e=document.getElementById(id); if(e) e.onchange=function(){
     CB[id==="cbFrom"?"from":"to"]=e.value; saveCB(); drawCombo(); }; });
 
+  /* 마우스를 올린 칸의 기간과 값 */
   var sv=document.getElementById("cbSvg"); if(!sv) return;
-  var tip=document.getElementById("cbTip"), xline=document.getElementById("cbX"), hit=document.getElementById("cbHit");
-  hit.addEventListener("mousemove",function(ev){
+  var tip=document.getElementById("cbTip"), xline=document.getElementById("cbX"), hit=document.getElementById("cbHit"),
+      dv=document.getElementById("cbDv"), dc=document.getElementById("cbDc");
+  var row=function(k,v){ return '<div><i style="background:'+C[k]+'"></i><u>'+NAMES[k]+'</u><em>'+v+'</em></div>'; };
+  var move=function(ev){
     var r=sv.getBoundingClientRect(), px=(ev.clientX-r.left)/r.width*W;
-    var j=n<2?0:Math.max(0,Math.min(n-1,Math.round((px-L)/iw*(n-1))));
-    xline.setAttribute("x1",X(j)); xline.setAttribute("x2",X(j)); xline.setAttribute("opacity","1");
-    var b=B[j], rows='<b>'+bLabel(b,CB.unit,false)+'</b>'+(b.partial?' <span style="opacity:.7">· '+b.n+(D.daily?"일":"주")+'치</span>':'');
-    panels.forEach(function(P){
-      if(P.vals) rows+='<div><i style="background:'+C[P.k]+'"></i>'+NAMES[P.k]+' <b>'+(P.k==="vol"?fmt(P.vals[j])+"회":Math.round(P.vals[j])+"%")+'</b></div>';
-      else P.dots.forEach(function(o){ if(o.j===j) rows+='<div><i style="background:'+C[P.k]+'"></i>'+NAMES[P.k]+' <b>'+P.fmtY(o.v)+'</b> <span style="opacity:.7">'+o.p.src+'</span></div>'; });
-    });
+    var j=n<2?0:Math.max(0,Math.min(n-1,Math.round((px-L)/iw*(n-1)))), b=B[j], x=X(j);
+    xline.setAttribute("x1",x); xline.setAttribute("x2",x); xline.setAttribute("opacity","1");
+    if(dv){ dv.setAttribute("cx",x); dv.setAttribute("cy",Y("vol",S.vol.vals[j])); dv.setAttribute("opacity","1"); }
+    if(dc){ dc.setAttribute("cx",x); dc.setAttribute("cy",Y("clk",S.clk.vals[j])); dc.setAttribute("opacity","1"); }
+    var rows='<b>'+bRange(b,CB.unit)+(b.partial?' <span style="font-weight:500;opacity:.7">· 덜 찼다</span>':'')+'</b>';
+    if(on.vol) rows+=row("vol", fmt(S.vol.vals[j]));
+    if(on.clk) rows+=row("clk", String(Math.round(S.clk.vals[j])));
+    ["prod","comp"].forEach(function(k){ if(on[k]) S[k].dots.forEach(function(o){ if(o.j===j) rows+=row(k, FM[k](o.v)); }); });
     tip.innerHTML=rows; tip.style.opacity="1";
-    var tx=X(j)/W*r.width; tip.style.left=Math.min(r.width-tip.offsetWidth-4, Math.max(4, tx+12))+"px"; tip.style.top="8px";
-  });
-  hit.addEventListener("mouseleave",function(){ tip.style.opacity="0"; xline.setAttribute("opacity","0"); });
+    var tx=x/W*r.width, ty=ev.clientY-r.top, tw=tip.offsetWidth, th=tip.offsetHeight;
+    tip.style.left=Math.max(4, tx+14+tw>r.width-4 ? tx-14-tw : tx+14)+"px";
+    tip.style.top=Math.max(4, Math.min(r.height-th-4, ty-th/2))+"px";
+  };
+  var leave=function(){ tip.style.opacity="0"; xline.setAttribute("opacity","0"); if(dv) dv.setAttribute("opacity","0"); if(dc) dc.setAttribute("opacity","0"); };
+  hit.addEventListener("pointermove",move); hit.addEventListener("pointerdown",move);
+  hit.addEventListener("pointerleave",leave);
 }
 var cbRT; window.addEventListener("resize",function(){ clearTimeout(cbRT); cbRT=setTimeout(function(){ if(TAB==="detail") drawCombo(); },150); });
 function seasonLine(D){
@@ -3460,7 +3729,7 @@ function ratioCards(){
   var dev= live ? [ins.device.mo||0, ins.device.pc||0] : sv ? [sv[0]/10, 100-sv[0]/10] : null;
   var gen= live ? [ins.gender.f||0, ins.gender.m||0] : sv ? [sv[1]/10, 100-sv[1]/10] : null;
   var age= live ? AGEK.map(function(g){ return ins.age[g]||0; }) : sv ? sv.slice(2).map(function(x){ return x/10; }) : null;
-  var src= live ? "쇼핑인사이트 · 최근 1년" : sv ? "쇼핑인사이트 · 9월 수집본" : "원본 없음";
+  var src= live ? "쇼핑인사이트 · 최근 1년" : sv ? "쇼핑인사이트 · "+SHOP_LBL : "원본 없음";
   /* 요일 — 일간 클릭(없으면 일간 검색) 최근 1년을 요일별로 더한다 */
   var wk=null, wsrc="";
   if(ins && (ins.click||ins.search)){
@@ -3469,16 +3738,18 @@ function ratioCards(){
     var tot=sum.reduce(function(x,y){return x+y;},0);
     if(tot>0){ wk=[1,2,3,4,5,6,0].map(function(d){ return sum[d]/tot*100; }); wsrc=(ins.click?"쇼핑 클릭":"검색")+" · 최근 1년"; }
   }
+  var sw=SHOPW[kw];
+  if(!wk && sw){ wk=sw.map(function(x){ return x/10; }); wsrc="쇼핑 클릭 · 최근 1년 · "+SHOP_LBL; }
   var pct=function(x){ return x.toFixed(1)+"%"; };
   var two=function(v,ka,kb){
-    if(!v) return '<div class="na sm">'+(HUB?"자료 없음":"API HUB 키가 있어야 받는다")+'</div>';
+    if(!v) return '<div class="na sm">'+(HUB?"네이버에 자료 없음":"아직 저장본에 없다 · PC 실시간 서버에서는 바로 받는다")+'</div>';
     var big=v[0]>=v[1]?0:1;
     return '<div class="rc-two"><div class="'+(big===0?"on":"")+'"><b>'+pct(v[0])+'</b><span>'+ka+'</span></div>'
       +'<div class="'+(big===1?"on":"")+'"><b>'+pct(v[1])+'</b><span>'+kb+'</span></div></div>'
       +'<div class="bar2 thin"><span class="a" style="width:'+v[0]+'%"></span><span class="b" style="width:'+v[1]+'%"></span></div>';
   };
   var bars=function(v,labels){
-    if(!v) return '<div class="na sm">'+(HUB?"자료 없음":"일간 자료가 있어야 한다 · API HUB 키 필요")+'</div>';
+    if(!v) return '<div class="na sm">'+(HUB?"네이버에 자료 없음":"아직 저장본에 없다 · PC 실시간 서버에서는 바로 받는다")+'</div>';
     var mx=Math.max.apply(null,v)||1, top=v.indexOf(mx);
     return '<div class="rc-bars">'+v.map(function(x,j){
       return '<div><em>'+x.toFixed(1)+'</em><i class="'+(j===top?"peak":"")+'" style="height:'+Math.max(3,x/mx*66)+'px"></i><b>'+labels[j]+'</b></div>'; }).join("")+'</div>';
@@ -3529,7 +3800,7 @@ document.getElementById("foot").innerHTML=
  +"<b>구매의도</b>는 네이버 쇼핑인사이트 식품 분야 쇼핑 클릭 ÷ 검색수다(닭가슴살 = 1). 검색은 되는데 사지 않는 키워드를 이걸로 거른다. "
  +"상품수는 21단계(내 아이템스카우트 내보내기 가져오기)로만 채워진다.<br>"
  +"<b>의도는 다섯 칸이다.</b> 넷일 때 97.1%가 쇼핑성으로 쏠려 사실상 분류가 안 됐다. "
- +"요리·조리를 따로 뒀고, 규칙이 틀리면 상세 화면에서 직접 고칠 수 있다.<br>"
+ +"요리·조리를 따로 뒀다.<br>"+"<b>대표 카테고리</b>는 아이템스카우트 엑셀을 넣은 키워드는 그 값을, 나머지는 키워드 글자에서 읽은 품목 · 형태를 쓴다(같은 날 엑셀로 재면 품목을 읽을 수 있는 식품 키워드의 약 93% 가 같은 칸). 네이버는 상품 카테고리를 API 로 주지 않는다.<br>"
  +"<b>클릭률과 전환율은 다른 지표다.</b> 클릭률은 노출 대비 클릭이고, 손익분기 계산에 들어가는 것은 클릭 대비 구매인 전환율이다. "
  +"네이버 0.5% · 쿠팡 0.1% 는 참고선으로만 표시하며 판정에 쓰지 않는다.<br>"
  +"<b>키워드는 하나도 버리지 않았다.</b> 철자가 다르면 다른 시장으로 본다. 의도 분류는 필터일 뿐 삭제가 아니다.";

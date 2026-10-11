@@ -115,6 +115,35 @@ const masked = v => typeof v === "string" && /</.test(v);
 const cleanHint = s => String(s).replace(/\([^)]*\)/g, "").replace(/[\s&/,·]+/g, "").slice(0, 20);
 const same = (a, b) => String(a).replace(/\s+/g, "").toUpperCase() === String(b).replace(/\s+/g, "").toUpperCase();
 
+/* ── 우리 전체 수집본의 키워드 이름표 ──
+   9월까지 모은 keywords.json(56만 개 · 290MB)에서 이름과 당시 검색수만 뽑아 naver-out/all-keywords.tsv 로 둔다.
+   숫자는 낡았으므로 화면에 쓰지 않는다 — "이런 키워드가 있다" 는 것만 쓰고, 값은 네이버에 지금 다시 묻는다.
+   파일이 없으면 처음 한 번 만든다(10초쯤). */
+let KWIDX = null;
+async function kwIndex() {
+  if (KWIDX) return KWIDX;
+  const tsv = path.join(OUTDIR, "all-keywords.tsv");
+  try { KWIDX = (await fsp.readFile(tsv, "utf8")).split("\n").filter(Boolean).map(l => { const i = l.lastIndexOf("\t"); return [l.slice(0, i), +l.slice(i + 1) || 0, l.slice(0, i).toUpperCase()]; }); return KWIDX; } catch {}
+  const src = path.join(OUTDIR, "keywords.json");
+  if (!fs.existsSync(src)) return (KWIDX = []);
+  const out = []; let kw = null;
+  const rl = (await import("node:readline")).createInterface({ input: fs.createReadStream(src, { encoding: "utf8" }), crlfDelay: Infinity });
+  for await (const line of rl) {
+    let m;
+    if ((m = /^\s*"kw": "(.*)",?\s*$/.exec(line))) kw = m[1].replace(/\\(.)/g, "$1");
+    else if (kw != null && (m = /^\s*"total": (\d+)/.exec(line))) { out.push([kw, +m[1], kw.toUpperCase()]); kw = null; }
+  }
+  await fsp.writeFile(tsv, out.map(x => x[0] + "\t" + x[1]).join("\n"), "utf8");
+  return (KWIDX = out);
+}
+
+/* 씨앗 뒤(앞)에 흔히 붙는 말. 네이버 연관 목록에는 안 나와도 따로 물으면 값이 있는 키워드가 많다
+   (밤보관법 · 밤삶는방법 · 밤10kg · 밤시세 — 아이템스카우트 연관 탭에는 있고 네이버 연관에는 없던 것들) */
+const MOD_TAIL = ["가격","시세","10kg","5kg","3kg","2kg","1kg","파는곳","판매","직거래","도매","선물세트","선물","택배","추천","효능","칼로리","보관법","보관","요리","레시피","먹는법",
+  "삶는법","삶는방법","삶기","삶는시간","찌는법","굽는법","손질","세척","제철","수확시기","종류","품종","묘목","모종","씨앗","재배","키우기","즙","주스","잼","청","말랭이","가루","칩","식초","차",
+  "농장","껍질","까는법","까는기계","가위","칼","조림","파이","양갱","라떼","꿀"];
+const MOD_HEAD = ["햇","국산","국내산","냉동","유기농","무농약","못난이","가정용","토종","특대","깐","생"];
+
 async function lookup(kw, fresh) {
   const hint = cleanHint(kw);
   if (!hint) throw Object.assign(new Error("키워드가 비었다"), { code: 400 });
@@ -138,6 +167,51 @@ async function lookup(kw, fresh) {
   const list = (r.json?.keywordList || []).map(rowOf);
   const exact = list.find(x => same(x.kw, kw)) || list.find(x => same(x.kw, hint)) || null;
 
+  /* 1-2. 한 겹 더.
+        네이버는 씨앗 하나에 연관을 백여 개만 준다 (밤 125개 — 같은 날 아이템스카우트 연관 탭은 322개).
+        씨앗 글자가 든 연관키워드를 다시 씨앗으로 물려, 거기서 나온 것 중 씨앗 글자가 든 것만 더한다
+        (공주밤 → 공주햇밤가격 · 밤10kg · 햇밤가격 …). 다섯 개씩 한 번에 묻는다. 숫자는 전부 네이버가 지금 준 값이다. */
+  const first = list.length, seen = new Set(list.map(x => x.kw)), H = hint.toUpperCase();
+  const fam = list.filter(x => !same(x.kw, hint) && x.kw.toUpperCase().includes(H))
+    .sort((a, b) => (b.pc + b.mo) - (a.pc + a.mo)).slice(0, 40).map(x => cleanHint(x.kw)).filter(Boolean);
+  for (let i = 0; i < fam.length; i += 5) {
+    const r2 = await ad("GET", "/keywordstool", { qs: "?hintKeywords=" + fam.slice(i, i + 5).map(encodeURIComponent).join(",") + "&showDetail=1" });
+    if (r2.status === 429) break;
+    if (r2.ok) for (const row of (r2.json?.keywordList || [])) {
+      const x = rowOf(row);
+      if (!seen.has(x.kw) && x.kw.toUpperCase().includes(H)) { seen.add(x.kw); list.push(x); }
+    }
+    await sleep(120);
+  }
+  /* 1-3. 우리 전체 수집본에서 씨앗 글자가 든 키워드 (당시 검색수 큰 순 120개).
+        이름만 가져오고 값은 네이버에 지금 다시 묻는다. 묻는 김에 딸려 오는 연관도 씨앗 글자가 들었으면 같이 담는다 */
+  const deep1 = list.length - first;
+  const mine = (await kwIndex()).filter(x => x[2].includes(H) && !seen.has(x[0])).sort((a, b) => b[1] - a[1]).slice(0, 100).map(x => x[0]);
+  /* 씨앗이 품목 이름처럼 짧을 때만 꼬리말을 붙여 묻는다 */
+  const combos = hint.length <= 6 ? [...MOD_TAIL.map(m => hint + m), ...MOD_HEAD.map(m => m + hint)].filter(k => !seen.has(k) && !mine.includes(k)) : [];
+  const ask = [...combos, ...mine];
+  const mg = []; for (let i = 0; i < ask.length; i += 5) mg.push(ask.slice(i, i + 5));
+  let mi = 0, halt = false;
+  const askMine = async () => {
+    while (mi < mg.length && !halt) {
+      const hs = mg[mi++].map(cleanHint).filter(Boolean); if (!hs.length) continue;
+      /* 셋이 한꺼번에 물으면 네이버가 429 로 막는다(실측). 둘까지만, 막히면 쉬었다 다시 */
+      let r3;
+      for (let t = 0; t < 4; t++) {
+        r3 = await ad("GET", "/keywordstool", { qs: "?hintKeywords=" + hs.map(encodeURIComponent).join(",") + "&showDetail=1" });
+        if (r3.status !== 429) break;
+        await sleep(800 * (t + 1));
+      }
+      if (r3.status === 429) { halt = true; break; }
+      if (r3.ok) for (const row of (r3.json?.keywordList || [])) {
+        const x = rowOf(row);
+        if (!seen.has(x.kw) && x.kw.toUpperCase().includes(H)) { seen.add(x.kw); list.push(x); }
+      }
+      await sleep(150);
+    }
+  };
+  await Promise.all([askMine(), askMine()]);
+
   /* 2. 입찰가 1~3위 · 중간 입찰가. 연관 전부(검색량 큰 순 500개까지).
         전에는 상위 30개만 받아서 나머지 줄에 9월 입찰가가 표시 없이 섞여 보였다.
         순위 입찰가는 한 번에 50개, 중간 입찰가는 200개까지 받는다 (2026-10-09 실측). */
@@ -147,7 +221,7 @@ async function lookup(kw, fresh) {
     .forEach(x => { if (want.length < 500 && !want.includes(x.kw)) want.push(x.kw); });
   /* 쇼핑 클릭 지수는 검색한 키워드와 연관 상위 60개만. HUB 호출이 4개에 한 번이라 전부는 느리다 */
   const [{ bids, ad5 }, shop] = await Promise.all([bidsFor(want), shopIdxFor(want.slice(0, 60))]);
-  const out = { at: new Date().toISOString(), kw, hint, exact, related: list, bids, med: ad5, shop };   // med = 광고 단가(5위 입찰가). 이름은 화면과의 약속이라 그대로 둔다
+  const out = { at: new Date().toISOString(), kw, hint, exact, related: list, first, deep: deep1, own: list.length - first - deep1, bids, med: ad5, shop };   // med = 광고 단가(5위 입찰가). 이름은 화면과의 약속이라 그대로 둔다
   await fsp.mkdir(CACHE, { recursive: true });
   await fsp.writeFile(file, JSON.stringify(out), "utf8");
   return { ...out, cached: false };

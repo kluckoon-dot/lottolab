@@ -97,7 +97,8 @@ const w = (f, js) => { fs.writeFileSync(path.join(OUT, f), js, "utf8");
 w("data-head.js", "window.KWHEAD=" + JSON.stringify(head) + ";");
 w("data-kw.js",   "window.KWROWS=" + JSON.stringify(keep) + ";");
 const sh = {}; for (const [k, v] of Object.entries(S.d)) if (set.has(k)) sh[k] = v;
-w("data-shop.js", "window.SHOPDATA=" + JSON.stringify({ ...S, d: sh }) + ";");
+const shw = {}; for (const [k, v] of Object.entries(S.w || {})) if (set.has(k)) shw[k] = v;
+w("data-shop.js", "window.SHOPDATA=" + JSON.stringify({ ...S, d: sh, w: shw }) + ";");
 const tr = {}; for (const [k, v] of Object.entries(T)) if (set.has(k)) tr[k] = v;
 w("data-trend.js", "window.TRENDDATA=" + JSON.stringify(tr) + ";");
 /* 쇼핑 클릭 추세. 새로 받은 추세가 있을 때만 값이 있다. 없어도 빈 파일을 둬서 화면이 404 를 안 맞게 한다 */
