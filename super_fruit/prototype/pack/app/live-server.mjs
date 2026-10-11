@@ -464,7 +464,7 @@ const TYPES = { ".html": "text/html; charset=utf-8", ".js": "text/javascript; ch
   ".json": "application/json; charset=utf-8", ".css": "text/css; charset=utf-8",
   ".png": "image/png", ".svg": "image/svg+xml" };
 /* 내줄 수 있는 파일만 연다. key.txt 같은 것이 새면 안 된다. */
-const PUBLIC = /^(keyword-lab\.html|xlsx-lab\.js|data-[a-z]+\.js)$/;
+const PUBLIC = /^(keyword-lab\.html|xlsx-lab\.js|data-[a-z]+(-[0-9]+)?\.js)$/;
 
 const send = (res, code, obj) => {
   res.writeHead(code, { "content-type": "application/json; charset=utf-8", "cache-control": "no-store" });

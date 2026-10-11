@@ -1,6 +1,6 @@
 @echo off
 chcp 65001 >nul
-cd /d "%~dp0..app"
+cd /d "%~dp0..\app"
 title Shopping buyers - device, gender, age, weekday
 where node >nul 2>nul
 if errorlevel 1 goto nonode
@@ -15,11 +15,10 @@ echo.
 node refresh-buyers.mjs --max-calls 9000
 if errorlevel 1 goto fail
 echo.
-echo  Packing the five sections with the new values...
+echo  Packing the five sections with the new values
 node --max-old-space-size=8192 pack-data.mjs --section 1,2,3,4,5
 if errorlevel 1 goto fail
-node build-web.mjs ..
-aver-outpack .
+node build-web.mjs ..\naver-out\pack .
 if errorlevel 1 goto fail
 echo.
 echo   Done. Open "1" - buyer cards now show for more keywords.

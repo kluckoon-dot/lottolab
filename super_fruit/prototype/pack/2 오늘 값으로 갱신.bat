@@ -11,7 +11,7 @@ echo    bids for rank 1-3 and median bid, PC and mobile
 echo    food-shopping clicks (drops non-food words)
 echo    3-year weekly trend of searches and shopping clicks
 echo.
-echo  About 25 minutes. Safe to stop - run again to continue.
+echo  About 35 minutes. Safe to stop - run again to continue.
 echo  Values taken in the last 12 hours are skipped.
 echo.
 node refresh-naver.mjs
@@ -26,6 +26,10 @@ node --max-old-space-size=8192 pack-data.mjs --section 1,2,3,4,5
 if errorlevel 1 goto fail
 node build-web.mjs ..\naver-out\pack .
 if errorlevel 1 goto fail
+echo.
+echo  Naver keyword tool lists for the stored screen (fresh food items, about 10 minutes)
+node build-related.mjs
+if errorlevel 1 echo  [!] The related lists were not refreshed. The rest is done. Run 26-related.bat later.
 echo.
 echo   Done. Open "1" - the screen now shows today's values.
 echo.
