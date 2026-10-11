@@ -9,11 +9,16 @@ echo  Refresh every screen keyword to TODAY's Naver numbers
 echo    search volume, clicks, click rate, ad depth
 echo    bids for rank 1-3 and median bid, PC and mobile
 echo    food-shopping clicks (drops non-food words)
+echo    3-year weekly trend of searches and shopping clicks
 echo.
 echo  About 25 minutes. Safe to stop - run again to continue.
 echo  Values taken in the last 12 hours are skipped.
 echo.
 node refresh-naver.mjs
+if errorlevel 1 goto fail
+echo.
+echo  3-year weekly trends (search + shopping clicks). Skipped if already taken this week.
+node refresh-trend.mjs
 if errorlevel 1 goto fail
 echo.
 echo  Packing the five sections with the new values...

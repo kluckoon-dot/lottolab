@@ -55,7 +55,7 @@ fs.mkdirSync(DST, { recursive: true });
 {
   let n = 0;
   for (const f of fs.readdirSync(DST))
-    if (/^(kw|trend|shop)[-.].*\.js$/.test(f) || f === "meta.json" || f === "kw.js") {
+    if (/^(kw|trend|click|shop)[-.].*\.js$/.test(f) || f === "meta.json" || f === "kw.js") {
       fs.unlinkSync(path.join(DST, f)); n++;
     }
   if (n) console.log(`지난번 조각 ${n}개를 지웠다.`);
@@ -437,7 +437,24 @@ async function streamTrend(file, onEntry) {
 
 /* ── 3. 3년 추세 ── */
 const trendPath = path.join(OUT, "trend.json");
-if (fs.existsSync(trendPath)) {
+/* 새로 받은 추세(refresh-trend.mjs → trend-fresh.json)가 있으면 그것을 쓴다.
+   9월 trend.json 은 9/14 에서 끝나고 검색 추세뿐이다. 새것은 지난 일요일까지고 쇼핑 클릭 추세가 같이 있다.
+   이미 한 주 = 한 글자로 접혀 있어 그대로 옮긴다. */
+let TF = null;
+try { TF = JSON.parse(fs.readFileSync(path.join(OUT, "trend-fresh.json"), "utf8")); }
+catch (e) { if (e.code !== "ENOENT") { console.error("trend-fresh.json 을 읽다 실패했다: " + e.message); process.exit(1); } }
+if (TF && TF.search) {
+  const keep = new Set(packed.map(r => r[0]));
+  const pick = src => { const o = {}; let n = 0; for (const [k, v] of Object.entries(src || {})) if (v && keep.has(k)) { o[k] = v; n++; } return [o, n]; };
+  const [ts, ns] = pick(TF.search), [tc, nc] = pick(TF.click);
+  const w = (nm, name, obj) => { const js = `window.${name}=window.${name}||{};Object.assign(window.${name},${JSON.stringify(obj)});`;
+    fs.writeFileSync(path.join(DST, nm), js, "utf8"); total += Buffer.byteLength(js); console.log(`  → pack/${nm}  ${MB(Buffer.byteLength(js))}`); };
+  console.log(`3년 추세 — 새로 받은 것 (${TF.start} ~ ${TF.end} · ${TF.at})`);
+  w("trend-000.js", "TRENDDATA", ts); w("click-000.js", "CLICKDATA", tc);
+  console.log(`  검색 추세 ${ns.toLocaleString()}개 · 쇼핑 클릭 추세 ${nc.toLocaleString()}개`);
+  meta.trend = ns; meta.click = nc; meta.trendFiles = ["trend-000.js"];
+  meta.trendWeeks = { start: TF.start, end: TF.end, unit: "week", periods: TF.periods, fresh: TF.at };
+} else if (fs.existsSync(trendPath)) {
   console.log(`3년 추세 (원본 ${MB(size("trend.json"))}) — 흘려 읽는다`);
   const keep = new Set(packed.map(r => r[0]));
   /* 세 가지 모양을 다 받는다.

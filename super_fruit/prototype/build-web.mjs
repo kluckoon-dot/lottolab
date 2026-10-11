@@ -21,9 +21,9 @@ const OUT  = process.argv[3] || APPDIR;   // 화면 데이터는 화면(keyword-
 const MB = n => (n / 1048576).toFixed(2) + " MB";
 
 globalThis.window = {};
-for (const f of fs.readdirSync(PACK).filter(x => /^(kw-head|kw-\d+|shop|supply|trend-\d+)\.js$/.test(x)).sort())
+for (const f of fs.readdirSync(PACK).filter(x => /^(kw-head|kw-\d+|shop|supply|trend-\d+|click-\d+)\.js$/.test(x)).sort())
   (0, eval)(fs.readFileSync(path.join(PACK, f), "utf8"));
-const H = window.KWHEAD, R = window.KWROWS, S = window.SHOPDATA, T = window.TRENDDATA || {};
+const H = window.KWHEAD, R = window.KWROWS, S = window.SHOPDATA, T = window.TRENDDATA || {}, CK = window.CLICKDATA || {};
 const SUP = window.SUPPLYDATA || null;
 const META = JSON.parse(fs.readFileSync(path.join(PACK, "meta.json"), "utf8"));
 console.log(`읽음  키워드 ${R.length.toLocaleString()} · 추세 ${Object.keys(T).length.toLocaleString()} · 구매층 ${Object.keys(S.d).length.toLocaleString()}`);
@@ -100,6 +100,9 @@ const sh = {}; for (const [k, v] of Object.entries(S.d)) if (set.has(k)) sh[k] =
 w("data-shop.js", "window.SHOPDATA=" + JSON.stringify({ ...S, d: sh }) + ";");
 const tr = {}; for (const [k, v] of Object.entries(T)) if (set.has(k)) tr[k] = v;
 w("data-trend.js", "window.TRENDDATA=" + JSON.stringify(tr) + ";");
+/* 쇼핑 클릭 추세. 새로 받은 추세가 있을 때만 값이 있다. 없어도 빈 파일을 둬서 화면이 404 를 안 맞게 한다 */
+const ck = {}; for (const [k, v] of Object.entries(CK)) if (set.has(k)) ck[k] = v;
+w("data-click.js", "window.CLICKDATA=" + JSON.stringify(ck) + ";");
 w("data-meta.js", "window.TRENDMETA=" + JSON.stringify({ alphabet: META.alphabet, trendWeeks: META.trendWeeks }) + ";");
 /* 공급가는 손대지 않고 그대로 넘긴다. 섹션 재계산과 상관없는 자료다. */
 if (SUP) w("data-supply.js", "window.SUPPLYDATA=" + JSON.stringify(SUP) + ";");

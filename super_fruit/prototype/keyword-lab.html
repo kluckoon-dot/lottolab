@@ -887,6 +887,7 @@ th.srt[data-dir]::after{content:attr(data-dir);margin-left:3px;color:var(--brand
 <script src="data-kw.js" charset="utf-8"></script>
 <script src="data-shop.js" charset="utf-8"></script>
 <script src="data-trend.js" charset="utf-8"></script>
+<script src="data-click.js" charset="utf-8"></script>
 <script src="data-meta.js" charset="utf-8"></script>
 <script src="xlsx-lab.js" charset="utf-8"></script>
 <script>
@@ -3180,6 +3181,16 @@ function trendOf(kw){
   for(var i=0;i<t.length;i++){ var k=TA.indexOf(t[i]); out[i]= k<0?0 : k/(TA.length-1)*100; }
   return out;
 }
+/* 쇼핑 클릭 추세. 검색 추세와 같은 주, 같은 접는 법. 자기 최고점이 100 */
+function clickOf(kw){
+  var t=window.CLICKDATA&&window.CLICKDATA[kw]; if(!t||!TA) return null;
+  var out=new Array(t.length);
+  for(var i=0;i<t.length;i++){ var k=TA.indexOf(t[i]); out[i]= k<0?0 : k/(TA.length-1)*100; }
+  return out;
+}
+/* 저장된 추세가 언제까지인가. 새로 받은 것이면 fresh 가 있다 */
+var TREND_END = TW.end || "2026-09-14", TREND_FRESH = !!TW.fresh;
+var TREND_LBL = TREND_FRESH ? mdOf(TREND_END)+"까지" : "9월 수집";
 var TW_RANGE=52;   /* 기본 1년 */
 function weekDate(i){
   /* periods 가 오면 그걸 그대로 쓴다. 없으면 시작일에서 7일씩 되살린다.
@@ -3235,9 +3246,12 @@ function comboData(i){
   var days2=[];
   for(var w=0;w<v.length;w++){ var d=weekDate(w); if(!d) return null; days2.push(new Date(d.getUTCFullYear(),d.getUTCMonth(),d.getUTCDate())); }
   var last4=v.slice(-4), b=last4.reduce(function(x,y){return x+y;},0)/4;
-  var base= a[K.SEP] || monthly;
+  /* 눈금의 닻. 새로 받은 추세는 지난 일요일까지라 지금 검색수에 맞춘다.
+     9월 추세(9/14 끝)에는 9월 검색수(SEP)를 쓴다 — 오늘 값에 맞추면 9월 바닥이 부푼다 */
+  var base= TREND_FRESH ? monthly : (a[K.SEP] || monthly);
   var sc2= b>0 ? (base/4.345)/b : 0;
-  return { daily:false, days:days2, vol:v.map(function(x){ return x*sc2; }), clk:null, src:"static", anchor:PACK_AT, base:base };
+  var ck=clickOf(kw); if(ck && ck.length!==v.length) ck=null;
+  return { daily:false, days:days2, vol:v.map(function(x){ return x*sc2; }), clk:ck, src:"static", anchor:TREND_END, base:base };
 }
 function cbRange(D){
   var last=D.days[D.days.length-1], first=D.days[0], from, to=last;
@@ -3301,7 +3315,7 @@ function drawCombo(){
     var pend = HUB && INSP[kw] && !INS[kw];
     box.innerHTML='<div class="na">'+(pend ? "네이버에서 3년 추세를 받아오는 중…"
       : HUB ? "이 키워드는 네이버 추세 자료가 비어 있다. "+esc(((INS[kw]||{}).errors||{}).search||"")
-      : "이 키워드는 9월 수집본에 주간 추세가 없다.<br><b>0-keyword-lab.bat</b> 으로 열고 key.txt 에 API HUB 키(B 칸)를 넣으면 어떤 키워드든 3년 일간 추세를 바로 받아온다.")+'</div>';
+      : "이 키워드는 저장된 수집본에 주간 추세가 없다.<br>PC 에서 <b>1 키워드랩 열기</b> 로 열면 어떤 키워드든 3년 일간 추세를 바로 받아온다.")+'</div>';
     return;
   }
   if(!D.daily && CB.unit==="date") CB.unit="week";
@@ -3309,7 +3323,7 @@ function drawCombo(){
   var pts=prodPoints(i, D);
   srcEl.innerHTML = D.src==="live"
     ? 'NAVER 검색어트렌드 · 쇼핑인사이트 · '+esc(D.ins.end)+'까지 일간'
-    : 'NAVER 검색어트렌드 · 9월 수집 주간';
+    : 'NAVER 검색어트렌드'+(D.clk?' · 쇼핑인사이트':'')+' · '+TREND_LBL+' 주간';
 
   var seg=function(id,list,cur){ return '<div class="tw-seg" id="'+id+'">'+list.map(function(o){
       return '<button type="button" data-v="'+o[0]+'" aria-pressed="'+(cur===o[0])+'"'+(o[2]?' disabled title="'+o[2]+'"':'')+'>'+o[1]+'</button>'; }).join("")+'</div>'; };
@@ -3321,7 +3335,7 @@ function drawCombo(){
   var h='<div class="cb-ctl">'
     +'<div class="cb-g"><span class="cb-k">기간</span>'+seg("cbRange",[["1m","1개월"],["1y","1년"],["3y","3년"],["custom","직접 선택"]],CB.range)
     +(CB.range==="custom"?'<input type="date" id="cbFrom" value="'+dayKey(rg.from)+'"><span class="isf-dash">~</span><input type="date" id="cbTo" value="'+dayKey(rg.to)+'">':'')+'</div>'
-    +'<div class="cb-g"><span class="cb-k">단위</span>'+seg("cbUnit",[["date","일간",D.daily?"":"9월 수집본은 주간뿐이다. 일간은 API HUB 키가 있어야 한다"],["week","주간"],["month","월간"]],CB.unit)+'</div>'
+    +'<div class="cb-g"><span class="cb-k">단위</span>'+seg("cbUnit",[["date","일간",D.daily?"":"저장된 수집본은 주간뿐이다. 일간은 PC 의 실시간 서버에서 받는다"],["week","주간"],["month","월간"]],CB.unit)+'</div>'
     +'<div class="cb-g cb-items"><span class="cb-k">그래프 항목</span>'
     +["vol","clk","prod","comp"].map(function(k){
         return '<label class="cb-it'+(have[k]?"":" off")+'" title="'+esc(have[k]?"":why[k])+'"><input type="checkbox" data-s="'+k+'"'+(CB.show[k]&&have[k]?" checked":"")+(have[k]?"":" disabled")+'>'
@@ -3383,8 +3397,8 @@ function drawCombo(){
 
   /* 한 줄 요약 — 제철이 언제인지가 광고·입고 타이밍을 정한다 */
   h+=seasonLine(D)+'<p class="tw-note">'
-    +(D.vol ? '<b>검색수는 환산값이다.</b> 네이버는 0~100 상대지수만 준다. 한 달 검색수 '+fmt(D.src==="static"?(D.base||S_tot[i]):S_tot[i])+'회('+(D.src==="static"?"9월 14일 수집 당시":mdOf(D.anchor))+' 기준 30일)에 맞춰 눈금을 매겼다. 모양은 원본 그대로다. ':'')
-    +(D.src==="static" ? '9월 수집본이라 주간까지만 있다. 실시간 서버 + API HUB 키면 어제까지 일간으로 바뀐다. ':'')
+    +(D.vol ? '<b>검색수는 환산값이다.</b> 네이버는 0~100 상대지수만 준다. 한 달 검색수 '+fmt(D.src==="static"?(D.base||S_tot[i]):S_tot[i])+'회('+(D.src==="static"?(TREND_FRESH?"수집본 "+mdOf(PACK_DAY):"9월 14일 수집 당시"):mdOf(D.anchor))+' 기준 30일)에 맞춰 눈금을 매겼다. 모양은 원본 그대로다. ':'')
+    +(D.src==="static" ? '저장된 추세는 '+mdOf(TREND_END)+'까지 주간이다. PC 의 실시간 서버에서 열면 어제까지 일간으로 바뀐다. '+(D.clk?'클릭량은 쇼핑 클릭의 모양이다(그 구간 최고점 = 100%). ':''):'')
     +(n>1&&B[n-1].partial ? '마지막 '+(CB.unit==="week"?"주":CB.unit==="month"?"달":"칸")+'은 아직 덜 찼다(점선). ':'')
     +'</p>';
   box.innerHTML=h;
@@ -3435,7 +3449,7 @@ function seasonLine(D){
   var pctNow=Math.round(now30/mx*100);
   return '<div class="cb-season"><span>성수기 <b>'+hot.join(" · ")+'</b></span>'
     +'<span>피크 <b>'+(peak+1)+'월</b> 한 달 약 '+fmt(mx)+'회</span>'
-    +'<span>'+(D.daily?"지금 30일":"수집 시점(9월 14일) 30일")+'은 피크의 <b class="'+(pctNow>=70?"up":pctNow<=30?"down":"")+'">'+pctNow+'%</b></span></div>';
+    +'<span>'+(D.daily?"지금 30일":mdOf(TREND_END)+"까지 최근 4주간")+'은 피크의 <b class="'+(pctNow>=70?"up":pctNow<=30?"down":"")+'">'+pctNow+'%</b></span></div>';
 }
 
 /* ── 비율 카드 · 기기 · 성별 · 연령 · 요일 ── */
