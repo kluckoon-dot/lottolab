@@ -145,8 +145,9 @@ async function lookup(kw, fresh) {
   if (exact) want.push(exact.kw);
   list.slice().sort((a, b) => (b.pc + b.mo) - (a.pc + a.mo))
     .forEach(x => { if (want.length < 500 && !want.includes(x.kw)) want.push(x.kw); });
-  const { bids, ad5 } = await bidsFor(want);
-  const out = { at: new Date().toISOString(), kw, hint, exact, related: list, bids, med: ad5 };   // med = 광고 단가(5위 입찰가). 이름은 화면과의 약속이라 그대로 둔다
+  /* 쇼핑 클릭 지수는 검색한 키워드와 연관 상위 60개만. HUB 호출이 4개에 한 번이라 전부는 느리다 */
+  const [{ bids, ad5 }, shop] = await Promise.all([bidsFor(want), shopIdxFor(want.slice(0, 60))]);
+  const out = { at: new Date().toISOString(), kw, hint, exact, related: list, bids, med: ad5, shop };   // med = 광고 단가(5위 입찰가). 이름은 화면과의 약속이라 그대로 둔다
   await fsp.mkdir(CACHE, { recursive: true });
   await fsp.writeFile(file, JSON.stringify(out), "utf8");
   return { ...out, cached: false };
@@ -171,6 +172,32 @@ async function bidsFor(want) {
     }
   }
   return { bids, ad5 };
+}
+/* ── 쇼핑 클릭 지수 (닭가슴살 = 100) ──
+   쇼핑인사이트는 한 번에 넣은 키워드 중 제일 큰 값을 100 으로 둔 상대값만 준다. 닻을 같이 넣어 한 눈금으로 만든다.
+   지수 ÷ 검색수 가 구매의도다 (아이템스카우트 쇼핑성/정보성 분류 대비 AUC 0.86). refresh-naver.mjs 와 같은 식. */
+const SHOP_ANCHOR = "닭가슴살";
+async function shopIdxFor(kws) {
+  const out = {};
+  if (!(HUB_ID && HUB_SECRET)) return out;
+  const end = ymd(addDays(new Date(), -1)), start = ymd(addDays(new Date(), -31));
+  const list = kws.filter(k => k !== SHOP_ANCHOR), groups = [];
+  for (let i = 0; i < list.length; i += 4) groups.push(list.slice(i, i + 4));
+  let gi = 0;
+  const worker = async () => {
+    while (gi < groups.length) {
+      const g = groups[gi++];
+      const r = await hub("/shopping/v1/category/keywords", { startDate: start, endDate: end, timeUnit: "month", category: CAT,
+        keyword: [{ name: SHOP_ANCHOR, param: [SHOP_ANCHOR] }, ...g.map(k => ({ name: k, param: [k.replace(/\s+/g, "")] }))] });
+      if (!r.ok) continue;
+      const sum = t => ((r.json?.results || []).find(x => x.title === t)?.data || []).reduce((a, d) => a + (+d.ratio || 0), 0);
+      const base = sum(SHOP_ANCHOR); if (!(base > 0)) continue;
+      for (const k of g) out[k] = +(sum(k) / base * 100).toPrecision(5);
+    }
+  };
+  await Promise.all([worker(), worker(), worker(), worker()]);
+  if (kws.includes(SHOP_ANCHOR)) out[SHOP_ANCHOR] = 100;
+  return out;
 }
 /* ── (쓰지 않음) 중간 입찰가 (최근 한 달). 아이템스카우트 "광고 단가" 와 맞대보는 값. 200개씩 ── */
 async function medFor(want) {
@@ -228,9 +255,9 @@ async function multi(kws) {
   for (const k of asked) if (!found[k]) miss.push(k);
   const rows = Object.values(found);
   const uniq = [...new Set(rows.map(x => x.kw))];
-  const { bids, ad5: med } = await bidsFor(uniq);
+  const [{ bids, ad5: med }, shop] = await Promise.all([bidsFor(uniq), shopIdxFor(uniq)]);
   return { at: new Date().toISOString(), asked, found: Object.fromEntries(Object.entries(found).map(([k, v]) => [k, v.kw])),
-           miss, related: rows, bids, med };
+           miss, related: rows, bids, med, shop };
 }
 
 /* ── 추세 · 쇼핑 구매층 (NAVER API HUB) ──

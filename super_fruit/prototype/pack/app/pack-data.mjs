@@ -169,10 +169,12 @@ console.log(`키워드 ${rows.length.toLocaleString()}개  (원본 ${MB(size("ke
 /* ── 최신값 층 (refresh-naver.mjs → naver-out/fresh.json) ──
    keywords.json 은 같은 키워드를 다시 받아도 첫 값을 지켰다. 9/11 값이 9/14 값을 이겼다.
    fresh.json 은 값마다 받은 시각이 있고, 새것이 이긴다. 원본은 그대로 두고 위에 덮는다. */
-let freshAt = "";
+let freshAt = "", anchor = null;
 try {
   const fj = JSON.parse(fs.readFileSync(path.join(OUT, "fresh.json"), "utf8"));
   const FRESH = fj.rows || {}; freshAt = fj.savedAt || fj.startedAt || "";
+  /* 쇼핑 클릭 지수의 닻(닭가슴살 = 100). 구매의도 = (지수 ÷ 검색수) ÷ (100 ÷ 닻의 검색수) 라 닻의 검색수가 같이 가야 한다 */
+  if (fj.anchor && FRESH[fj.anchor.kw] && FRESH[fj.anchor.kw].s) anchor = { kw: fj.anchor.kw, tot: FRESH[fj.anchor.kw].s[0] + FRESH[fj.anchor.kw].s[1], at: fj.anchor.at };
   let nS = 0, nB = 0, nM = 0, nF = 0, nNo = 0;
   for (const r of rows) {
     const f = FRESH[r.kw]; if (!f) continue;
@@ -180,6 +182,7 @@ try {
     if (f.b) { r.bid = { pc: f.b.slice(0, 3), mo: f.b.slice(3, 6) }; nB++; }
     if (f.m) { r.med = f.m; nM++; }
     if (f.f != null) { r.food = f.f; nF++; if (!f.f) nNo++; }
+    if (f.c != null) r.shop = f.c; else if (f.f === 0) r.shop = 0;
   }
   console.log(`최신값 층 덮음  검색수 ${nS.toLocaleString()} · 입찰가 ${nB.toLocaleString()} · 광고단가(5위) ${nM.toLocaleString()} · 식품판정 ${nF.toLocaleString()} (식품 아님 ${nNo.toLocaleString()})  · ${freshAt}`);
 } catch (e) {
@@ -253,7 +256,7 @@ const packedAll = rows.map(r => {
     bidOf(r, "mo", 0), bidOf(r, "mo", 1), bidOf(r, "mo", 2),
     r.masked ? 1 : 0, intentOf(r.kw), (r.hints && r.hints[0]) || "", sec,
     SHOPCNT[r.kw] || 0, SHOPCMP[r.kw] || 0, SHOPCAT[r.kw] || "",
-    r.med ? num(r.med[0]) : 0, r.med ? num(r.med[1]) : 0, dayInt(r.at), r.food == null ? -1 : r.food, r.sepTot || 0
+    r.med ? num(r.med[0]) : 0, r.med ? num(r.med[1]) : 0, dayInt(r.at), r.food == null ? -1 : r.food, r.sepTot || 0, r.shop == null ? -1 : r.shop
   ];
 });
 { /* 제대로 담겼는지 바로 확인한다. 전부 0 이면 또 이름을 잘못 짚은 것이다. */
@@ -316,8 +319,8 @@ if (want) console.log(`  걸러낸 뒤 ${packed.length.toLocaleString()}개를 �
    kw.js 가 27 MB 가 됐다. 키워드도 똑같이 나눈다. */
 const CAP = 10 * 1048576;   // 실측 103 bytes/키워드. 16 MB 한도에 여유를 둔다
 const head = { fetchedAt: kj.fetchedAt || "", calls: kj.calls || 0, failed: (kj.failed || []).length,
-  cols: "kw,pc,mo,depth,comp,clickPc,clickMo,ctrPc,ctrMo,bp1,bp2,bp3,bm1,bm2,bm3,masked,intent,hint,sec,prod,icomp,icat,adPc,adMo,day,food,sepTot",
-  freshAt,
+  cols: "kw,pc,mo,depth,comp,clickPc,clickMo,ctrPc,ctrMo,bp1,bp2,bp3,bm1,bm2,bm3,masked,intent,hint,sec,prod,icomp,icat,adPc,adMo,day,food,sepTot,shop",
+  freshAt, anchor,
   intentNames: INTENT_NAMES,
   sections: SEC ? SEC.map(x => ({ id: x.id, name: x.name, naver: x.naver })) : [] };
 fs.writeFileSync(path.join(DST, "kw-head.js"), "window.KWHEAD=" + JSON.stringify(head) + ";", "utf8");

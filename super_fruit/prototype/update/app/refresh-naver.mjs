@@ -199,29 +199,42 @@ async function doBids() {
   save(true);
 }
 
-/* 3. 식품 쇼핑 클릭 — API HUB 쇼핑인사이트, 5개씩. 최근 한 달 클릭이 한 번이라도 잡히면 1 */
+/* 3. 식품 쇼핑 클릭 + 쇼핑 클릭 지수 — API HUB 쇼핑인사이트(식품 50000006), 최근 한 달
+   쇼핑인사이트는 한 번에 넣은 키워드들 중 제일 큰 값을 100 으로 둔 상대값만 준다.
+   그래서 따로따로 부르면 키워드끼리 견줄 수 없다 (9월에 "쇼핑클릭÷검색량" 이 뒤집혀 보였던 이유).
+   호출마다 닻 키워드를 같이 넣어 한 눈금으로 만든다. 닻 = 닭가슴살: 1년 최대÷최소 1.5배로 제일 안 흔들린다
+   (쌀 1.9 · 김 2.5 · 계란 2.9 · 밤 22.9).
+     c  쇼핑 클릭 지수 (닭가슴살 = 100)
+     f  식품 쇼핑 클릭이 있는가 (c > 0)
+   c ÷ 검색수 가 구매의도다. 아이템스카우트 분류(쇼핑성 287 · 정보성 39)로 재보니 가르는 힘 AUC 0.86 —
+   광고 깊이·클릭률(0.64~0.66) · 입찰가(0.71~0.73) 보다 훨씬 낫다. docs/17 */
+const ANCHOR = "닭가슴살";
 async function doFood() {
-  const freshFood = k => { const r = F.rows[k]; return r && r.fAt && r.f != null && (Date.now() - Date.parse(r.fAt)) < FOOD_AGE_H * 3600e3; };
-  const list = targets.filter(k => !freshFood(k));
+  const ok = k => { const r = F.rows[k]; return r && r.fAt && r.f != null && (Date.now() - Date.parse(r.fAt)) < FOOD_AGE_H * 3600e3 && (r.f === 0 || r.c != null); };
+  const list = targets.filter(k => k !== ANCHOR && !ok(k));
   const end = new Date(Date.now() - 864e5), start = new Date(Date.now() - 31 * 864e5);
   const ymd = d => d.toISOString().slice(0, 10);
-  console.error(`식품 쇼핑 클릭  ${list.length.toLocaleString()}개 (API HUB 월 한도 안에서)`);
-  for (let i = 0; i < list.length; i += 5) {
-    const g = list.slice(i, i + 5);
+  console.error(`식품 판정 · 쇼핑 클릭 지수  ${list.length.toLocaleString()}개 (닻 ${ANCHOR} = 100 · API HUB 월 한도 안에서)`);
+  for (let i = 0; i < list.length; i += 4) {
+    const g = list.slice(i, i + 4);
     const r = await hub("/shopping/v1/category/keywords", { startDate: ymd(start), endDate: ymd(end), timeUnit: "month", category: "50000006",
-      keyword: g.map(k => ({ name: k, param: [clean(k)] })) });
+      keyword: [{ name: ANCHOR, param: [ANCHOR] }, ...g.map(k => ({ name: k, param: [clean(k)] }))] });
     stat.calls++;
     if (!r.ok) { stat.fail.push({ step: "food", kws: g, status: r.status, text: safe(r.text).slice(0, 120) }); if (r.status === 429 || r.status === 401 || r.status === 403) break; continue; }
     const at = new Date().toISOString();
-    for (const res of r.json?.results || []) {
-      const k = res.title; if (!g.includes(k)) continue;
-      const hit = (res.data || []).some(d => +d.ratio > 0);
-      const o = row(k); o.f = hit ? 1 : 0; o.fAt = at; dirty++; stat.food++; if (!hit) stat.foodNo++;
+    const sum = t => ((r.json?.results || []).find(x => x.title === t)?.data || []).reduce((x, d) => x + (+d.ratio || 0), 0);
+    const base = sum(ANCHOR);
+    if (!(base > 0)) { stat.fail.push({ step: "food", kws: g, status: "닻 값 없음" }); continue; }
+    for (const k of g) {
+      const v = sum(k), o = row(k);
+      o.c = +(v / base * 100).toPrecision(5); o.f = v > 0 ? 1 : 0; o.fAt = at; dirty++; stat.food++; if (!v) stat.foodNo++;
     }
-    if ((i / 5) % 400 === 0) console.error(`  식품 ${Math.min(i + 5, list.length).toLocaleString()}/${list.length.toLocaleString()} · 식품 아님 ${stat.foodNo}`);
+    if ((i / 4) % 500 === 0) console.error(`  식품·쇼핑클릭 ${Math.min(i + 4, list.length).toLocaleString()}/${list.length.toLocaleString()} · 식품 아님 ${stat.foodNo}`);
     save();
     await sleep(60);
   }
+  if (targets.includes(ANCHOR)) { const o = row(ANCHOR); o.c = 100; o.f = 1; o.fAt = new Date().toISOString(); }
+  F.anchor = { kw: ANCHOR, at: new Date().toISOString() };
   save(true);
 }
 

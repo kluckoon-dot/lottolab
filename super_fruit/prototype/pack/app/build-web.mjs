@@ -90,7 +90,7 @@ const set = new Set(keep.map(r => r[0]));
 console.log(`\n담을 키워드 ${keep.length.toLocaleString()}개`);
 
 fs.mkdirSync(OUT, { recursive: true });
-const head = { fetchedAt: H.fetchedAt, freshAt: H.freshAt || "", calls: H.calls, failed: H.failed, cols: H.cols,
+const head = { fetchedAt: H.fetchedAt, freshAt: H.freshAt || "", anchor: H.anchor || null, calls: H.calls, failed: H.failed, cols: H.cols,
                sections: SEC.map(x => ({ id: x.id, name: x.name, naver: x.naver })) };
 const w = (f, js) => { fs.writeFileSync(path.join(OUT, f), js, "utf8");
                        console.log(`  → ${f.padEnd(16)} ${MB(Buffer.byteLength(js))}`); };
