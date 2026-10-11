@@ -588,6 +588,10 @@ th.srt[data-dir]::after{content:attr(data-dir);margin-left:3px;color:var(--brand
   border-radius:10px;padding:10px 14px;font-size:13.5px;font-weight:700;color:var(--brand-ink)}
 .relbar b{font-size:15px}
 .relbar .rel-src{flex:1;font-size:11.5px;font-weight:500;color:var(--ink-3)}
+.relbar{flex-wrap:wrap}
+.relbar .rel-is{font-size:11px;font-weight:700;padding:2px 9px;border-radius:999px;background:var(--good-bg,rgba(27,175,122,.14));color:var(--good)}
+.relbar .rel-no{font-size:11px;font-weight:700;padding:2px 9px;border-radius:999px;background:var(--skip-bg);color:var(--skip)}
+.relbar .rel-help{flex-basis:100%;margin:2px 0 0;font-size:11.5px;font-weight:500;color:var(--ink-3);line-height:1.5}
 .relbar button{border:1px solid var(--line-strong);background:var(--surface);color:var(--ink-2);
   border-radius:8px;padding:5px 12px;font:inherit;font-size:12px;font-weight:600;cursor:pointer}
 </style>
@@ -918,6 +922,7 @@ th.srt[data-dir]::after{content:attr(data-dir);margin-left:3px;color:var(--brand
 <script src="data-trend.js" charset="utf-8"></script>
 <script src="data-click.js" charset="utf-8"></script>
 <script src="data-meta.js" charset="utf-8"></script>
+<script src="data-is.js" charset="utf-8"></script>
 <script src="xlsx-lab.js" charset="utf-8"></script>
 <script>
 (function(){
@@ -1396,6 +1401,31 @@ function sameItem(i){
   if(kw.length>=2) for(var j=0;j<N;j++) if(j!==i && R[j][K.KW].indexOf(kw)>=0) out.push(j);
   return out;
 }
+/* ── 아이템스카우트와 같은 연관 목록 ──
+   연관키워드는 아이템스카우트와 같아야 한다(보갬, 2026-10-11). 그 목록은 네이버 공식 API 로 다시 만들 수 없다:
+   네이버 키워드도구는 씨앗 하나에 백여 개(밤 125)만 주고, 아이템스카우트는 여러 장터의 연관 · 자동완성 · 상품명 낱말까지 모아 330개를 낸다.
+   그래서 그 씨앗의 엑셀(넣는곳\아이템스카우트)이 있으면 그 목록 그대로를 먼저 보여준다 — 키워드와 순서가 같다.
+   숫자만 네이버 지금 값이다(아이템스카우트의 연관키워드 숫자는 낡은 저장값이다 · docs/16). */
+function isSeedOf(rec){ var m=/^(.+?)_키워드_itemscout/.exec(rec.file||""); return String(rec.seed || (m ? m[1] : ((rec.rows||[])[0]||{}).kw) || "").replace(/\s+/g,""); }
+function isRecFor(kw){
+  var k=String(kw||"").replace(/\s+/g,""), best=null; if(!k) return null;
+  XROWS.forEach(function(r){ if(r.kind==="itemscout" && r.rows && r.rows.length && isSeedOf(r)===k && (!best || String(r.at)>String(best.at))) best=r; });
+  return best;
+}
+function relUseIS(rec, seedKw){
+  var idx=[], order={};
+  rec.rows.forEach(function(x,n){ var i=BYKW[x.kw]; if(i!=null && order[i]==null){ order[i]=n; idx.push(i); } });
+  F.rel=new Set(idx); F.relOrder=order; F.relSeed=seedKw; F.relName="아이템스카우트"; F.relLabel="";
+  F.relIS={ n:rec.rows.length, shown:idx.length, at:rec.at, file:rec.file||"" };
+}
+/* 연관 보기 방식. "" = 엑셀이 있으면 아이템스카우트 목록, "ours" = 네이버 연관 + 수집본 */
+function relToggle(mode){
+  var seed=F.relSeed, i=BYKW[seed]; F.relMode=mode;
+  if(i==null) return;
+  if(mode==="ours"){ var g=relGroup(i).concat(F.relLive||[]); F.rel=new Set(g); F.relOrder=null; F.relIS=null; F.relName=relName(i); F.relLabel=""; }
+  else { var rec=isRecFor(seed); if(rec) relUseIS(rec, seed); }
+  LIMIT=100; refresh();
+}
 function relName(i){
   var a=(HG[R[i][K.KW]]||[]).length, b=(HG[R[i][K.HINT]]||[]).length;
   return a>=b ? R[i][K.KW] : (R[i][K.HINT]||R[i][K.KW]);
@@ -1730,11 +1760,25 @@ function renderTable(){
   var rb=document.getElementById("relBar");
   if(F.rel){
     rb.hidden=false;
-    rb.innerHTML=(F.relLabel ? F.relLabel
-      : '<b>'+esc(F.relSeed)+'</b> 의 연관 키워드 '+fmt(total)+'개'
-        +'<span class="rel-src">NAVER 검색광고 연관검색 + 같은 품목 수집분 · 씨앗 '+F.relName+'</span>')
-      +'<button type="button" id="relOff">전체 목록으로 →</button>';
+    var isRec2= F.relSeed ? isRecFor(F.relSeed) : null, relHead;
+    if(F.relLabel) relHead=F.relLabel;
+    else if(F.relIS){
+      var isDay=new Date(F.relIS.at), same= F.relIS.shown===F.relIS.n;
+      relHead='<b>'+esc(F.relSeed)+'</b> 의 연관 키워드 '+fmt(F.relIS.shown)+'개 <span class="rel-is">아이템스카우트와 같은 목록'+(same?'':' · '+fmt(F.relIS.n)+'개 중 '+fmt(F.relIS.shown))+'</span>'
+        +'<span class="rel-src">엑셀 '+(isDay.getMonth()+1)+'/'+isDay.getDate()+' · 순서도 같다 · 숫자는 네이버 값'+(total!==F.relIS.shown?' · 필터로 '+fmt(total)+'개만 보인다':'')+'</span>'
+        +'<button type="button" id="relOurs">키워드랩 확장 목록 →</button>';
+    } else {
+      relHead='<b>'+esc(F.relSeed)+'</b> 의 연관 키워드 '+fmt(total)+'개 '
+        +(isRec2 ? '' : '<span class="rel-no">아이템스카우트 목록 없음</span>')
+        +'<span class="rel-src">NAVER 검색광고 연관검색 + 같은 품목 수집분 · 씨앗 '+F.relName+'</span>'
+        +(isRec2 ? '<button type="button" id="relIs">아이템스카우트와 같은 목록 ('+fmt(isRec2.rows.length)+') →</button>' : '');
+    }
+    rb.innerHTML=relHead+'<button type="button" id="relOff">전체 목록으로 →</button>'
+      +(!F.relLabel && !F.relIS && !isRec2 && F.relSeed ? '<p class="rel-help">이 목록은 아이템스카우트와 다르다. 아이템스카우트는 여러 장터의 연관 · 자동완성까지 모은 목록이라 네이버 공식 자료만으로는 같게 만들 수 없다. '
+        +'같은 목록이 필요하면 아이템스카우트에서 <b>'+esc(F.relSeed)+'</b> 의 연관 키워드 엑셀을 받아 <b>넣는곳\\아이템스카우트</b> 에 두면 그 목록 그대로 보여준다.</p>' : '');
     document.getElementById("relOff").onclick=function(){ clearRel(); LIMIT=100; refresh(); };
+    var ro=document.getElementById("relOurs"); if(ro) ro.onclick=function(){ relToggle("ours"); };
+    var ri=document.getElementById("relIs"); if(ri) ri.onclick=function(){ relToggle(""); };
   } else rb.hidden=true;
   var mb=document.getElementById("moreBtn");
   mb.style.display=total<=LIMIT?"none":"block";
@@ -2142,8 +2186,21 @@ function applyNaverKw(rec){
    아이템스카우트가 뽑은 연관키워드다 — "이 키워드들로 목록 보기" 가 그 화면과 같은 목록이 된다.
    검색수는 이 파일이 우리 숫자보다 새것일 때만 덮어쓴다. */
 var PRODH={};   /* 키워드 → [{at, prod}] 상품수 기록. 종합차트에 점으로 찍힌다 */
+/* 저장본에 실린 아이템스카우트 목록의 네이버 값을 줄에 넣는다 (build-islist.mjs 가 받아 둔 것). 수집본이 같거나 더 새것이면 그대로 둔다 */
+function applyBaked(rec){
+  var day=todayInt(rec.liveAt||rec.at);
+  (rec.rows||[]).forEach(function(x){
+    var n=x.n; if(!n) return;
+    var i=BYKW[x.kw]; if(i==null){ if(N>=CAP) return; i=newRow(x.kw, rec.seed||x.kw); }
+    var a=R[i]; if(a[K.DAY] && a[K.DAY]>=day) return;
+    a[K.PC]=n[0]; a[K.MO]=n[1]; a[K.DEPTH]=n[2]; a[K.COMP]=n[3]; a[K.CPC_]=n[4]; a[K.CMO]=n[5]; a[K.TPC]=n[6]; a[K.TMO]=n[7]; a[K.MASK]=n[8];
+    a[K.BP1]=n[9]; a[K.BP2]=n[10]; a[K.BP3]=n[11]; a[K.BM1]=n[12]; a[K.BM2]=n[13]; a[K.BM3]=n[14]; a[K.MPC]=n[15]; a[K.MMO]=n[16];
+    if(n[17]!=null && n[17]>=0) a[K.SHOP]=n[17];
+    a[K.ICOMP]=0; a[K.DAY]=day; statRow(i);
+  });
+}
 function applyItemScout(rec){
-  var seed=rec.rows[0].kw, idx=[], needLive=[];
+  var seed=isSeedOf(rec) || rec.rows[0].kw, idx=[], needLive=[];
   rec.rows.forEach(function(x){
     var i=BYKW[x.kw];
     if(i==null){ if(N>=CAP) return; i=newRow(x.kw, seed); }
@@ -2340,6 +2397,7 @@ async function syncInbox(){
     }
     await INGEST(files);
     INBOX_NOTE="넣는곳에서 새 파일 "+files.length+"개를 읽었다 — "+todo.map(function(x){ return x.dir+"\\"+x.name; }).join(", ");
+    if(F.rel && F.relSeed && !F.relIS && F.relMode!=="ours"){ var nr=isRecFor(F.relSeed); if(nr) relUseIS(nr, F.relSeed); }
     buildCats(); recalc(); refresh();
     var n=document.getElementById("exactNote");
     if(n) n.insertAdjacentHTML("beforeend",' <span class="note">· '+esc(INBOX_NOTE)+'</span>');
@@ -2349,6 +2407,8 @@ async function loadSavedUploads(){
   var got=[];
   if(LIVE){ try{ var r=await fetch("/api/uploads"); if(r.ok) got=(await r.json()).map(function(x){ x.where="pc"; return x; }); }catch(e){} }
   lsLoad().forEach(function(x){ if(!got.some(function(g){ return g.id===x.id; })){ x.where="browser"; got.push(x); } });
+  /* 저장본에 실린 아이템스카우트 목록. PC 실시간 서버에서는 넣는곳의 엑셀을 직접 읽으므로 쓰지 않는다 */
+  if(!LIVE) (window.ISRECS||[]).forEach(function(b){ if(!got.some(function(g){ return g.file===b.file; })){ applyBaked(b); b.where="baked"; got.push(b); } });
   XROWS=got;
   /* 키워드도구·아이템스카우트 엑셀은 다시 적용한다. 오래된 것부터 — 새것이 이기게. */
   var nk=got.filter(function(x){ return x.kind==="naverkw"||x.kind==="itemscout"; })
@@ -2382,7 +2442,7 @@ function renderXls(){
   XROWS.forEach(function(f,fi){
     var when=f.savedAt? new Date(f.savedAt) : null;
     var whenTxt= when? (when.getMonth()+1)+"/"+when.getDate()+" "+String(when.getHours()).padStart(2,"0")+":"+String(when.getMinutes()).padStart(2,"0") : "";
-    var whereTxt= f.where==="pc"?"이 PC 에 저장됨" : f.where==="browser"?"이 브라우저에 저장됨" : "저장 안 됨";
+    var whereTxt= f.where==="pc"?"이 PC 에 저장됨" : f.where==="browser"?"이 브라우저에 저장됨" : f.where==="baked"?"저장본에 실려 있음" : "저장 안 됨";
     h+='<section class="xgroup"><div class="xfile"><span class="tagk">'+(XKIND[f.kind]||f.kind)+'</span>'
       +'<b>'+esc(f.file)+'</b><span class="sub">'+f.rows.length+'줄 · '+whereTxt+(whenTxt?' · '+whenTxt:'')+'</span>'
       +'<span class="f-sp" style="flex:1"></span>'
@@ -3161,10 +3221,12 @@ function setRel(i){
   F.rel = g.length>1 ? new Set(g) : null;
   F.relName = F.rel ? relName(i) : "";
   F.relSeed = F.rel ? R[i][K.KW] : "";
-  F.relLabel=""; F.relOrder=null;
+  F.relLabel=""; F.relOrder=null; F.relIS=null; F.relLive=null;
+  var rec=isRecFor(R[i][K.KW]);
+  if(rec && F.relMode!=="ours") relUseIS(rec, R[i][K.KW]);
 }
 function clearRel(){
-  F.rel=null; F.relName=""; F.relSeed=""; F.relLabel=""; F.relOrder=null; SORT.k=null;
+  F.rel=null; F.relName=""; F.relSeed=""; F.relLabel=""; F.relOrder=null; F.relIS=null; F.relLive=null; F.relMode=""; SORT.k=null;
   for(var k=0;k<5;k++) F.intent[k]=GOLD_DEFAULT.intent.indexOf(k)>=0;
   F.vmin=GOLD_DEFAULT.vmin; F.vmax=GOLD_DEFAULT.vmax;
 }
@@ -3454,7 +3516,8 @@ async function liveFind(v, fresh){
     } else CUR=ex;
     F.q=""; document.getElementById("q").value="";
     if(!F.rel) openRelFilters();
-    F.rel=new Set(idx.concat(sameItem(CUR))); F.relSeed=v; F.relName="네이버 실시간 연관"; F.relLabel=""; F.relOrder=null;
+    F.rel=new Set(idx.concat(sameItem(CUR))); F.relSeed=v; F.relName="네이버 실시간 연관"; F.relLabel=""; F.relOrder=null; F.relIS=null; F.relLive=idx;
+    var isRec=isRecFor(v); if(isRec && F.relMode!=="ours") relUseIS(isRec, v);
     var t=liveStamp(R[CUR][K.KW]);
     note.innerHTML='<span class="live-dot"></span> <b class="live-k">실시간</b> '+t+' 조회'+(j.cached?' (3시간 안에 받은 것)':'')
       +' · 연관 '+idx.length+'개'+(j.deep||j.own?' (네이버 연관 '+j.first+' + 한 겹 더 '+(j.deep||0)+' + 우리 수집본 · 꼬리말 조회 '+(j.own||0)+')':'')+' · 입찰가 '+Object.keys(j.bids||{}).length+'개'
