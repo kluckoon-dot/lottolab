@@ -145,33 +145,34 @@ async function lookup(kw, fresh) {
   if (exact) want.push(exact.kw);
   list.slice().sort((a, b) => (b.pc + b.mo) - (a.pc + a.mo))
     .forEach(x => { if (want.length < 500 && !want.includes(x.kw)) want.push(x.kw); });
-  const bids = await bidsFor(want);
-  const med = await medFor(want);
-  const out = { at: new Date().toISOString(), kw, hint, exact, related: list, bids, med };
+  const { bids, ad5 } = await bidsFor(want);
+  const out = { at: new Date().toISOString(), kw, hint, exact, related: list, bids, med: ad5 };   // med = 광고 단가(5위 입찰가). 이름은 화면과의 약속이라 그대로 둔다
   await fsp.mkdir(CACHE, { recursive: true });
   await fsp.writeFile(file, JSON.stringify(out), "utf8");
   return { ...out, cached: false };
 }
 
-/* ── 입찰가 1~3위. 50개씩 묶어 PC·모바일 따로 ── */
+/* ── 입찰가 1~3위 + 5위. 50개씩(한 번에 200항목이 한도) 묶어 PC·모바일 따로 ──
+   5위 입찰가가 아이템스카우트의 "광고 단가" 다 (2026-10-11 같은 날 파일 330개로 확인). */
 async function bidsFor(want) {
-  const bids = {};
+  const bids = {}, ad5 = {};
   for (let i = 0; i < want.length; i += 50) {
     const g = want.slice(i, i + 50);
-    const items = []; for (const k of g) for (const p of [1, 2, 3]) items.push({ key: k, position: p });
+    const items = []; for (const k of g) for (const p of [1, 2, 3, 5]) items.push({ key: k, position: p });
     for (const device of ["PC", "MOBILE"]) {
       const b = await ad("POST", "/estimate/average-position-bid/keyword",
         { body: { device, keywordplus: false, key: g[0], items } });
       if (b.ok) for (const e of (b.json?.estimate || [])) {
+        if (e.position === 5) { (ad5[e.keyword] ||= [null, null])[device === "PC" ? 0 : 1] = e.bid; continue; }
         const slot = (bids[e.keyword] ||= { pc: [null, null, null], mo: [null, null, null] });
         (device === "PC" ? slot.pc : slot.mo)[e.position - 1] = e.bid;
       }
       await sleep(80);
     }
   }
-  return bids;
+  return { bids, ad5 };
 }
-/* ── 중간 입찰가 (최근 한 달). 아이템스카우트 "광고 단가" 와 맞대보는 값. 200개씩 ── */
+/* ── (쓰지 않음) 중간 입찰가 (최근 한 달). 아이템스카우트 "광고 단가" 와 맞대보는 값. 200개씩 ── */
 async function medFor(want) {
   const med = {};
   for (let i = 0; i < want.length; i += 200) {
@@ -227,8 +228,7 @@ async function multi(kws) {
   for (const k of asked) if (!found[k]) miss.push(k);
   const rows = Object.values(found);
   const uniq = [...new Set(rows.map(x => x.kw))];
-  const bids = await bidsFor(uniq);
-  const med = await medFor(uniq);
+  const { bids, ad5: med } = await bidsFor(uniq);
   return { at: new Date().toISOString(), asked, found: Object.fromEntries(Object.entries(found).map(([k, v]) => [k, v.kw])),
            miss, related: rows, bids, med };
 }

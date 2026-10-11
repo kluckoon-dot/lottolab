@@ -181,7 +181,7 @@ try {
     if (f.m) { r.med = f.m; nM++; }
     if (f.f != null) { r.food = f.f; nF++; if (!f.f) nNo++; }
   }
-  console.log(`최신값 층 덮음  검색수 ${nS.toLocaleString()} · 입찰가 ${nB.toLocaleString()} · 중간입찰가 ${nM.toLocaleString()} · 식품판정 ${nF.toLocaleString()} (식품 아님 ${nNo.toLocaleString()})  · ${freshAt}`);
+  console.log(`최신값 층 덮음  검색수 ${nS.toLocaleString()} · 입찰가 ${nB.toLocaleString()} · 광고단가(5위) ${nM.toLocaleString()} · 식품판정 ${nF.toLocaleString()} (식품 아님 ${nNo.toLocaleString()})  · ${freshAt}`);
 } catch (e) {
   /* 파일이 없는 것과 읽다가 터진 것을 구분한다. 삼키면 9월 값이 조용히 나간다 (2026-10-09 한 번 당했다) */
   if (e.code === "ENOENT") console.log("최신값 층(fresh.json) 없음 — 9월 수집본 그대로 담는다. refresh-naver.mjs 를 돌리면 오늘 값으로 바뀐다.");
@@ -316,7 +316,7 @@ if (want) console.log(`  걸러낸 뒤 ${packed.length.toLocaleString()}개를 �
    kw.js 가 27 MB 가 됐다. 키워드도 똑같이 나눈다. */
 const CAP = 10 * 1048576;   // 실측 103 bytes/키워드. 16 MB 한도에 여유를 둔다
 const head = { fetchedAt: kj.fetchedAt || "", calls: kj.calls || 0, failed: (kj.failed || []).length,
-  cols: "kw,pc,mo,depth,comp,clickPc,clickMo,ctrPc,ctrMo,bp1,bp2,bp3,bm1,bm2,bm3,masked,intent,hint,sec,prod,icomp,icat,medPc,medMo,day,food,sepTot",
+  cols: "kw,pc,mo,depth,comp,clickPc,clickMo,ctrPc,ctrMo,bp1,bp2,bp3,bm1,bm2,bm3,masked,intent,hint,sec,prod,icomp,icat,adPc,adMo,day,food,sepTot",
   freshAt,
   intentNames: INTENT_NAMES,
   sections: SEC ? SEC.map(x => ({ id: x.id, name: x.name, naver: x.naver })) : [] };

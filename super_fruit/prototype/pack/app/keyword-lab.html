@@ -897,7 +897,8 @@ if (window.KWROWS && window.KWROWS.length) {
 var R = DATA.rows;   // [kw,pc,mo,depth,comp,clickPc,clickMo,ctrPc,ctrMo,bp1,bp2,bp3,bm1,bm2,bm3,masked,intent,hint,sec]
 var N = R.length;
 var K={KW:0,PC:1,MO:2,DEPTH:3,COMP:4,CPC_:5,CMO:6,TPC:7,TMO:8,BP1:9,BP2:10,BP3:11,BM1:12,BM2:13,BM3:14,MASK:15,INT:16,HINT:17,SEC:18,PROD:19,ICOMP:20,ICAT:21,MPC:22,MMO:23,DAY:24,FOOD:25,SEP:26};
-/* 22·23 중간 입찰가 PC·모바일 (네이버 /estimate/median-bid, 최근 한 달) — 아이템스카우트 "광고 단가" 와 맞대보는 값
+/* 22·23 광고 단가 PC·모바일 = 네이버 5위 평균 입찰가. 아이템스카우트 "광고 단가" 와 같은 값이다
+   (2026-10-11 같은 날 받은 엑셀 330개로 확인. 처음엔 중간 입찰가로 짐작했는데 아니었다)
    24 그 줄 숫자를 네이버에서 받은 날 YYYYMMDD. 9월 수집본은 0
    25 식품 분야 쇼핑 클릭 1 있음 · 0 없음 · -1 모름 (API HUB 쇼핑인사이트)
    26 9월 수집 당시 한 달 검색수. 9월 주간 추세(9/14 에 끝남)의 눈금은 이 값에 맞춘다 —
@@ -1442,7 +1443,7 @@ var XCOLS=[
   ["클릭률 모바일 %",function(i){return R[i][K.TMO];}],
   ["PC 1위",function(i){return R[i][K.BP1];}],["PC 2위",function(i){return R[i][K.BP2];}],["PC 3위",function(i){return R[i][K.BP3];}],
   ["모바일 1위",function(i){return R[i][K.BM1];}],["모바일 2위",function(i){return R[i][K.BM2];}],["모바일 3위",function(i){return R[i][K.BM3];}],
-  ["중간 입찰가 PC",function(i){return R[i][K.MPC]||"";}],["중간 입찰가 모바일",function(i){return R[i][K.MMO]||"";}],
+  ["광고 단가(5위) PC",function(i){return R[i][K.MPC]||"";}],["광고 단가(5위) 모바일",function(i){return R[i][K.MMO]||"";}],
   ["광고깊이",function(i){return R[i][K.DEPTH];}],
   ["경쟁정도",function(i){return NCOMP[R[i][K.COMP]];}],
   ["상품수",function(i){var v=prodOf(i);return v==null?"":v;}],
@@ -1673,12 +1674,16 @@ function applyNaverKw(rec){
    검색수는 이 파일이 우리 숫자보다 새것일 때만 덮어쓴다. */
 var PRODH={};   /* 키워드 → [{at, prod}] 상품수 기록. 종합차트에 점으로 찍힌다 */
 function applyItemScout(rec){
-  var seed=rec.rows[0].kw, idx=[];
+  var seed=rec.rows[0].kw, idx=[], needLive=[];
   rec.rows.forEach(function(x){
     var i=BYKW[x.kw];
     if(i==null){ if(N>=CAP) return; i=newRow(x.kw, seed); }
-    /* 새것만 이긴다. 실시간 기록뿐 아니라 수집본 줄의 날짜(오늘 갱신했을 수 있다)와도 견준다 */
-    var a=R[i], l=LIVEAT[x.kw], newer=(!l || String(l.at)<=String(rec.at)) && (!a[K.DAY] || a[K.DAY]<=todayInt(rec.at));
+    /* 아이템스카우트 연관키워드의 검색수·클릭은 오늘 값이 아니다 (2026-10-11 같은 날 대조: 정확히 같은 것 10%,
+       밤 삶기 15,430 대 네이버 63,660). 검색한 씨앗만 새 값이고 나머지는 저장해둔 옛 값이다.
+       그래서 우리한테 네이버 숫자가 있으면 절대 덮지 않는다. 숫자가 아예 없는 새 키워드에만 임시로 넣고,
+       실시간 서버가 있으면 곧바로 네이버에서 다시 받는다 (아래 needLive). */
+    var a=R[i], l=LIVEAT[x.kw], ours=((a[K.PC]||0)+(a[K.MO]||0))>0 || !!a[K.DAY] || !!l;
+    var newer=!ours;
     if(newer){
       a[K.PC]=x.pc; a[K.MO]=x.mo; a[K.TPC]=x.ctrPc; a[K.TMO]=x.ctrMo; a[K.MASK]=0; a[K.DAY]=todayInt(rec.at);
       if(x.clk!=null){
@@ -1687,9 +1692,11 @@ function applyItemScout(rec){
       }
       LIVEAT[x.kw]={ at:rec.at, bid:false, src:"itemscout" };
     }
+    if(newer) needLive.push(x.kw);
     if(x.prod!=null){
       a[K.PROD]=x.prod;
-      a[K.ICOMP]= newer && x.comp!=null ? x.comp : 0;
+      /* 경쟁강도는 저쪽 값(상품수 ÷ 저쪽의 낡은 검색수)을 쓰지 않는다. 상품수 ÷ 우리 네이버 검색수로 다시 낸다 */
+      a[K.ICOMP]=0;
       var h=PRODH[x.kw]||(PRODH[x.kw]=[]);
       if(!h.some(function(p){ return p.at===rec.at; })) h.push({ at:rec.at, prod:x.prod });
       h.sort(function(p,q){ return String(p.at).localeCompare(String(q.at)); });
@@ -1710,7 +1717,31 @@ function applyItemScout(rec){
   });
   LIVESEEN++;
   rec.idx=idx;
+  if(needLive.length) liveFill(needLive);
   return idx;
+}
+/* 우리한테 없던 키워드를 네이버에서 지금 값으로 채운다. 30개씩, 300개까지. 실시간 서버가 있을 때만 */
+var LIVEFILL_BUSY=false, LIVEFILL_Q=[];
+async function liveFill(kws){
+  kws.forEach(function(k){ if(LIVEFILL_Q.indexOf(k)<0) LIVEFILL_Q.push(k); });
+  if(LIVEFILL_BUSY) return;
+  LIVEFILL_BUSY=true;
+  try{
+    /* LIVE 는 페이지가 뜬 뒤에 정해진다. 엑셀 재적용이 그보다 먼저 돌 수 있어 잠깐 기다린다 */
+    for(var w=0; w<20 && !LIVE; w++) await new Promise(function(r){ setTimeout(r,250); });
+    if(!LIVE){ LIVEFILL_Q=[]; return; }
+    var done=0;
+    while(LIVEFILL_Q.length && done<300){
+      var part=LIVEFILL_Q.splice(0,30).filter(function(k){ var l=LIVEAT[k]; return !(l && l.src==="live"); });
+      if(!part.length) continue;
+      try{
+        var r=await fetch("/api/multi?kws="+encodeURIComponent(part.join(",")));
+        var j=await r.json(); if(r.ok) applyMulti(j);
+      }catch(e){}
+      done+=part.length;
+    }
+    recalc(); refresh();
+  } finally { LIVEFILL_BUSY=false; }
 }
 /* 상품수 직접 입력. 네이버쇼핑·아이템스카우트 화면에서 본 숫자를 사람이 넣는다.
    자동으로 긁지 않는다(쇼핑 검색 결과 자동 수집은 네이버 DB권 판례 · docs/04).
@@ -1916,7 +1947,9 @@ var XKIND={ supply:"공급가 비교표", naverkw:"네이버 키워드도구", i
 /* ── 아이템스카우트 ↔ 네이버 지금 값 ──
    "같은 조건 · 같은 값" 을 눈으로 확인하는 표. 아이템스카우트 엑셀을 받은 그 날 눌러야 뜻이 있다.
    검색수·클릭·클릭률은 둘 다 네이버 검색광고 키워드도구가 원본이라 같은 날이면 같아야 한다.
-   광고 단가는 네이버 중간 입찰가(최근 한 달)와 맞대본다 — 같은지 아닌지가 이 표로 갈린다.
+   광고 단가는 네이버 5위 평균 입찰가다 (2026-10-11 확인).
+   다만 아이템스카우트 연관키워드의 숫자는 키워드마다 받은 날이 달라 오래된 값이 섞여 있다 —
+   검색한 씨앗만 새 값이고 딸려 나온 것은 저장해둔 값이다. 그래서 같은 날 맞대도 전부 같지는 않다.
    경쟁강도 = 상품수 ÷ 총검색수, 클릭 경쟁률 = 상품수 ÷ 평균클릭수 (아이템스카우트 98/98 확인). */
 async function runIsCmp(fi){
   var f=XROWS[fi]; if(!f||!LIVE) return;
@@ -1955,13 +1988,13 @@ function isCmpBlock(f){
    +'아이템스카우트 '+(fd.getMonth()+1)+'/'+fd.getDate()+' ↔ 네이버 '+(cd.getMonth()+1)+'/'+cd.getDate()+' '+liveTime(cd)+' · '
    +'검색수 차이 중앙값 <b>'+(md(dv)!=null?md(dv).toFixed(1):"—")+'%</b> (±5% 안 '+within(dv,5)+') · '
    +'평균클릭수 <b>'+(md(dc)!=null?md(dc).toFixed(1):"—")+'%</b> (±5% 안 '+within(dc,5)+') · '
-   +'모바일 광고 단가 ↔ 중간 입찰가 <b>'+(md(da)!=null?md(da).toFixed(1):"—")+'%</b> (±5% 안 '+within(da,5)+')'
+   +'모바일 광고 단가 ↔ 네이버 5위 입찰가 <b>'+(md(da)!=null?md(da).toFixed(1):"—")+'%</b> (±5% 안 '+within(da,5)+')'
    +(sameDay?'':'<br><b>날짜가 다르다.</b> 검색수는 최근 30일 값이라 날짜가 다르면 당연히 어긋난다. 아이템스카우트를 오늘 다시 받아서 대조해라.')
    +'</div>';
   h+='<div class="tbox"><div class="tscroll"><table><thead><tr><th>키워드</th>'
    +'<th>검색수 IS</th><th>검색수 네이버</th><th>차이</th>'
    +'<th>클릭 IS</th><th>클릭 네이버</th><th>차이</th>'
-   +'<th>광고단가 IS PC·모바일</th><th>중간 입찰가 PC·모바일</th><th>차이(모바일)</th>'
+   +'<th>광고단가 IS PC·모바일</th><th>네이버 5위 입찰가 PC·모바일</th><th>차이(모바일)</th>'
    +'<th>상품수</th><th>경쟁강도 IS</th><th>상품수÷네이버 검색</th></tr></thead><tbody>';
   rows.sort(function(p,q){ return (q.it||0)-(p.it||0); }).forEach(function(r){
     var x=r.x;
@@ -2753,9 +2786,9 @@ function renderHero(){
       return '<div class="hc"><div class="hc-top"><span class="hc-k">평균 입찰가 · 1~3위</span>'
         +'<span class="hc-src">목표 순위 추정</span></div>'
         +'<div class="bidtab">'+row("PC",pcs)+row("모바일",mos)+'</div>'
-        +'<div class="medrow"><b>중간 입찰가</b><span>PC <em>'+(a[K.MPC]?fmt(a[K.MPC])+"원":"—")+'</em></span><span>모바일 <em>'+(a[K.MMO]?fmt(a[K.MMO])+"원":"—")+'</em></span></div>'
+        +'<div class="medrow"><b>광고 단가 · 5위</b><span>PC <em>'+(a[K.MPC]?fmt(a[K.MPC])+"원":"—")+'</em></span><span>모바일 <em>'+(a[K.MMO]?fmt(a[K.MMO])+"원":"—")+'</em></span></div>'
         +'<p class="hc-foot">감당 CPC 상한 '+fmt(cap)+'원. <b>붉은 값이 상한을 넘는 자리</b>다. '
-        +'중간 입찰가는 네이버가 주는 최근 한 달 입찰가 중앙값으로, 아이템스카우트 "광고 단가" 와 맞대보는 값이다. '
+        +'광고 단가는 5위 입찰가다 — 아이템스카우트의 "광고 단가" 와 같은 값. '
         +'실제 결제 금액이 아니라 그 순위를 노릴 때의 추정 최대 CPC다.</p></div>';
     })()
   +(function(){

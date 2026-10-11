@@ -10,8 +10,9 @@
  *
  * 받는 것 (전부 네이버 공식 API)
  *   stats  검색광고 /keywordstool              검색수 PC·모바일 · 클릭수 · 클릭률 · 광고 깊이 · 경쟁정도
- *   bids   /estimate/average-position-bid      1~3위 평균 입찰가 PC·모바일
- *   med    /estimate/median-bid (MONTH)        중간 입찰가 PC·모바일 — 아이템스카우트 "광고 단가" 후보
+ *   bids   /estimate/average-position-bid      1~3위 · 5위 평균 입찰가 PC·모바일
+ *          5위 입찰가가 아이템스카우트의 "광고 단가" 다. 2026-10-11 같은 날 받은 파일 330개로 가렸다
+ *          (70원이 아닌 줄에서 5위가 제일 가깝다. 중간 입찰가 · 최소 노출 입찰가는 아니었다).
  *   food   API HUB 쇼핑인사이트 (식품 50000006)  식품 분야에서 쇼핑 클릭이 있는가
  *          롯데시네마 · 룰루레몬 · 멜론티켓 은 "없음", 청도반시 · 레몬 은 "있음" 으로 갈린다.
  *          글자로 섹션을 나누다 끼어든 식품 아닌 키워드를 네이버 기준으로 걸러낸다.
@@ -35,8 +36,10 @@ const OUTDIR = path.join(ROOT, "naver-out");
 const OUT = path.join(OUTDIR, "fresh.json");
 const args = process.argv.slice(2);
 const val = f => { const i = args.indexOf(f); return i >= 0 ? args[i + 1] : null; };
-const STEPS = new Set((val("--steps") || "stats,bids,med,food").split(","));
+const STEPS = new Set((val("--steps") || "stats,bids,food").split(","));
 const MAX_AGE_H = +(val("--max-age") || 12);
+/* 식품 판정은 천천히 바뀐다. 매번 8,400번을 다시 부를 이유가 없다. 기본 일주일 */
+const FOOD_AGE_H = +(val("--food-age") || 24 * 7);
 const LIMIT = +(val("--limit") || 0);
 
 /* ── 키 ── live-server.mjs 와 같은 규칙 */
@@ -170,53 +173,36 @@ async function doStats() {
   save(true);
 }
 
-/* 2. 1~3위 입찰가 — 50개씩, PC·모바일 */
+/* 2. 1~3위 · 5위 입찰가 — 50개씩(한 번에 200항목이 한도), PC·모바일. 5위가 "광고 단가" */
 async function doBids() {
-  const list = targets.filter(k => !fresh(k, "bAt"));
-  console.error(`1~3위 입찰가  ${list.length.toLocaleString()}개`);
+  const list = targets.filter(k => !fresh(k, "bAt") || !fresh(k, "mAt"));
+  console.error(`1~3위 · 5위 입찰가  ${list.length.toLocaleString()}개`);
   for (let i = 0; i < list.length; i += 50) {
     const g = list.slice(i, i + 50);
     const got = {};
     for (const device of ["PC", "MOBILE"]) {
-      const items = g.flatMap(k => [1, 2, 3].map(p => ({ key: clean(k), position: p })));
+      const items = g.flatMap(k => [1, 2, 3, 5].map(p => ({ key: clean(k), position: p })));
       const r = await ad("POST", "/estimate/average-position-bid/keyword", { body: { device, items } });
       stat.calls++;
       if (!r.ok) { stat.fail.push({ step: "bids", n: g.length, status: r.status, text: safe(r.text).slice(0, 120) }); continue; }
-      for (const e of r.json?.estimate || []) ((got[clean(e.keyword)] ||= { PC: [null, null, null], MOBILE: [null, null, null] })[device])[e.position - 1] = e.bid;
+      for (const e of r.json?.estimate || []) ((got[clean(e.keyword)] ||= { PC: [null, null, null, null, null], MOBILE: [null, null, null, null, null] })[device])[e.position - 1] = e.bid;
       await sleep(80);
     }
     const at = new Date().toISOString();
-    for (const k of g) { const b = got[clean(k)]; if (!b) continue; const o = row(k); o.b = [...b.PC, ...b.MOBILE]; o.bAt = at; dirty++; stat.bids++; }
+    for (const k of g) { const b = got[clean(k)]; if (!b) continue; const o = row(k);
+      o.b = [...b.PC.slice(0, 3), ...b.MOBILE.slice(0, 3)]; o.bAt = at;
+      o.m = [b.PC[4], b.MOBILE[4]]; o.mAt = at; o.mKind = "pos5";      // m = 광고 단가(5위). 전에는 중간 입찰가를 담았다
+      dirty++; stat.bids++; }
     if ((i / 50) % 40 === 0) console.error(`  입찰가 ${Math.min(i + 50, list.length).toLocaleString()}/${list.length.toLocaleString()}`);
     save();
   }
   save(true);
 }
 
-/* 3. 중간 입찰가 — 200개씩, PC·모바일, 최근 한 달 */
-async function doMed() {
-  const list = targets.filter(k => !fresh(k, "mAt"));
-  console.error(`중간 입찰가  ${list.length.toLocaleString()}개`);
-  for (let i = 0; i < list.length; i += 200) {
-    const g = list.slice(i, i + 200);
-    const got = {};
-    for (const device of ["PC", "MOBILE"]) {
-      const r = await ad("POST", "/estimate/median-bid/keyword", { body: { device, period: "MONTH", items: g.map(clean) } });
-      stat.calls++;
-      if (!r.ok) { stat.fail.push({ step: "med", n: g.length, status: r.status, text: safe(r.text).slice(0, 120) }); continue; }
-      for (const e of r.json?.estimate || []) (got[clean(e.keyword || e.key)] ||= {})[device] = e.bid;
-      await sleep(80);
-    }
-    const at = new Date().toISOString();
-    for (const k of g) { const m = got[clean(k)]; if (!m) continue; const o = row(k); o.m = [m.PC ?? null, m.MOBILE ?? null]; o.mAt = at; dirty++; stat.med++; }
-    save();
-  }
-  save(true);
-}
-
-/* 4. 식품 쇼핑 클릭 — API HUB 쇼핑인사이트, 5개씩. 최근 한 달 클릭이 한 번이라도 잡히면 1 */
+/* 3. 식품 쇼핑 클릭 — API HUB 쇼핑인사이트, 5개씩. 최근 한 달 클릭이 한 번이라도 잡히면 1 */
 async function doFood() {
-  const list = targets.filter(k => !fresh(k, "fAt") || F.rows[k].f == null);
+  const freshFood = k => { const r = F.rows[k]; return r && r.fAt && r.f != null && (Date.now() - Date.parse(r.fAt)) < FOOD_AGE_H * 3600e3; };
+  const list = targets.filter(k => !freshFood(k));
   const end = new Date(Date.now() - 864e5), start = new Date(Date.now() - 31 * 864e5);
   const ymd = d => d.toISOString().slice(0, 10);
   console.error(`식품 쇼핑 클릭  ${list.length.toLocaleString()}개 (API HUB 월 한도 안에서)`);
@@ -243,11 +229,11 @@ console.error(`\n대상 ${targets.length.toLocaleString()}개 · 단계 ${[...ST
 const t0 = Date.now();
 /* 검색광고 쪽(stats → bids → med)은 한 줄로, HUB(food)는 옆줄로 같이 돈다 */
 await Promise.all([
-  (async () => { if (STEPS.has("stats")) await doStats(); if (STEPS.has("med")) await doMed(); if (STEPS.has("bids")) await doBids(); })(),
+  (async () => { if (STEPS.has("stats")) await doStats(); if (STEPS.has("bids")) await doBids(); })(),
   (async () => { if (STEPS.has("food")) await doFood(); })()
 ]);
 save(true);
 const n = Object.keys(F.rows).length;
-console.error(`\n끝  ${((Date.now() - t0) / 60000).toFixed(1)}분 · 호출 ${stat.calls.toLocaleString()} · 검색수 갱신 ${stat.statsHit.toLocaleString()} · 못 받음 ${stat.statsMiss} · 입찰가 ${stat.bids.toLocaleString()} · 중간입찰가 ${stat.med.toLocaleString()} · 식품판정 ${stat.food.toLocaleString()} (식품 아님 ${stat.foodNo}) · 실패 ${stat.fail.length}`);
+console.error(`\n끝  ${((Date.now() - t0) / 60000).toFixed(1)}분 · 호출 ${stat.calls.toLocaleString()} · 검색수 갱신 ${stat.statsHit.toLocaleString()} · 못 받음 ${stat.statsMiss} · 입찰가(1~3위·5위) ${stat.bids.toLocaleString()} · 식품판정 ${stat.food.toLocaleString()} (식품 아님 ${stat.foodNo}) · 실패 ${stat.fail.length}`);
 if (stat.fail.length) console.error("  실패 예: " + JSON.stringify(stat.fail.slice(0, 3)));
 console.error(`→ ${OUT}  (${n.toLocaleString()}개)`);

@@ -58,13 +58,23 @@ function loadKeys() {
 const { KEY, SECRET, CUSTOMER } = loadKeys();
 if (!KEY) { console.error("key.txt 에 검색광고 키가 없다."); process.exit(1); }
 const sleep = ms => new Promise(r => setTimeout(r, ms));
+/* 429(잠깐 막힘) · 5xx 는 기다렸다 다시 부른다. 전에는 한 번 막히면 그 묶음을 통째로 "네이버에 없음" 으로 적었다
+   (대추 · 공주밤 · 알밤 38개가 그렇게 빠졌다. 따로 부르면 다 있다). */
 async function ad(method, p, { qs = "", body } = {}) {
-  const ts = Date.now().toString();
-  const sig = crypto.createHmac("sha256", SECRET).update(`${ts}.${method}.${p}`).digest("base64");
-  const r = await fetch("https://api.searchad.naver.com" + p + qs, { method, body: body ? JSON.stringify(body) : undefined,
-    headers: { "X-Timestamp": ts, "X-API-KEY": KEY, "X-Customer": CUSTOMER, "X-Signature": sig, "Content-Type": "application/json; charset=UTF-8" } });
-  const t = await r.text(); let j = null; try { j = JSON.parse(t); } catch {}
-  return { ok: r.ok, status: r.status, json: j };
+  let last = { ok: false, status: 0, json: null };
+  for (let attempt = 0; attempt < 5; attempt++) {
+    const ts = Date.now().toString();
+    const sig = crypto.createHmac("sha256", SECRET).update(`${ts}.${method}.${p}`).digest("base64");
+    try {
+      const r = await fetch("https://api.searchad.naver.com" + p + qs, { method, body: body ? JSON.stringify(body) : undefined,
+        headers: { "X-Timestamp": ts, "X-API-KEY": KEY, "X-Customer": CUSTOMER, "X-Signature": sig, "Content-Type": "application/json; charset=UTF-8" } });
+      const t = await r.text(); let j = null; try { j = JSON.parse(t); } catch {}
+      last = { ok: r.ok, status: r.status, json: j };
+      if (r.status !== 429 && r.status < 500) return last;
+    } catch (e) { last = { ok: false, status: "연결실패", json: null }; }
+    await sleep(1500 * (attempt + 1));
+  }
+  return last;
 }
 
 /* ── xlsx ── */
@@ -123,12 +133,12 @@ for (const file of files) {
   console.log(`\n${path.basename(file)} — ${IS.length}개 · 파일 시각 ${stamp ? new Date(+stamp).toLocaleString("ko-KR") : mt.toLocaleString("ko-KR")} · 네이버 지금 ${new Date().toLocaleString("ko-KR")}`);
 
   /* 네이버 지금 값 */
-  const N = {}; const hints = [...new Set(IS.map(x => clean(x.kw)))];
+  const N = {}, failed = []; const hints = [...new Set(IS.map(x => clean(x.kw)))];
   for (let i = 0; i < hints.length; i += 5) {
     const g = hints.slice(i, i + 5);
     let r = await ad("GET", "/keywordstool", { qs: "?hintKeywords=" + g.map(encodeURIComponent).join(",") + "&showDetail=1" });
     let list = r.ok ? r.json.keywordList : [];
-    if (!r.ok) for (const h of g) { const one = await ad("GET", "/keywordstool", { qs: "?hintKeywords=" + encodeURIComponent(h) + "&showDetail=1" }); if (one.ok) list.push(...one.json.keywordList); }
+    if (!r.ok) for (const h of g) { const one = await ad("GET", "/keywordstool", { qs: "?hintKeywords=" + encodeURIComponent(h) + "&showDetail=1" }); if (one.ok) list.push(...one.json.keywordList); else failed.push(h + "(" + one.status + ")"); await sleep(150); }
     for (const x of list || []) if (g.includes(clean(x.relKeyword))) N[clean(x.relKeyword)] = { pc: x.monthlyPcQcCnt, mo: x.monthlyMobileQcCnt, cpc: +x.monthlyAvePcClkCnt || 0, cmo: +x.monthlyAveMobileClkCnt || 0, tpc: +x.monthlyAvePcCtr || 0, tmo: +x.monthlyAveMobileCtr || 0 };
     await sleep(120);
   }
@@ -177,6 +187,7 @@ for (const file of files) {
       x.clkComp, x.prod != null && x.clk ? (x.prod / x.clk).toFixed(2) : "", x.adPerClk].map(v => v == null ? "" : String(v).includes(",") ? `"${v}"` : v).join(","));
   }
   const within = (xs, t) => { const v = xs.filter(x => x != null); return v.length ? (v.filter(x => Math.abs(x) <= t).length / v.length * 100).toFixed(0) + "%" : "—"; };
+  if (failed.length) console.log(`  조회 자체가 실패한 것 ${failed.length}: ${failed.slice(0, 12).join(" ")}`);
   console.log(`  네이버에서 찾음 ${found}/${IS.length} · 네이버가 "< 10" 으로 가린 것 ${maskedN}`);
   console.log(`  검색수      차이 중앙값 ${med(D.vol)?.toFixed(1)}% · ±1% 안 ${within(D.vol, 1)} · ±5% 안 ${within(D.vol, 5)}`);
   console.log(`  평균클릭수  차이 중앙값 ${med(D.clk)?.toFixed(1)}% · ±5% 안 ${within(D.clk, 5)}`);
