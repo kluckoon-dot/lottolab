@@ -593,6 +593,7 @@ th.srt[data-dir]::after{content:attr(data-dir);margin-left:3px;color:var(--brand
 .relbar{flex-wrap:wrap}
 .relbar .rel-is{font-size:11px;font-weight:700;padding:2px 9px;border-radius:999px;background:var(--good-bg,rgba(27,175,122,.14));color:var(--good)}
 .relbar .rel-no{font-size:11px;font-weight:700;padding:2px 9px;border-radius:999px;background:var(--skip-bg);color:var(--skip)}
+.relbar button.on{background:var(--good);border-color:var(--good);color:#fff}
 .relbar .rel-help{flex-basis:100%;margin:2px 0 0;font-size:11.5px;font-weight:500;color:var(--ink-3);line-height:1.5}
 .relbar button{border:1px solid var(--line-strong);background:var(--surface);color:var(--ink-2);
   border-radius:8px;padding:5px 12px;font:inherit;font-size:12px;font-weight:600;cursor:pointer}
@@ -614,35 +615,24 @@ th.srt[data-dir]::after{content:attr(data-dir);margin-left:3px;color:var(--brand
       <button type="button" data-p="coupang" aria-pressed="false">쿠팡</button>
     </div>
     <div class="setgrp" id="naverFees">
-      <label class="set-k" for="orderFee">주문관리</label>
-      <select id="orderFee">
-        <option value="0.0198">3억 이하 · 1.98%</option>
-        <option value="0.0259">3~5억 · 2.59%</option>
-        <option value="0.0275">5~10억 · 2.75%</option>
-        <option value="0.0303">10~30억 · 3.03%</option>
-        <option value="0.0363" selected>30억↑ · 첫해 · 3.63%</option>
-      </select>
-      <label class="set-k" for="linkFee">매출연동</label>
-      <select id="linkFee">
-        <option value="0.03" selected>검색 구매 · 3%</option>
-        <option value="0.01">광고 구매 · 1%</option>
-      </select>
+      <label class="set-k" for="nvFee" title="네이버 스마트스토어에서 판매가에 붙는 수수료 전부. 판매가 계산기의 '네이버 수수료율' 과 같은 값이다">네이버 수수료 %</label>
+      <input type="number" id="nvFee" value="6.63" step="0.01" min="0" max="50" style="width:82px">
     </div>
     <div class="setgrp" id="coupangFees" hidden>
-      <label class="set-k" for="cpFee">쿠팡 수수료 %</label>
-      <input type="number" id="cpFee" value="11.66" step="0.01" style="width:82px">
+      <label class="set-k" for="cpFee" title="쿠팡 판매수수료(부가세 포함). 판매가 계산기의 '쿠팡 수수료율' 과 같은 값이다. 쿠폰 적용가에 붙는다">쿠팡 수수료 %</label>
+      <input type="number" id="cpFee" value="11.66" step="0.01" min="0" max="50" style="width:82px">
     </div>
     <div class="setgrp" id="calcPickWrap" hidden><label class="set-k" for="calcPick">계산기</label>
       <select id="calcPick" style="max-width:220px"><option value="">직접 입력</option></select></div>
     <div class="setgrp"><label class="set-k" for="supPrice">공급가</label><input type="number" id="supPrice" value="12150" step="100" style="width:94px"></div>
     <div class="setgrp"><label class="set-k" for="sellPrice">판매가</label><input type="number" id="sellPrice" value="19900" step="100" style="width:94px"></div>
     <div class="setgrp"><label class="set-k" for="shipFee">배송비</label><input type="number" id="shipFee" value="0" step="100" style="width:78px"></div>
-    <div class="setgrp" style="min-width:230px">
-      <label class="set-k" for="tgtCvr">목표 전환율</label>
+    <div class="setgrp" style="min-width:290px">
+      <label class="set-k" for="tgtCvr" title="광고를 누른 100명 중 몇 명이 사는가. 1~30% 사이에서 직접 정한다">목표 전환율</label>
       <div class="slider-row" style="flex:1">
         <span class="tick">1%</span>
-        <input type="range" id="tgtCvr" min="1" max="10" step="0.5" value="1" style="flex:1;min-width:90px">
-        <span class="tick">10%</span>
+        <input type="range" id="tgtCvr" min="1" max="30" step="0.5" value="1" style="flex:1;min-width:140px">
+        <span class="tick">30%</span>
         <span class="f-val num" id="tgtCvrV" style="min-width:38px">1.0%</span>
       </div>
     </div>
@@ -924,6 +914,7 @@ th.srt[data-dir]::after{content:attr(data-dir);margin-left:3px;color:var(--brand
 <script src="data-click.js" charset="utf-8"></script>
 <script src="data-meta.js" charset="utf-8"></script>
 <script src="data-is.js" charset="utf-8"></script>
+<script src="data-calc.js" charset="utf-8"></script>
 <script src="data-relidx.js" charset="utf-8"></script>
 <script src="xlsx-lab.js" charset="utf-8"></script>
 <script>
@@ -1305,11 +1296,14 @@ var NCOMP=["낮음","중간","높음"];
 /* 기준 — docs/08-verdict-rules.md 확정본 */
 var RULE={ minVol:100, maxComp:5.0, marginMin:0.20, buyNone:0.05 };   // buyNone: 구매의도가 이 아래면 "사지 않는 키워드" 로 본다
 var REF={ naver:0.005, coupang:0.001 };      // 화면 참고선. 판정에는 쓰지 않는다
-var SET={ platform:"naver", orderFee:0.0363, linkFee:0.03, coupangFee:0.1166,
+/* 수수료 · 광고 안전계수는 보갬의 판매가 계산기(설정_원가 탭) 값이다 — 네이버 6.63% · 쿠팡 11.66%, 안전계수 1.0 · 1.1 (2026-10-08 v1.6).
+   전에는 네이버를 주문관리 + 매출연동으로 나눠 골랐다. 계산기가 한 값으로 쓰므로 한 칸으로 줄였다 (보갬, 2026-10-12).
+   계산기 엑셀을 넣으면 그 파일의 값으로 바뀐다. */
+var SET={ platform:"naver", naverFee:0.0663, coupangFee:0.1166, kNaver:1.0, kCoupang:1.1,
           supply:12150, sell:19900, ship:0, tgtCvr:0.01 };
 
-function feeRate(){ return SET.platform==="naver" ? SET.orderFee+SET.linkFee : SET.coupangFee; }
-function roasMult(){ return SET.platform==="naver" ? 1.0 : 1.1; }
+function feeRate(){ return SET.platform==="naver" ? SET.naverFee : SET.coupangFee; }
+function roasMult(){ return SET.platform==="naver" ? SET.kNaver : SET.kCoupang; }
 function marginOf(){
   var fee=SET.sell*feeRate(), m=SET.sell-SET.supply-fee-SET.ship;
   return { fee:fee, margin:m, rate: SET.sell? m/SET.sell : 0, minRoas: m>0 ? SET.sell/m*roasMult() : Infinity };
@@ -1616,8 +1610,7 @@ function bindTips(box){ box.querySelectorAll("[data-t]").forEach(function(n){
 
 /* 설정 UI */
 function readSet(){
-  SET.orderFee=+document.getElementById("orderFee").value;
-  SET.linkFee=+document.getElementById("linkFee").value;
+  SET.naverFee=(+document.getElementById("nvFee").value||0)/100;
   SET.coupangFee=(+document.getElementById("cpFee").value||0)/100;
   SET.supply=+document.getElementById("supPrice").value||0;
   SET.sell=+document.getElementById("sellPrice").value||0;
@@ -1627,26 +1620,34 @@ function readSet(){
   document.getElementById("naverFees").hidden=SET.platform!=="naver";
   document.getElementById("coupangFees").hidden=SET.platform!=="coupang";
   var mg=marginOf();
+  /* 계산기와 맞대 볼 수 있게 최소 ROAS(= 판매가 ÷ 마진 × 안전계수)를 같이 적는다. 계산기의 "실제 최소 ROAS" 와 같은 식이다 */
+  var cs=calcSet(), tR= cs ? (SET.platform==="naver" ? cs.nRoas : cs.cRoas) : null, note="";
+  if(isFinite(mg.minRoas)) note+=" · 최소 ROAS "+mg.minRoas.toFixed(2)+(tR ? (mg.minRoas<=tR+0.05 ? " (목표 "+tR+" 안)" : " (목표 "+tR+" 초과)") : "");
+  if(cs && cs.minProfit && mg.margin<cs.minProfit) note+=" · 최소 공헌이익 "+fmt(cs.minProfit)+"원 미달";
   document.getElementById("feeOut").textContent=
-    (SET.platform==="naver"?"네이버":"쿠팡")+" 수수료 "+(feeRate()*100).toFixed(2)+"% · 마진 "+fmt(mg.margin)+"원 ("+(mg.rate*100).toFixed(1)+"%)";
+    (SET.platform==="naver"?"네이버":"쿠팡")+" 수수료 "+(feeRate()*100).toFixed(2)+"% · 마진 "+fmt(mg.margin)+"원 ("+(mg.rate*100).toFixed(1)+"%)"+note;
 }
 document.getElementById("platSeg").querySelectorAll("button").forEach(function(b){
   b.onclick=function(){ SET.platform=b.dataset.p;
     document.getElementById("platSeg").querySelectorAll("button").forEach(function(x){ x.setAttribute("aria-pressed",x===b); });
+    /* 계산기 옵션을 넣어 둔 상태면 그 채널의 판매가로 바꾼다 (쿠팡은 쿠폰 적용가) */
+    if(CALCSEL){ var cp=CALCSEL.split(":"); applyCalc(+cp[0], +cp[1]); return; }
     refresh(); saveSet(); };
 });
-["orderFee","linkFee","cpFee","supPrice","sellPrice","shipFee","tgtCvr"].forEach(function(id){
+["nvFee","cpFee","supPrice","sellPrice","shipFee","tgtCvr"].forEach(function(id){
   document.getElementById(id).addEventListener("input",function(){ refresh(); saveSet(); });
 });
 /* 판매 설정은 기억한다. 다음에 열어도 내 공급가·판매가 그대로. */
-var SET_IDS=["orderFee","linkFee","cpFee","supPrice","sellPrice","shipFee","tgtCvr"];
+var SET_IDS=["nvFee","cpFee","supPrice","sellPrice","shipFee","tgtCvr"];
+var SET_SAVED=null;   /* 지난번에 남긴 설정. 없으면 처음 연 것이다 */
 function saveSet(){
-  try{ var o={ platform:SET.platform };
+  try{ var o={ platform:SET.platform, calc:calcSelName() };
     SET_IDS.forEach(function(id){ o[id]=document.getElementById(id).value; });
     localStorage.setItem("kwlab.set", JSON.stringify(o)); }catch(e){}
 }
 (function(){
   try{ var o=JSON.parse(localStorage.getItem("kwlab.set")||"null"); if(!o) return;
+    SET_SAVED=o;
     SET_IDS.forEach(function(id){ if(o[id]!=null && o[id]!=="") document.getElementById(id).value=o[id]; });
     if(o.platform){ SET.platform=o.platform;
       document.getElementById("platSeg").querySelectorAll("button").forEach(function(x){ x.setAttribute("aria-pressed", x.dataset.p===o.platform); }); }
@@ -1842,7 +1843,11 @@ function renderTable(){
             : '이 씨앗은 받아 둔 네이버 목록이 없다(신선식품 품목 · 품종 이름만 받아 두었다) · 수집할 때 나온 연관 중 화면에 담긴 것 · 전부는 PC 실시간에서')+'</span>'
         +'<button type="button" id="relWide">확장 목록 →</button>'+btnIs;
     }
-    rb.innerHTML=relHead+'<button type="button" id="relOff">전체 목록으로 →</button>';
+    /* 네이버가 준 목록에는 식품이 아닌 것 · 정보성 키워드가 섞여 온다. 한 번 눌러 구매의도 있는 것만 본다 (필터의 구매의도 "낮음 이상" 과 같다) */
+    var buyOn= F.bmin!=null && F.bmin>=RULE.buyNone && F.bmax==null;
+    rb.innerHTML=relHead+'<button type="button" id="relBuy"'+(buyOn?' class="on"':'')+' title="구매의도 없음(식품이 아닌 것 · 정보성)과 미확인을 숨긴다. 표 위 필터의 구매의도 낮음 이상 과 같다">'
+      +(buyOn?'✓ 살 사람 있는 것만 보는 중 · 풀기':'살 사람 있는 것만 →')+'</button><button type="button" id="relOff">전체 목록으로 →</button>';
+    document.getElementById("relBuy").onclick=function(){ if(buyOn) F.bmin=null; else { F.bmin=RULE.buyNone; F.bmax=null; } LIMIT=100; renderTable(); };
     document.getElementById("relOff").onclick=function(){ clearRel(); LIMIT=100; refresh(); };
     var rw=document.getElementById("relWide"); if(rw) rw.onclick=function(){ relToggle("wide"); };
     var rn=document.getElementById("relNv"); if(rn) rn.onclick=function(){ relToggle(""); };
@@ -2486,6 +2491,8 @@ async function loadSavedUploads(){
   lsLoad().forEach(function(x){ if(!got.some(function(g){ return g.id===x.id; })){ x.where="browser"; got.push(x); } });
   /* 저장본에 실린 아이템스카우트 목록. PC 실시간 서버에서는 넣는곳의 엑셀을 직접 읽으므로 쓰지 않는다 */
   if(!LIVE) (window.ISRECS||[]).forEach(function(b){ if(!got.some(function(g){ return g.file===b.file; })){ applyBaked(b); b.where="baked"; got.push(b); } });
+  /* 저장본에 실린 판매가 계산기 (PC 실시간에서는 넣는곳의 엑셀을 직접 읽는다) */
+  if(!LIVE) (window.CALCRECS||[]).forEach(function(b){ if(!got.some(function(g){ return g.kind==="calc" && g.file===b.file; })){ b.where="baked"; got.push(b); } });
   XROWS=got;
   /* 키워드도구·아이템스카우트 엑셀은 다시 적용한다. 오래된 것부터 — 새것이 이기게. */
   var nk=got.filter(function(x){ return x.kind==="naverkw"||x.kind==="itemscout"; })
@@ -2493,6 +2500,7 @@ async function loadSavedUploads(){
   if(nk.length) nk.forEach(applyRec);
   applyManualAll(); buildCats(); recalc(); refresh();
   await syncInbox();
+  restoreCalc();
   renderCalcPick();
   if(TAB==="xls") renderXls();
 }
@@ -2651,6 +2659,32 @@ function itemScoutBlocks(f, fi){
    계산기 한 줄을 고르면 공급가·판매가가 위 설정에 들어가고, 화면의 모든 판정이 그 값으로 다시 돈다.
    총원가에 배송·포장이 이미 들어 있으므로 배송비는 0 으로 둔다. */
 var CALCSEL="";
+/* 계산기 엑셀에 적힌 설정(수수료율 · 안전계수 · 목표 ROAS · 쿠폰액 · 최소 공헌이익). 여러 개면 맨 앞(가장 최근) 것 */
+function calcSet(){
+  var list=(typeof XROWS==="undefined" || !XROWS) ? [] : XROWS;
+  for(var i=0;i<list.length;i++) if(list[i].kind==="calc" && list[i].set) return list[i].set;
+  return null;
+}
+function calcSelName(){
+  if(!CALCSEL) return "";
+  var p=CALCSEL.split(":"), f=XROWS[+p[0]], r=f&&f.rows[+p[1]];
+  return r ? f.file+"|"+r.name : "";
+}
+/* 계산기의 수수료율 · 안전계수를 화면 설정에 넣는다. force 가 아니면 내가 직접 고쳐 둔 수수료는 건드리지 않는다 */
+function applyCalcSet(set, force){
+  if(!set) return;
+  if(set.nK) SET.kNaver=set.nK;
+  if(set.cK) SET.kCoupang=set.cK;
+  var had=function(id){ return SET_SAVED && SET_SAVED[id]!=null && SET_SAVED[id]!==""; };
+  if(set.nFee && (force || !had("nvFee"))) document.getElementById("nvFee").value=+(set.nFee*100).toFixed(2);
+  if(set.cFee && (force || !had("cpFee"))) document.getElementById("cpFee").value=+(set.cFee*100).toFixed(2);
+}
+/* 쿠팡에서 마진을 따지는 값은 쿠폰 적용가다. 등록가는 거기에 판매자 쿠폰을 더한 값이고 수수료도 쿠폰 적용가에 붙는다 */
+function calcPrice(f, r){
+  if(SET.platform!=="coupang") return r.nPrice || r.cCoupon || r.cPrice;
+  var cp=(f.set && f.set.coupon) || 0;
+  return r.cCoupon || (r.cPrice ? r.cPrice-cp : 0) || r.nPrice;
+}
 function calcRows(){
   var out=[];
   XROWS.forEach(function(f,fi){ if(f.kind==="calc") f.rows.forEach(function(r,ri){ out.push({ fi:fi, ri:ri, f:f, r:r }); }); });
@@ -2658,14 +2692,33 @@ function calcRows(){
 }
 function applyCalc(fi, ri){
   var f=XROWS[fi], r=f&&f.rows[ri]; if(!r) return;
-  var price = SET.platform==="coupang" ? (r.cPrice||r.nPrice) : (r.nPrice||r.cPrice);
+  var price = calcPrice(f, r);
+  applyCalcSet(f.set, true);
   document.getElementById("supPrice").value=Math.round(r.cost);
   if(price) document.getElementById("sellPrice").value=Math.round(price);
   document.getElementById("shipFee").value=0;
   CALCSEL=fi+":"+ri;
   refresh(); renderCalcPick(); saveSet();
   var n=document.getElementById("xErr");
-  if(TAB==="xls" && n) n.innerHTML='<div class="xok">마진 설정에 넣었다 — <b>'+esc(r.name)+'</b> · 원가 '+fmt(r.cost)+'원 · 판매가 '+fmt(price||0)+'원. 화면 전체 판정이 이 값으로 다시 계산됐다.</div>';
+  if(TAB==="xls" && n) n.innerHTML='<div class="xok">마진 설정에 넣었다 — <b>'+esc(r.name)+'</b> · 원가 '+fmt(r.cost)+'원 · '
+    +(SET.platform==="coupang" ? '쿠팡 쿠폰 적용가 ' : '네이버 판매가 ')+fmt(price||0)+'원'
+    +(SET.platform==="coupang" && r.cPrice ? ' (등록가 '+fmt(r.cPrice)+'원)' : '')+'. 화면 전체 판정이 이 값으로 다시 계산됐다.</div>';
+}
+/* 화면을 다시 열었을 때: 계산기의 수수료 · 안전계수를 맞추고, 지난번에 고른 옵션이 그대로면 고른 상태로 둔다.
+   처음 여는 것이면(남긴 설정이 없으면) 계산기의 기준 옵션을 넣는다 */
+function restoreCalc(){
+  var list=calcRows(); if(!list.length) return;
+  applyCalcSet(calcSet(), false);
+  var want= SET_SAVED ? (SET_SAVED.calc||"") : "", hit=null;
+  if(want) list.forEach(function(x){ if(!hit && x.f.file+"|"+x.r.name===want) hit=x; });
+  if(hit){
+    if(+document.getElementById("supPrice").value===Math.round(hit.r.cost)) CALCSEL=hit.fi+":"+hit.ri;
+  } else if(!SET_SAVED){
+    var cs=calcSet(), base=cs && cs.base;
+    list.forEach(function(x){ if(!hit && base && x.r.name===base) hit=x; });
+    if(hit){ applyCalc(hit.fi, hit.ri); return; }
+  }
+  refresh();
 }
 function renderCalcPick(){
   var list=calcRows(), sel=document.getElementById("calcPick"), wrap=document.getElementById("calcPickWrap");
@@ -2896,6 +2949,15 @@ function calcBlocks(rows, fi){
     ["원가 폭", fmt(Math.min.apply(null,rows.map(function(r){return r.cost;})))+" ~ "+fmt(Math.max.apply(null,rows.map(function(r){return r.cost;}))), "총원가"]
   ]);
 
+  var cs=XROWS[fi] && XROWS[fi].set;
+  if(cs){
+    var pc=function(v){ return v==null ? "—" : (v*100).toFixed(2)+"%"; }, nn=function(v){ return v==null ? "—" : v; };
+    h+='<p class="note" style="margin:10px 0 0">이 계산기의 설정 — 수수료 <b>네이버 '+pc(cs.nFee)+' · 쿠팡 '+pc(cs.cFee)+'</b>'
+      +' · 목표 ROAS '+nn(cs.nRoas)+' / '+nn(cs.cRoas)+' · 광고 안전계수 '+nn(cs.nK)+' / '+nn(cs.cK)
+      +(cs.coupon?' · 쿠팡 쿠폰 '+fmt(cs.coupon)+'원':'')+(cs.minProfit?' · 최소 공헌이익 '+fmt(cs.minProfit)+'원':'')
+      +(cs.safeAdd?' · 공급가 안전가산 '+fmt(cs.safeAdd)+'원(총원가에 포함)':'')+(cs.date?' · 기준일 '+esc(cs.date):'')
+      +'. "넣기" 를 누르면 위 판매 설정의 수수료도 이 값으로 맞춘다.</p>';
+  }
   /* 채널 비교 — 항목마다 전·후 두 점이라 덤벨이 맞다. 한 색조 두 농도. */
   h+=card("옵션별 공헌이익 · 네이버 vs 쿠팡",
     "한 줄이 옵션 하나다. 점 사이가 벌어질수록 채널에 따라 남는 돈이 다르다는 뜻이다.",
@@ -2956,7 +3018,7 @@ function rateBars(rows){
 function calcTable(rows, fi){
   var h='<div class="tbox"><div class="tscroll"><table><thead><tr>'
    +'<th>마진 계산</th><th>옵션명</th><th>총원가</th><th>네이버 판매가</th><th>공헌이익</th><th>이익률</th><th>최소 ROAS</th>'
-   +'<th>쿠팡 등록가</th><th>쿠팡 공헌이익</th><th>쿠팡 이익률</th><th>판정</th></tr></thead><tbody>';
+   +'<th title="수수료와 마진을 따지는 값. 등록가에서 판매자 쿠폰을 뺀 가격">쿠팡 쿠폰 적용가</th><th>쿠팡 등록가</th><th>쿠팡 공헌이익</th><th>쿠팡 이익률</th><th>쿠팡 최소 ROAS</th><th>판정</th></tr></thead><tbody>';
   rows.forEach(function(r, ri){
     h+='<tr><td><button type="button" class="chip'+(CALCSEL===fi+":"+ri?" on":"")+'" data-calc="'+fi+':'+ri+'">'+(CALCSEL===fi+":"+ri?"적용 중":"넣기")+'</button></td>'
      +'<td><span class="kw">'+esc(r.name)+'</span>'
@@ -2966,9 +3028,11 @@ function calcTable(rows, fi){
      +'<td class="num">'+(r.nProfit!=null?fmt(r.nProfit):"—")+'</td>'
      +'<td class="num"><span class="'+((r.nRate||0)>=0.20?"cvr-ok":"cvr-no")+'">'+(r.nRate!=null?(r.nRate*100).toFixed(1)+"%":"—")+'</span></td>'
      +'<td class="num dim">'+(r.nRoas!=null?r.nRoas.toFixed(2):"—")+'</td>'
-     +'<td class="num">'+(r.cPrice?fmt(r.cPrice):"—")+'</td>'
+     +'<td class="num">'+(r.cCoupon?fmt(r.cCoupon):"—")+'</td>'
+     +'<td class="num dim">'+(r.cPrice?fmt(r.cPrice):"—")+'</td>'
      +'<td class="num">'+(r.cProfit!=null?fmt(r.cProfit):"—")+'</td>'
      +'<td class="num"><span class="'+((r.cRate||0)>=0.20?"cvr-ok":"cvr-no")+'">'+(r.cRate!=null?(r.cRate*100).toFixed(1)+"%":"—")+'</span></td>'
+     +'<td class="num dim">'+(r.cRoas!=null&&r.cRoas?r.cRoas.toFixed(2):"—")+'</td>'
      +'<td>'+esc(r.verdict||r.role||"")+'</td></tr>';
   });
   return h+'</tbody></table></div></div>';
@@ -3016,6 +3080,7 @@ function calcTable(rows, fi){
         if(!rows.length){ bad.push(f.name+" — 읽을 줄이 없다"); continue; }
         var rec={ file:f.name, kind:d.kind, rows:rows };
         if(f.inbox) rec.inbox=f.inbox;
+        if(d.kind==="calc" && window.XlsxLab.readCalcSet){ rec.set=window.XlsxLab.readCalcSet(d.book); applyCalcSet(rec.set, true); }
         if(d.kind==="naverkw" || d.kind==="itemscout"){
           /* 파일 이름의 시각을 기준으로 삼는다.
                키워드도구        연관키워드_20261009_1428.xlsx
@@ -3086,7 +3151,8 @@ function renderMargin(){
 
   /* 마진 × 전환율 표 */
   var MARGINS=[3000,6000,10000,15000,20000,30000,50000];
-  var CVRS=[0.01,0.02,0.03,0.05,0.08,0.10];
+  var CVRS=[0.01,0.02,0.03,0.05,0.10,0.15,0.20,0.30];
+  var nearC=CVRS.reduce(function(b,c){ return Math.abs(c-SET.tgtCvr)<Math.abs(b-SET.tgtCvr) ? c : b; }, CVRS[0]);
   var h='<thead><tr><th>마진 \\ 목표 전환율</th>';
   CVRS.forEach(function(c){ h+='<th>'+(c*100).toFixed(0)+'%</th>'; }); h+='</tr></thead><tbody>';
   var curM=mg.margin;
@@ -3096,7 +3162,7 @@ function renderMargin(){
     CVRS.forEach(function(c){
       var pct = passAt(m*c/roasMult())/CPC_SORTED.length*100;
       var st = pct>=80?7:pct>=60?6:pct>=40?5:pct>=25?4:pct>=12?3:pct>=3?2:1;
-      var here = near && Math.abs(c-SET.tgtCvr)<0.008;
+      var here = near && c===nearC;
       h+='<td><div class="mxc'+(here?" here":"")+'" style="background:var(--seq'+st+');color:'+(st<=3?"var(--ink-2)":"#fff")+'" '
         +'data-t="마진 '+fmt(m)+'원 · 전환율 '+(c*100).toFixed(0)+'% → 감당 CPC '+fmt(m*c/roasMult())+'원 → '+pct.toFixed(1)+'%">'+pct.toFixed(0)+'%</div></td>';
     });

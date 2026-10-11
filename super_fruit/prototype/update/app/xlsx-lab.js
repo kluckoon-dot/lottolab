@@ -141,6 +141,8 @@
 
   const num = v => {
     if (v === "" || v == null) return null;
+    /* 엑셀은 작은 수를 6.6299999999999998E-2 처럼 적는다. 글자를 걷어내면 6.63 이 되어 버린다 (수수료율이 100배로 읽혔다) */
+    if (/^\s*-?\d+(\.\d+)?[eE][-+]?\d+\s*$/.test(String(v))) return Number(v);
     const n = parseFloat(String(v).replace(/[^\d.\-]/g, ""));
     return isFinite(n) ? n : null;
   };
@@ -287,7 +289,7 @@
         nPrice: num(g("네이버판매가")), nProfit: num(g("네이버공헌이익")),
         nRate: num(g("네이버이익률")), nRoas: num(g("네이버최소ROAS")),
         verdict: String(g("네이버판정")).trim(),
-        cPrice: num(g("쿠팡등록가")), cProfit: num(g("쿠팡공헌이익")),
+        cPrice: num(g("쿠팡등록가")), cCoupon: num(g("쿠팡쿠폰적용가")), cProfit: num(g("쿠팡공헌이익")),
         cRate: num(g("쿠팡이익률")), cRoas: num(g("쿠팡최소ROAS")),
         role: String(g("가격역할")).trim(),
         supplier: String(g("공급처")).trim()
@@ -296,5 +298,29 @@
     return rows;
   }
 
-  window.XlsxLab = { readWorkbook, detect, readSupply, readCalc, readNaverKw, readItemScout, findTable, num };
+  /* ── 계산기의 설정값 ──
+     설정_원가 · 요약 탭에 "이름 | 값" 으로 적힌 칸을 찾는다. 수수료율 · 광고 안전계수 · 목표 ROAS · 쿠폰액 · 최소 공헌이익.
+     화면의 마진 계산이 계산기와 같은 숫자를 내려면 이 값들이 같아야 한다. */
+  function readCalcSet(book) {
+    const after = label => {
+      for (const sh of book) for (const r of sh.rows.slice(0, 30)) for (let j = 0; j < r.length - 1; j++)
+        if (String(r[j]).replace(/\s/g, "") === label && String(r[j + 1]).trim() !== "") return r[j + 1];
+      return "";
+    };
+    const n = label => { const v = after(label); return v === "" ? null : num(v); };
+    const set = {
+      nFee: n("네이버수수료율"), cFee: n("쿠팡수수료율"),
+      nK: n("네이버광고안전계수"), cK: n("쿠팡광고안전계수"),
+      nRoas: n("네이버목표ROAS"), cRoas: n("쿠팡목표ROAS"),
+      coupon: n("쿠팡쿠폰액"), minProfit: n("최소공헌이익입력"), safeAdd: n("공급가안전가산"),
+      cFeeBase: String(after("쿠팡수수료계산기준")).trim(), base: String(after("네이버기준옵션(연결)") || after("네이버기준옵션")).trim(),
+      date: String(after("데이터기준일")).trim(), ver: String(after("버전")).trim()
+    };
+    /* 계산기는 최소 공헌이익을 5,000원 아래로 두지 않는다 (=MAX(5000, 입력)) */
+    if (set.minProfit != null) set.minProfit = Math.max(5000, set.minProfit);
+    if (/^\d{5}$/.test(set.date)) { const d = new Date(Date.UTC(1899, 11, 30) + (+set.date) * 86400000); set.date = d.toISOString().slice(0, 10); }
+    return (set.nFee || set.cFee) ? set : null;
+  }
+
+  window.XlsxLab = { readWorkbook, detect, readSupply, readCalc, readCalcSet, readNaverKw, readItemScout, findTable, num };
 })();
