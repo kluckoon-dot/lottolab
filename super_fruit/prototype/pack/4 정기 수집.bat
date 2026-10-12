@@ -14,41 +14,46 @@ echo.
 echo  About 100 minutes. Safe to stop - run again to continue.
 echo  Shopping click index, trends and buyers use the API HUB quota:
 echo  run "2" and 25-buyers.bat once a month for those.
+echo  Add the word  auto  after the file name to run without waiting for a key.
 echo.
+echo  [%time%] 1/4 values
 node refresh-naver.mjs --steps stats,bids,perf
 if errorlevel 1 goto fail
 echo.
-echo  Packing the five sections with the new values
+echo  [%time%] packing the five sections with the new values
 node --max-old-space-size=8192 pack-data.mjs --section 1,2,3,4,5
 if errorlevel 1 goto fail
 node build-web.mjs ..\naver-out\pack .
 if errorlevel 1 goto fail
 echo.
-echo  Tail keywords
+echo  [%time%] 2/4 tail keywords
 node fetch-tails.mjs --max-age 13
 if errorlevel 1 echo  [!] Tail keywords were not refreshed. Going on.
 echo.
-echo  Related lists for item names
+echo  [%time%] 3/4 related lists for item names
 node build-related.mjs --max-age 144
 if errorlevel 1 goto fail
 echo.
-echo  Related lists for every fresh-food keyword
+echo  [%time%] 4/4 related lists for every fresh-food keyword
 node fetch-related-more.mjs --min 100 --max-age 6
 if errorlevel 1 goto fail
 node build-related-more.mjs
 if errorlevel 1 goto fail
 echo.
-echo   Done. The page on this PC shows the new values.
+echo  [%time%] Done. The page on this PC shows the new values.
 echo   The claude.ai page is updated when Claude publishes it again.
 echo.
+if /i "%~1"=="auto" exit /b 0
 pause
 exit /b
 :fail
 echo.
 echo  [X] Stopped with an error. Send the text above.
+if /i "%~1"=="auto" exit /b 1
 pause
 exit /b
 :nonode
 echo  [X] Node.js is not installed. https://nodejs.org
+if /i "%~1"=="auto" exit /b 1
 start https://nodejs.org/ko
 pause
