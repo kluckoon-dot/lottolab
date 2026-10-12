@@ -610,6 +610,11 @@ th.srt[data-dir]::after{content:attr(data-dir);margin-left:3px;color:var(--brand
 .relbar .rel-is{font-size:11px;font-weight:700;padding:2px 9px;border-radius:999px;background:var(--good-bg,rgba(27,175,122,.14));color:var(--good)}
 .relbar .rel-no{font-size:11px;font-weight:700;padding:2px 9px;border-radius:999px;background:var(--skip-bg);color:var(--skip)}
 .relbar button.on{background:var(--good);border-color:var(--good);color:#fff}
+.relbar .rel-tier{display:inline-flex;border:1.5px solid var(--brand);border-radius:9px;overflow:hidden;background:var(--surface)}
+.relbar .rel-tier button{border:0;border-radius:0;padding:6px 12px;font-weight:700;color:var(--brand-ink);background:transparent}
+.relbar .rel-tier button + button{border-left:1px solid color-mix(in srgb,var(--brand) 35%, transparent)}
+.relbar .rel-tier button b{font-weight:800;margin-left:2px}
+.relbar .rel-tier button.on{background:var(--brand);color:#fff}
 .relbar .rel-help{flex-basis:100%;margin:2px 0 0;font-size:11.5px;font-weight:500;color:var(--ink-3);line-height:1.5}
 .relbar button{border:1px solid var(--line-strong);background:var(--surface);color:var(--ink-2);
   border-radius:8px;padding:5px 12px;font:inherit;font-size:12px;font-weight:600;cursor:pointer}
@@ -998,7 +1003,7 @@ function catOf(i){ return R[i][K.ICAT]||""; }
    신선식품 밖(가공식품 · 건강식품)은 네이버 화면을 아직 못 봤다. 이름은 임시다.
    끝 칸의 2단계 자리는 쇼핑인사이트의 카테고리별 클릭으로 확인했다 (docs/19). */
 var CAT_VAR={"포항초":"시금치","섬초":"시금치","밤호박":"단호박","다다기":"오이","다대기":"오이","참다래":"키위","블랙사파이어":"포도","알프스오토메":"사과","오톰크리스피":"포도",
-"하미과":"멜론","노루궁뎅이":"버섯","대저짭짤이":"토마토","짭짤이":"토마토","베니하루카":"고구마","샤인머스캣":"포도","샤인머스켓":"포도","시나노골드":"사과","윈터프린스":"감귤",
+"하미과":"멜론","노루궁뎅이":"버섯","대저짭짤이":"토마토","짭짤이":"토마토","베니하루카":"고구마","샤인머스캣":"포도","샤인머스켓":"포도","흑화고":"버섯","백화고":"버섯","시나노골드":"사과","시나노스위트":"사과","시나노":"사과","밀감":"감귤","신비향":"한라봉","윈터프린스":"감귤",
 "그린시스":"배","델라웨어":"포도","땅콩호박":"단호박","레드샤인":"포도","레이니어":"체리","루비에스":"사과","마이하트":"포도","마하차녹":"망고","슈퍼골드":"배","옐로드림":"복숭아",
 "청도반시":"감","반시":"감","카라카라":"오렌지","캔디하트":"포도","킹스베리":"딸기","플럼코트":"살구","거반도":"복숭아","대극천":"복숭아","만년설":"딸기","만다린":"감귤",
 "머스크":"멜론","보우짱":"단호박","서머킹":"사과","썸머킹":"사과","설국향":"감귤","수라향":"감귤","아리수":"사과","아오리":"사과","알타리":"무","얼갈이":"배추","조생귤":"감귤",
@@ -1201,7 +1206,9 @@ function catMake(seeds){
     if(g==="신선식품 > 과일") return DRYF[it] || "기타건과류";
     if(it==="고구마") return "고구마말랭이";
     return ""; };
-  return function(kw){
+  var LAST="";
+  var fn=function(kw){
+    LAST="";
     kw=String(kw).replace(/\s+/g,"").toLowerCase();
     var km=catKimchi(kw); if(km) return km;
     if(/무침/.test(kw)) return "무침류";
@@ -1216,10 +1223,13 @@ function catMake(seeds){
       if(!best || (best.gen&&!gen) || (best.gen===gen && (end>best.end || (end===best.end && L>best.L)))) best={ s:i, end:end, L:L, w:p, gen:gen };
     }
     if(best){
-      var tail=kw.slice(best.end), pre=kw.slice(0,best.s), item=canon(best.w), it=fin(item), f=form(tail), g=grp(it);
+      var tail=kw.slice(best.end), pre=kw.slice(0,best.s), item=canon(best.w), it=fin(item), f=form(tail), g=grp(it); LAST=it;
       if(!f && /(말린|건조|동결|반건조|마른|피데기|건)$/.test(pre)) f="말린것";
       /* 품목 이름 자체가 가공품이면(감귤즙 · 감말랭이) 그 형태로. 두 글자는 ○즙 만 본다 (여주 의 '주' 를 술로 읽지 않게) */
-      if(!f && item===best.w && !CAT_KEEP[item] && (best.L>2 || best.w.slice(1)==="즙")) f=form(best.w.slice(1));
+      if(!f && item===best.w && !CAT_KEEP[item] && (best.L>2 || best.w.slice(1)==="즙")){ f=form(best.w.slice(1));
+        if(f){ var pl, pw;
+          for(pl=best.w.length-1;pl>=2;pl--){ pw=best.w.slice(0,pl); if(M[pw]){ LAST=fin(canon(pw)); break; } }
+          if(pl<2 && one.indexOf(best.w.charAt(0))>=0) LAST=fin(best.w.charAt(0)); } }
       if(f==="말린것"){ var d=dried(it); if(d) return d; f=""; }
       if(f) return f;
       /* 신선식품 품목인데 앞뒤 문맥이 가공품 · 영양제 · 요리면 그쪽으로 */
@@ -1237,17 +1247,17 @@ function catMake(seeds){
       /* 곱창김 처럼 품목 뒤에 한 글자 품목이 낱말을 끝내면 그쪽이 머리다 (현미쌀 · 찹쌀 은 쌀이 아니라 현미 · 찹쌀) */
       var te=tb.slice(-1);
       if(tb.length>=1 && tb.length<=3 && CAT_ONE_END[te] && one.indexOf(te)>=0 && !(te==="쌀" && g==="신선식품 > 쌀/잡곡") && !(te==="배" && /수산물|건어물/.test(g))
-         && !/(뇨감|식감|만감|촉감|질감|쾌감|복감|물감|열감|통감|로감|안감|신감|정감|독감|택배|담배|낚시배|재배|분배|선배|후배|덩굴|넝쿨|동굴|땅굴|튀김)$/.test(tb)) return fin(te);
+         && !/(뇨감|식감|만감|촉감|질감|쾌감|복감|물감|열감|통감|로감|안감|신감|정감|독감|택배|담배|낚시배|재배|분배|선배|후배|덩굴|넝쿨|동굴|땅굴|튀김)$/.test(tb)){ LAST=fin(te); return LAST; }
       /* 선물세트: 과일 · 고기는 네이버에 세트 칸이 따로 있다. 사과선물세트처럼 품목이 뚜렷하면 그 품목 */
       if(/세트|선물|바구니|답례/.test(kw)){ if(it==="과일") return "과일세트"; if(g==="신선식품 > 정육") return "축산선물세트"; }
       return it;
     }
-    if(/나무$/.test(bare)) return "묘목/씨앗/재배";
+    if(/나무$/.test(bare)){ var nb=bare.replace(/나무$/,""); if(nb.length===1 && one.indexOf(nb)>=0) LAST=fin(nb); return "묘목/씨앗/재배"; }
     for(j=0;j<one.length;j++){ c=one[j]; if(bare===c || kw===c) return fin(c); }
     /* 한 글자 품목 + 가공 말 (밤묘목 · 배즙 · 공주밤파이 · 쌀전분) */
     for(q=0;q<bare.length-1;q++){ var ch=bare.charAt(q); if(one.indexOf(ch)>=0 && (q===0 || CAT_ONE_END[ch])){ var f2=formAt(bare.slice(q+1));
       if(f2==="말린것"){ if(ch==="무") return "무"; f2=dried(fin(ch)) || "기타건과류"; }
-      if(f2) return f2; } }
+      if(f2){ LAST=fin(ch); return f2; } } }
     /* 낱말을 끝내는 한 글자 품목 (알밤 · 돌김) */
     var e2=bare.slice(-1); if(bare.length>=2 && bare.length<=7 && CAT_ONE_END[e2] && one.indexOf(e2)>=0 && !CAT_ONE_NOT[bare]
        && !/(뇨감|식감|포만감|팽만감|잔변감|촉감|질감|쾌감|공복감|이물감|열감|통감|피로감|불안감|자신감|안정감|독감|기념품배|택배|담배|낚시배|재배|분배|선배|후배|덩굴|넝쿨|동굴|땅굴|튀김)$/.test(bare)) return fin(e2);
@@ -1255,6 +1265,9 @@ function catMake(seeds){
     if(CAT_GIFT.test(kw)) return "명절/선물/답례품";
     return "";
   };
+  /* 방금 본 키워드의 품목 — 가공 형태(즙 · 묘목 · 축제 …)로 넘기기 전의 것. 사과즙 · 사과묘목 · 문경사과축제 → 사과 */
+  fn.base=function(){ return LAST; };
+  return fn;
 }
 
 /* 줄마다 한 번만 낸다: [윗자리 경로, 끝 칸].
@@ -1428,7 +1441,7 @@ function recalc(){
 /* 필터 상태 */
 var F={ intent:{0:true,1:false,2:false,3:false,4:true}, v:{"린정":true,"반린정":true,"패스":false},
         vmin:100, vmax:null, comp:10, q:"", hint:"", sec:0, rel:null,
-        bmin:null, bmax:null, cmin:null, cmax:null, cat:"", relMode:"" };
+        bmin:null, bmax:null, cmin:null, cmax:null, cat:"", relMode:"", relTier:1 };
 /* 정렬. 황금키워드는 황금점수, 연관은 검색수가 기본이다. 머리글을 누르면 바뀐다. */
 var SORT={ k:null, dir:-1 };
 var LIMIT=100, CUR=0;
@@ -1480,6 +1493,44 @@ function relUseIS(rec, seedKw){
   F.rel=new Set(idx); F.relOrder=order; F.relSeed=seedKw; F.relName="아이템스카우트"; F.relLabel="";
   F.relIS={ n:rec.rows.length, shown:idx.length, at:rec.at, file:rec.file||"" };
 }
+/* ── 씨앗과 얼마나 가까운가 ──
+   네이버 키워드도구는 씨앗과 품목이 다른 키워드도 섞어 준다(사과 → 멜론). 받아 둔 목록이 없던 키워드는 더 나빴다 —
+   수집 때 그 씨앗에서 처음 나온 자투리만 보여서 감홍사과에 멜론 · 미니오이 · 오이피클이 떴다. 보갬: "이러면 일을 할 수가 없다" (2026-10-12).
+   그래서 연관 목록은 기본으로 같은 품목만 보여 주고, 단추로 같은 묶음이나 전부를 본다.
+     1 같은 품목   품목이 같다 (품종 · 산지 · 포장 · 즙 · 묘목까지. 감홍사과 ↔ 홍로 · 청송사과 · 사과즙) 또는 씨앗 글자가 들어 있다
+     2 같은 묶음   네이버 묶음이 같다 (사과 ↔ 배 · 멜론 · 과일선물세트)
+     3 그 밖 */
+var RINFO={};
+function relInfo(kw){
+  var c=RINFO[kw]; if(c) return c;
+  var raw=itemCat(kw), b=CATFN.base(), m;
+  if(!b && raw && (m=CAT_MAP[raw]) && m[0].indexOf("신선식품")===0) b=raw;
+  m= b ? CAT_MAP[b] : (raw ? CAT_MAP[raw] : null);
+  return (RINFO[kw]={ item:b||"", grp: m ? m[0] : "", raw:raw||"" });
+}
+function relSeedKey(){ return String(F.relSeed||"").replace(/\s+/g,"").toLowerCase(); }
+/* 씨앗이 묶음 이름이면(과일선물세트 · 채소 · 수산물) 그 묶음의 품목은 전부 같은 품목으로 본다 */
+var REL_GEN={"과일":1,"채소":1,"야채":1,"농산물":1,"수산물":1,"해산물":1,"생선":1,"건어물":1,"축산물":1,"정육":1,"고기":1,"잡곡":1,"견과류":1,"건과일":1};
+var RELTC={ seed:null, info:null, t:{} };
+function relTierOf(i){
+  var seed=relSeedKey();
+  if(RELTC.seed!==seed) RELTC={ seed:seed, info: seed ? relInfo(seed) : null, t:{} };
+  var t=RELTC.t[i]; if(t) return t;
+  var S=RELTC.info, kw=R[i][K.KW].replace(/\s+/g,"").toLowerCase();
+  if(!S || (!S.item && !S.raw)) t=1;
+  else if(kw===seed || (seed.length>=2 && kw.indexOf(seed)>=0)) t=1;
+  else { var Kc=relInfo(kw);
+    if(S.item){
+      if(Kc.item===S.item) t=1;
+      /* 품목 이름이 들어 있는 가공품(고구마말랭이)은 같은 품목. 제 칸이 있는 다른 신선 품목(양배추 · 호박고구마)은 아니다 */
+      else if(S.item.length>=2 && kw.indexOf(S.item)>=0 && !(Kc.item && Kc.grp.indexOf("신선식품")===0)) t=1;
+      else t= S.grp && Kc.grp===S.grp ? (REL_GEN[S.item] ? 1 : 2) : 3;
+    } else t= Kc.raw===S.raw ? 1 : 3; }
+  return (RELTC.t[i]=t);
+}
+/* 씨앗의 품목을 읽을 수 있을 때만 가른다 */
+function relTierable(){ var seed=relSeedKey(); if(!seed) return false; var S=relInfo(seed); return !!(S.item||S.raw); }
+
 /* ── 받아 둔 네이버 연관 목록 (저장본) ──
    build-related.mjs 가 신선식품 품목 · 품종 이름을 씨앗으로 키워드도구에 하나씩 물어 받아 둔 목록이다 (과일 → 채소 → 견과·쌀·건과 → 수산 → 정육 순).
    씨앗 → 묶음 번호는 data-relidx.js, 목록은 묶음 파일(data-rel-N.js)에 있고 그 씨앗을 찾을 때 그 파일만 읽는다.
@@ -1513,11 +1564,11 @@ function relBaked(kw){
     }
     idx.push(i);
   }
-  return { idx:idx, at:P.at };
+  return { idx:idx, at:P.at, tot:(P.tot && P.tot[String(kw).replace(/\s+/g,"")]) || list.length };
 }
 function relUseBaked(b, seedKw){
   var order={}; b.idx.forEach(function(i,n){ if(order[i]==null) order[i]=n; });
-  F.rel=new Set(b.idx); F.relOrder=order; F.relSeed=seedKw; F.relName="네이버 키워드도구"; F.relLabel=""; F.relIS=null; F.relBaked=b.at;
+  F.rel=new Set(b.idx); F.relOrder=order; F.relSeed=seedKw; F.relName="네이버 키워드도구"; F.relLabel=""; F.relIS=null; F.relBaked=b.at; F.relTot=b.tot||b.idx.length;
 }
 /* 저장본에서의 네이버 연관: 수집할 때 이 씨앗이 물고 온 키워드(+ 이 키워드를 물고 온 씨앗의 형제) */
 function relNaver(i){
@@ -1574,6 +1625,7 @@ function passes(i){
      판정·광고경쟁도·섹션·품목은 황금키워드 전용이다.
      연관을 처음 열 때 유형은 전체, 검색수는 제한 없음으로 풀어서 "그대로" 다 보이게 한다. */
   if(F.rel && !F.rel.has(i)) return false;
+  if(F.rel && F.relTier<3 && relTierOf(i)>F.relTier) return false;
   if(!F.intent[intentOf(i)]) return false;
   if(F.vmin!=null && S_tot[i]<F.vmin) return false;
   if(F.vmax!=null && S_tot[i]>F.vmax) return false;
@@ -1877,15 +1929,35 @@ function renderTable(){
       relHead='<b>'+esc(F.relSeed)+'</b> 의 연관 키워드 '+fmt(total)+'개 '
         +((LIVE && rt) || F.relBaked ? '<span class="rel-is">네이버 키워드도구 목록</span>' : '<span class="rel-no">저장본 연관 · 식품 키워드만</span>')
         +'<span class="rel-src">'+(LIVE && rt ? 'NAVER 검색광고가 지금 준 그대로 · 준 순서 · '+String(rt.getHours()).padStart(2,"0")+':'+String(rt.getMinutes()).padStart(2,"0")
-            : F.relBaked ? 'NAVER 검색광고가 준 그대로 · 준 순서 · '+mdOf(String(F.relBaked).slice(0,10))+' 받아 둔 것'+(total!==F.rel.size?' · 필터로 '+fmt(total)+'개만 보인다':'')+(F.rel.size<10?' · 네이버가 이 씨앗에는 '+F.rel.size+'개만 준다 — 같은 품목 수집분은 "확장 목록" 에 있다':'')
-            : relPartOf(F.relSeed) ? '네이버 목록을 읽는 중…'
-            : '이 씨앗은 받아 둔 네이버 목록이 없다(신선식품 품목 · 품종 이름만 받아 두었다) · 수집할 때 나온 연관 중 화면에 담긴 것 · 전부는 PC 실시간에서')+'</span>'
+            : F.relBaked ? (F.relVia ? '품목 <b>'+esc(F.relVia)+'</b> 에 NAVER 검색광고가 준 목록 · 준 순서 · '+mdOf(String(F.relBaked).slice(0,10))+' 받아 둔 것 (이 키워드로 물은 목록은 받아 두지 않았다)'
+                : 'NAVER 검색광고가 준 순서 · '+mdOf(String(F.relBaked).slice(0,10))+' 받아 둔 것'
+                  +(F.relTot>F.rel.size ? ' · 네이버가 준 '+fmt(F.relTot)+'개 중 품목 · 묶음이 같은 '+fmt(F.rel.size)+'개를 실었다(나머지는 PC 실시간에서)' : '')
+                  +(F.relTot<10 ? ' · 네이버가 이 씨앗에는 '+F.relTot+'개만 준다 — 같은 품목 수집분은 "확장 목록" 에 있다' : ''))
+            : (relPartOf(F.relSeed) || F.relWant) ? '네이버 목록을 읽는 중…'
+            : '이 키워드는 받아 둔 네이버 목록이 없다 · 수집할 때 나온 연관 중 화면에 담긴 것 · 전부는 PC 실시간에서')+'</span>'
         +'<button type="button" id="relWide">확장 목록 →</button>'+btnIs;
     }
     /* 네이버가 준 목록에는 식품이 아닌 것 · 정보성 키워드가 섞여 온다. 한 번 눌러 구매의도 있는 것만 본다 (필터의 구매의도 "낮음 이상" 과 같다) */
     var buyOn= F.bmin!=null && F.bmin>=RULE.buyNone && F.bmax==null;
+    /* 같은 품목만 · 같은 묶음까지 · 전부. 씨앗의 품목을 읽을 수 있을 때만 */
+    var tierHtml="";
+    if(relTierable()){
+      var tn=[0,0,0,0]; F.rel.forEach(function(ix){ tn[relTierOf(ix)]++; });
+      var S0=relInfo(relSeedKey()), gName= S0.item && S0.grp ? S0.grp.split(" > ").pop() : "";
+      var tb=function(k, label, n){ return '<button type="button" data-tier="'+k+'"'+(F.relTier===k?' class="on"':'')+'>'+label+' <b>'+fmt(n)+'</b></button>'; };
+      if(tn[2]+tn[3]>0)
+        tierHtml='<span class="rel-tier" title="네이버는 씨앗과 품목이 다른 키워드도 섞어 준다. 기본은 같은 품목만 보여 준다">'
+          +tb(1, esc(S0.item||F.relSeed)+' 관련만', tn[1])
+          +(gName && tn[2] ? tb(2, esc(gName)+'까지', tn[1]+tn[2]) : '')
+          +(tn[3] ? tb(3, '전부', tn[1]+tn[2]+tn[3]) : '')+'</span>';
+      /* 고른 단계의 단추가 이 목록에 없으면(받아 둔 범위 밖) 가장 넓은 단계로 본다 */
+      if(F.relTier===3 && !tn[3]) F.relTier= (gName && tn[2]) ? 2 : 1;
+      else if(F.relTier===2 && !(gName && tn[2])) F.relTier=1;
+    }
+    relHead+=tierHtml;
     rb.innerHTML=relHead+'<button type="button" id="relBuy"'+(buyOn?' class="on"':'')+' title="구매의도 없음(식품이 아닌 것 · 정보성)과 미확인을 숨긴다. 표 위 필터의 구매의도 낮음 이상 과 같다">'
       +(buyOn?'✓ 살 사람 있는 것만 보는 중 · 풀기':'살 사람 있는 것만 →')+'</button><button type="button" id="relOff">전체 목록으로 →</button>';
+    rb.querySelectorAll("[data-tier]").forEach(function(tbn){ tbn.onclick=function(){ F.relTier=+tbn.dataset.tier; LIMIT=100; renderTable(); }; });
     document.getElementById("relBuy").onclick=function(){ if(buyOn) F.bmin=null; else { F.bmin=RULE.buyNone; F.bmax=null; } LIMIT=100; renderTable(); };
     document.getElementById("relOff").onclick=function(){ clearRel(); LIMIT=100; refresh(); };
     var rw=document.getElementById("relWide"); if(rw) rw.onclick=function(){ relToggle("wide"); };
@@ -3389,6 +3461,7 @@ function CURPAGE(){ LIMIT=100; }
 var GOLD_DEFAULT={ intent:[0,4], vmin:100, vmax:null };
 function openRelFilters(){ setType("all"); F.vmin=null; F.vmax=null; SORT.k=null; }
 function setRel(i){
+  if(F.relSeed!==R[i][K.KW]) F.relTier=1;   /* 새 씨앗은 같은 품목만 보는 것부터 */
   if(F.relMode==="wide") F.relMode="";   /* 확장 목록은 그 씨앗에서만. 새 씨앗은 네이버 목록부터 */
   var g=relNaver(i); if(g.length<2) g=relGroup(i);
   if(!F.rel) openRelFilters();
@@ -3398,22 +3471,26 @@ function setRel(i){
   F.relLabel=""; F.relOrder=null; F.relIS=null; F.relLive=null;
   F.relBaked=null; F.relWant="";
   if(F.relMode==="is"){ var rec=isRecFor(R[i][K.KW]); if(rec) relUseIS(rec, R[i][K.KW]); else F.relMode=""; }
+  F.relVia="";
   if(!LIVE && !F.relMode){
-    var seedKw=R[i][K.KW], gp=relPartOf(seedKw);
+    var seedKw=R[i][K.KW], src=seedKw, gp=relPartOf(seedKw);
+    /* 이 키워드로 받아 둔 목록이 없으면 그 품목의 목록을 쓴다 (받지 못한 꼬리 키워드 → 사과). 수집 때 남은 자투리보다 낫다 */
+    if(!gp){ var bi=relInfo(seedKw.replace(/\s+/g,"").toLowerCase()).item; if(bi && relPartOf(bi)){ src=bi; gp=relPartOf(bi); } }
     if(gp){
-      var bk=relBaked(seedKw);
-      if(bk){ relUseBaked(bk, seedKw); recalc(); }
+      var use=function(b){ relUseBaked(b, seedKw); if(src!==seedKw){ F.relVia=src; F.rel.add(i); F.relOrder[i]=-1; } };
+      var bk=relBaked(src);
+      if(bk){ use(bk); recalc(); }
       else { F.relWant=seedKw; relLoad(gp, function(ok){
         if(!ok || F.relWant!==seedKw || F.relMode || LIVE) return;
         F.relWant="";
-        var b2=relBaked(seedKw); if(!b2) return;
-        relUseBaked(b2, seedKw); recalc(); LIMIT=100; refresh();
+        var b2=relBaked(src); if(!b2) return;
+        use(b2); recalc(); LIMIT=100; refresh();
       }); }
     }
   }
 }
 function clearRel(){
-  F.rel=null; F.relName=""; F.relSeed=""; F.relLabel=""; F.relOrder=null; F.relIS=null; F.relLive=null; F.relBaked=null; F.relWant=""; F.relMode=""; SORT.k=null;
+  F.rel=null; F.relName=""; F.relSeed=""; F.relLabel=""; F.relOrder=null; F.relIS=null; F.relLive=null; F.relBaked=null; F.relWant=""; F.relVia=""; F.relMode=""; SORT.k=null;
   for(var k=0;k<5;k++) F.intent[k]=GOLD_DEFAULT.intent.indexOf(k)>=0;
   F.vmin=GOLD_DEFAULT.vmin; F.vmax=GOLD_DEFAULT.vmax;
 }
@@ -3703,6 +3780,7 @@ async function liveFind(v, fresh, wide){
     if(!F.rel) openRelFilters();
     /* 기본은 네이버 키워드도구가 준 목록 그대로, 준 순서 그대로. 확장(wide)일 때만 같은 품목 수집분을 더한다 */
     F.rel= j.wide ? new Set(idx.concat(sameItem(CUR))) : new Set(idx);
+    if(F.relSeed!==v) F.relTier=1;
     F.relSeed=v; F.relName="네이버 실시간 연관"; F.relLabel=""; F.relIS=null; F.relLive=idx; F.relAt=j.at;
     F.relOrder=null; if(!j.wide){ F.relOrder={}; idx.forEach(function(i2,n2){ if(F.relOrder[i2]==null) F.relOrder[i2]=n2; }); }
     F.relMode= j.wide ? "wide" : (F.relMode==="is" ? "is" : "");
@@ -3741,7 +3819,7 @@ function staticFind(v, prefix, tried){
         /* 네이버가 씨앗과 똑같은 키워드는 돌려주지 않은 경우: 목록만 보여 준다 */
         CUR=b.idx[0]; F.q=""; document.getElementById("q").value="";
         if(!F.rel) openRelFilters();
-        relUseBaked(b, vk); recalc();
+        F.relTier=1; relUseBaked(b, vk); recalc();
         note.innerHTML=prefix+'<b>'+esc(v)+'</b> 는 네이버가 정확히 같은 키워드로 돌려주지 않았다. 받아 둔 연관 '+fmt(b.idx.length)+'개를 보여 준다.';
         CURPAGE(); refresh(); return;
       }

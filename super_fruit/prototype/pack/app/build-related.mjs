@@ -160,5 +160,7 @@ for (const g of [1, 2, 3, 4, 5]) {
   fs.writeFileSync(path.join(HERE, `data-rel-${g}.js`), js, "utf8"); bytes += Buffer.byteLength(js);
   console.error(`  data-rel-${g}.js  ${GNAME[g].padEnd(16)} 씨앗 ${String(mine.length).padStart(4)} · 키워드 ${names.length.toLocaleString().padStart(7)} · 화면에 없던 것 ${Object.keys(extra).length.toLocaleString().padStart(7)} · ${(Buffer.byteLength(js) / 1048576).toFixed(2)} MB`);
 }
+/* 키워드별 목록(build-related-more.mjs · 묶음 6 이상)은 그대로 둔다 */
+try { globalThis.window = {}; require(path.join(HERE, "data-relidx.js")); const old = globalThis.window.RELIDX.seeds || {}; for (const k in old) if (old[k] > 5 && !idx[k]) idx[k] = old[k]; } catch {}
 fs.writeFileSync(path.join(HERE, "data-relidx.js"), "window.RELIDX=" + JSON.stringify({ at: day, seeds: idx }) + ";", "utf8");
 console.error(`끝  ${((Date.now() - t0) / 60000).toFixed(1)}분 · 호출 ${calls.toLocaleString()} · 씨앗 ${Object.keys(idx).length} · 목록 줄 ${total.toLocaleString()} · 합 ${(bytes / 1048576).toFixed(1)} MB`);
