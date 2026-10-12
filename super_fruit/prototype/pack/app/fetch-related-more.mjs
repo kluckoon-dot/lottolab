@@ -18,6 +18,7 @@
  * 실행:  node fetch-related-more.mjs                 검색 100 이상 전부
  *        node fetch-related-more.mjs --min 1000      검색 1,000 이상만
  *        node fetch-related-more.mjs --only 1        과일만      --max 500   이번에 500개까지만
+ *        node fetch-related-more.mjs --max-age 6     받은 지 6일 넘은 목록은 다시 받는다 (정기 수집용. 기본 30일)
  */
 import fs from "node:fs";
 import path from "node:path";
@@ -33,7 +34,7 @@ const MORE = path.join(OUTDIR, "related-more.ndjson");
 const args = process.argv.slice(2);
 const val = f => { const i = args.indexOf(f); return i >= 0 ? args[i + 1] : null; };
 const ONLY = val("--only") ? new Set(val("--only").split(",").map(Number)) : null;
-const MIN = +(val("--min") || 100), MAX = +(val("--max") || 1e9);
+const MIN = +(val("--min") || 100), MAX = +(val("--max") || 1e9), MAX_AGE_D = +(val("--max-age") || 30);
 
 /* ── 키 ── */
 const o = {}; const AL = { naver_ad_api_key: "KEY", naver_ad_secret: "SECRET", naver_ad_customer: "CUSTOMER" };
@@ -75,8 +76,14 @@ const GROUP = { "과일": 1, "채소": 2, "견과류": 3, "쌀/잡곡": 3, "건�
 const require = createRequire(import.meta.url);
 globalThis.window = {}; require(path.join(HERE, "data-kw.js"));
 let have = {}; try { require(path.join(HERE, "data-relidx.js")); have = globalThis.window.RELIDX.seeds || {}; } catch {}
+/* 받아 둔 것: 씨앗마다 가장 최근 줄만 남긴다(다시 받으면 줄이 쌓인다). 받은 지 오래된 씨앗은 다시 받는다 — 옛 줄은 새 줄이 들어올 때까지 그대로 둔다 */
 const done = new Set();
-if (fs.existsSync(MORE)) for (const line of fs.readFileSync(MORE, "utf8").split("\n")) { if (!line) continue; try { done.add(JSON.parse(line).k); } catch {} }
+if (fs.existsSync(MORE)) {
+  const last = new Map(); let lines = 0;
+  for (const line of fs.readFileSync(MORE, "utf8").split("\n")) { if (!line) continue; lines++; const m = /^\{"k":"((?:[^"\\]|\\.)*)","g":\d+,"at":"([^"]+)"/.exec(line); if (m) last.set(m[1], [m[2], line]); }
+  if (lines > last.size) { fs.writeFileSync(MORE + ".tmp", [...last.values()].map(x => x[1]).join("\n") + "\n", "utf8"); fs.renameSync(MORE + ".tmp", MORE); console.error(`겹친 줄 ${(lines - last.size).toLocaleString()}개를 정리했다`); }
+  for (const [k, v] of last) if (Date.now() - Date.parse(v[0]) < MAX_AGE_D * 86400e3) done.add(JSON.parse('"' + k + '"'));
+}
 let cand = [];
 for (const r of globalThis.window.KWROWS) {
   const kw = r[0], raw = cat(kw), m = raw && MAP[raw]; if (!m || !m[0].startsWith("신선식품 > ")) continue;

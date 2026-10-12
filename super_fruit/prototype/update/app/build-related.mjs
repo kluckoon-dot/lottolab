@@ -107,7 +107,10 @@ const require = createRequire(import.meta.url);
 globalThis.window = {}; require(path.join(HERE, "data-kw.js")); const SCREEN = new Set(globalThis.window.KWROWS.map(r => r[0]));
 let FR = {}; try { FR = JSON.parse(fs.readFileSync(path.join(OUTDIR, "fresh.json"), "utf8")).rows || {}; } catch {}
 R.extra ||= {};                                  // kw → { st:[…], b:[pc1,pc2,pc3,mo1,mo2,mo3], m:[pc5,mo5], e:[…10], at }
-const stat = {}; for (const [k] of seeds) for (const row of (R.seeds[k]?.rows || [])) if (!SCREEN.has(row[0])) stat[row[0]] = row;
+/* 꼬리 키워드 (fetch-tails.mjs): 품목 이름에 1kg · 가격 · 국내산 … 을 붙여 직접 물어 찾은 것. 연관 목록 뒤에 붙인다 */
+let TAILS = {}; try { TAILS = JSON.parse(fs.readFileSync(path.join(OUTDIR, "related-tails.json"), "utf8")).seeds || {}; } catch {}
+const stat = {}; for (const [k] of seeds) { for (const row of (R.seeds[k]?.rows || [])) if (!SCREEN.has(row[0])) stat[row[0]] = row;
+  for (const row of (TAILS[k]?.rows || [])) if (!SCREEN.has(row[0]) && !stat[row[0]]) stat[row[0]] = row; }
 const exList = Object.keys(stat);
 for (const k of exList) (R.extra[k] ||= {}).st = stat[k].slice(1);
 const needB = exList.filter(k => !R.extra[k].b);
@@ -143,24 +146,29 @@ saveRaw();
 
 /* ── 3. 묶음 파일로 ── */
 const day = new Date().toISOString();
-const idx = {}; let total = 0, bytes = 0;
+const idx = {}; let total = 0, bytes = 0, tailN = 0;
 for (const g of [1, 2, 3, 4, 5]) {
   const mine = [...seedG.entries()].filter(x => x[1] === g && R.seeds[x[0]] && R.seeds[x[0]].rows.length > 1);
   if (!mine.length) continue;
   const names = [], nidx = new Map(), ref = k => { let i = nidx.get(k); if (i == null) { i = names.length; names.push(k); nidx.set(k, i); } return i; };
-  const lists = {}, extra = {};
+  const lists = {}, extra = {}, tails = {};
+  const putExtra = kw => { if (SCREEN.has(kw) || extra[nidx.get(kw)]) return; const x = R.extra[kw]; if (!x) return;
+    const f = FR[kw], shop = f ? (f.c != null ? f.c : f.f === 0 ? 0 : -1) : -1;
+    extra[nidx.get(kw)] = [...x.st.slice(0, 8), ...(x.b || [0, 0, 0, 0, 0, 0]), x.st[8] || 0, ...(x.m || [0, 0]), shop, ...(x.e || [-1, 0, 0, 0, 0, 0, 0, 0, 0, 0])]; };
   for (const [k] of mine) {
     lists[k] = R.seeds[k].rows.map(row => ref(row[0])); idx[k] = g; total += lists[k].length;
-    for (const row of R.seeds[k].rows) { const kw = row[0]; if (SCREEN.has(kw) || extra[nidx.get(kw)]) continue; const x = R.extra[kw]; if (!x) continue;
-      const f = FR[kw], shop = f ? (f.c != null ? f.c : f.f === 0 ? 0 : -1) : -1;
-      extra[nidx.get(kw)] = [...x.st.slice(0, 8), ...(x.b || [0, 0, 0, 0, 0, 0]), x.st[8] || 0, ...(x.m || [0, 0]), shop, ...(x.e || [-1, 0, 0, 0, 0, 0, 0, 0, 0, 0])]; }
+    for (const row of R.seeds[k].rows) putExtra(row[0]);
+    /* 네이버 목록에 없던 꼬리 키워드만 뒤에 붙인다 */
+    const have = new Set(lists[k]), tl = [];
+    for (const row of (TAILS[k]?.rows || [])) { const i = ref(row[0]); if (have.has(i)) continue; have.add(i); tl.push(i); putExtra(row[0]); }
+    if (tl.length) { tails[k] = tl; tailN += tl.length; }
   }
   /* extra 한 줄 = [pc, mo, depth, comp, clickPc, clickMo, ctrPc, ctrMo, bp1, bp2, bp3, bm1, bm2, bm3, masked, ad5pc, ad5mo, shop, 예상실적 10칸] */
-  const js = `window.RELPART=window.RELPART||{};window.RELPART[${g}]=${JSON.stringify({ at: day, name: GNAME[g], names, lists, extra })};`;
+  const js = `window.RELPART=window.RELPART||{};window.RELPART[${g}]=${JSON.stringify({ at: day, name: GNAME[g], names, lists, extra, tails })};`;
   fs.writeFileSync(path.join(HERE, `data-rel-${g}.js`), js, "utf8"); bytes += Buffer.byteLength(js);
   console.error(`  data-rel-${g}.js  ${GNAME[g].padEnd(16)} 씨앗 ${String(mine.length).padStart(4)} · 키워드 ${names.length.toLocaleString().padStart(7)} · 화면에 없던 것 ${Object.keys(extra).length.toLocaleString().padStart(7)} · ${(Buffer.byteLength(js) / 1048576).toFixed(2)} MB`);
 }
 /* 키워드별 목록(build-related-more.mjs · 묶음 6 이상)은 그대로 둔다 */
 try { globalThis.window = {}; require(path.join(HERE, "data-relidx.js")); const old = globalThis.window.RELIDX.seeds || {}; for (const k in old) if (old[k] > 5 && !idx[k]) idx[k] = old[k]; } catch {}
 fs.writeFileSync(path.join(HERE, "data-relidx.js"), "window.RELIDX=" + JSON.stringify({ at: day, seeds: idx }) + ";", "utf8");
-console.error(`끝  ${((Date.now() - t0) / 60000).toFixed(1)}분 · 호출 ${calls.toLocaleString()} · 씨앗 ${Object.keys(idx).length} · 목록 줄 ${total.toLocaleString()} · 합 ${(bytes / 1048576).toFixed(1)} MB`);
+console.error(`끝  ${((Date.now() - t0) / 60000).toFixed(1)}분 · 호출 ${calls.toLocaleString()} · 씨앗 ${Object.keys(idx).length} · 목록 줄 ${total.toLocaleString()} · 꼬리 키워드 ${tailN.toLocaleString()} · 합 ${(bytes / 1048576).toFixed(1)} MB`);
