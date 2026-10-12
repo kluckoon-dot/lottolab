@@ -96,7 +96,8 @@ for (const [k, j] of seedsRaw) {
     if (tr === 1) same++;
     list.push(name); if (!SCREEN.has(name) && !stat.has(name)) stat.set(name, row); }
   rowsAll += j.rows.length;
-  if (same < 2) { dropShort++; continue; }
+  /* 같은 품목이 저 혼자여도 같은 묶음 줄이 넉넉하면 싣는다 (대구탕 → 동태탕 · 매운탕). 화면이 묶음까지 넓혀 보여 준다 */
+  if (same < 2 && list.length < 6) { dropShort++; continue; }
   rowsKept += list.length; rowsSame += same;
   kept.push({ k, g: j.g, item: S.item || S.raw, vol: SCREEN.get(k) || 0, list, tot: j.rows.length, at: j.at });
 }

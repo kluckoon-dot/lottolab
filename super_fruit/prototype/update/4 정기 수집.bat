@@ -7,11 +7,11 @@ if errorlevel 1 goto nonode
 echo.
 echo  Weekly collection - Naver SearchAd key only (no API HUB calls)
 echo    1. search volume, clicks, click rate, bids, estimated ad results for every screen keyword
-echo    2. tail keywords: item name + 1kg, price, domestic ... asked directly
-echo    3. related keyword lists for item names (about 440)
+echo    2. related keyword lists for item names (about 490)
+echo    3. tail keywords: item name + 1kg, price, domestic ... asked directly
 echo    4. related keyword lists for every fresh-food keyword with 100+ searches (about 7,000)
 echo.
-echo  About 100 minutes. Safe to stop - run again to continue.
+echo  20 to 80 minutes. Safe to stop - run again to continue.
 echo  Shopping click index, trends and buyers use the API HUB quota:
 echo  run "2" and 25-buyers.bat once a month for those.
 echo  Add the word  auto  after the file name to run without waiting for a key.
@@ -26,11 +26,13 @@ if errorlevel 1 goto fail
 node build-web.mjs ..\naver-out\pack .
 if errorlevel 1 goto fail
 echo.
-echo  [%time%] 2/4 tail keywords
+echo  [%time%] 2/4 related lists for item names
+node build-related.mjs --max-age 144
+if errorlevel 1 goto fail
+echo.
+echo  [%time%] 3/4 tail keywords, then attach them to the item lists
 node fetch-tails.mjs --max-age 13
 if errorlevel 1 echo  [!] Tail keywords were not refreshed. Going on.
-echo.
-echo  [%time%] 3/4 related lists for item names
 node build-related.mjs --max-age 144
 if errorlevel 1 goto fail
 echo.

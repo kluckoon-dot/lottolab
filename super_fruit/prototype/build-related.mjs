@@ -73,7 +73,9 @@ const GROUP = { "과일": 1, "채소": 2, "견과류": 3, "쌀/잡곡": 3, "건�
 const GNAME = { 1: "과일", 2: "채소", 3: "견과 · 쌀/잡곡 · 건과", 4: "수산물 · 건어물", 5: "정육 · 계란" };
 const HEAD = { 1: ["과일"], 2: ["채소", "야채"], 3: ["견과류", "쌀", "잡곡", "건과일"], 4: ["수산물", "해산물", "생선", "건어물"], 5: ["소고기", "한우", "돼지고기", "닭고기", "계란", "달걀"] };
 const seedG = new Map();
-const addSeed = (k, g) => { if (String(k).includes("/")) return; k = clean(k); if (!k || (/^기타|류$|세트$/.test(k) && k.length > 3)) return; if (!seedG.has(k)) seedG.set(k, g); };
+/* 품목 이름이지만 그 말만 물으면 다른 뜻의 목록이 오는 것은 씨앗으로 쓰지 않는다 (대구 = 도시) */
+const NOSEED = new Set(["대구"]);
+const addSeed = (k, g) => { if (String(k).includes("/")) return; k = clean(k); if (NOSEED.has(k)) return; if (!k || (/^기타|류$|세트$/.test(k) && k.length > 3)) return; if (!seedG.has(k)) seedG.set(k, g); };
 for (const g of [1, 2, 3, 4, 5]) {
   for (const h of HEAD[g]) addSeed(h, g);
   for (const [grp, leaf, items] of ctx.CAT_FRESH) { if (GROUP[grp] !== g) continue;
