@@ -2080,7 +2080,7 @@ function renderTable(){
     tr.appendChild(ce);
     var cc=el("td","num"), cok=isFinite(c.cvr);
     cc.appendChild(el("div","v "+(cok && c.adOk ? "cvr-ok" : "cvr-no"), cok ? (c.cvr*100).toFixed(1)+"%" : "불가"));
-    cc.appendChild(pm([["목표", (+(SET.tgtCvr*100).toFixed(1))+"%"], ["광고", cok ? (c.adOk ? "남는다" : "안 남는다") : "—"]]));
+    cc.appendChild(pm([["목표", (+(SET.tgtCvr*100).toFixed(1))+"%"], ["광고", cok ? (c.adOk ? "남음" : "손해") : "—"]]));
     tr.appendChild(cc);
     /* 판단 */
     var cg=el("td","g ga"), w=el("span","score"), bar=el("span","bar"), fill=el("i");
