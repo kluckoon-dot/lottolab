@@ -84,6 +84,22 @@ select,input[type=number],input[type=text],input[type=search]{font:inherit; font
 input[type=number]{font-family:"IBM Plex Mono",monospace; width:96px}
 .setgrp{display:flex; align-items:center; gap:7px; flex-wrap:wrap}
 .feeout{font-size:12.5px; font-weight:700; color:var(--brand-ink); background:var(--brand-soft); padding:4px 11px; border-radius:7px}
+/* 수익 상자 — 넣은 값이 어떤 결과를 내는지 한눈에. 설정 칸들과 떼어 오른쪽에 두고 테두리 · 바탕 · 큰 숫자로 구분한다.
+   위가 수익, 아래가 수익률. 목표 전환율을 움직이면 둘이 같이 바뀐다 */
+.setbar-in{align-items:stretch; flex-wrap:nowrap}
+.set-left{flex:1 1 0; min-width:0; display:flex; gap:10px 16px; align-items:center; flex-wrap:wrap; align-content:center}
+.set-note{flex:1 1 100%; margin:0; font-size:11.5px; line-height:1.5; color:var(--ink-3)}
+.set-note b{color:var(--ink-2); font-weight:700}
+.profit{flex:0 0 auto; align-self:center; min-width:236px; border:2px solid var(--brand); border-radius:12px; background:var(--brand-soft);
+  box-shadow:var(--shadow); overflow:hidden}
+.profit-row{display:flex; align-items:center; justify-content:space-between; gap:18px; padding:7px 14px 7px 10px}
+.profit-row + .profit-row{border-top:1px solid color-mix(in srgb,var(--brand) 30%, transparent); background:var(--surface)}
+.profit-k{font-size:12.5px; font-weight:800; letter-spacing:.02em; padding:3px 10px; border-radius:7px; background:var(--brand); color:#fff; white-space:nowrap}
+.profit-k.alt{background:transparent; color:var(--brand-ink); box-shadow:inset 0 0 0 1.5px var(--brand)}
+.profit-v{font-size:26px; font-weight:800; line-height:1.15; color:var(--good); font-variant-numeric:tabular-nums; white-space:nowrap}
+.profit-v.rate{font-size:20px}
+.profit-v.loss{color:var(--up)}
+@media (max-width:900px){ .setbar-in{flex-wrap:wrap} .profit{flex:1 1 100%; min-width:0} }
 
 .stage{display:grid; grid-template-columns:236px minmax(0,1fr); gap:22px; margin-top:20px; align-items:start}
 .stage>*{min-width:0}
@@ -609,6 +625,7 @@ th.srt[data-dir]::after{content:attr(data-dir);margin-left:3px;color:var(--brand
 
 <div class="setbar">
   <div class="setbar-in">
+   <div class="set-left">
     <span class="set-k">판매 설정</span>
     <div class="seg" id="platSeg">
       <button type="button" data-p="naver" aria-pressed="true">네이버</button>
@@ -622,8 +639,6 @@ th.srt[data-dir]::after{content:attr(data-dir);margin-left:3px;color:var(--brand
       <label class="set-k" for="cpFee" title="쿠팡 판매수수료(부가세 포함). 판매가 계산기의 '쿠팡 수수료율' 과 같은 값이다. 쿠폰 적용가에 붙는다">쿠팡 수수료 %</label>
       <input type="number" id="cpFee" value="11.66" step="0.01" min="0" max="50" style="width:82px">
     </div>
-    <div class="setgrp" id="calcPickWrap" hidden><label class="set-k" for="calcPick">계산기</label>
-      <select id="calcPick" style="max-width:220px"><option value="">직접 입력</option></select></div>
     <div class="setgrp"><label class="set-k" for="supPrice">공급가</label><input type="number" id="supPrice" value="12150" step="100" style="width:94px"></div>
     <div class="setgrp"><label class="set-k" for="sellPrice">판매가</label><input type="number" id="sellPrice" value="19900" step="100" style="width:94px"></div>
     <div class="setgrp"><label class="set-k" for="shipFee">배송비</label><input type="number" id="shipFee" value="0" step="100" style="width:78px"></div>
@@ -636,8 +651,12 @@ th.srt[data-dir]::after{content:attr(data-dir);margin-left:3px;color:var(--brand
         <span class="f-val num" id="tgtCvrV" style="min-width:38px">1.0%</span>
       </div>
     </div>
-    <span class="f-sp"></span>
-    <span class="feeout" id="feeOut"></span>
+    <p class="set-note" id="pfNote"></p>
+   </div>
+    <div class="profit" id="profitBox" aria-live="polite" title="주문 1건 수익 = 판매가 − 공급가 − 수수료 − 배송비 − 광고비. 광고비는 지금 보는 키워드의 클릭 단가 ÷ 목표 전환율">
+      <div class="profit-row"><span class="profit-k">수익</span><b class="profit-v" id="pfNet">—</b></div>
+      <div class="profit-row"><span class="profit-k alt">수익률</span><b class="profit-v rate" id="pfRate">—</b></div>
+    </div>
   </div>
 </div>
 
@@ -683,7 +702,7 @@ th.srt[data-dir]::after{content:attr(data-dir);margin-left:3px;color:var(--brand
       <button class="tab" role="tab" aria-selected="true" data-tab="gold">황금키워드</button>
       <button class="tab" role="tab" aria-selected="false" data-tab="detail">키워드 상세</button>
       <button class="tab" role="tab" aria-selected="false" data-tab="xls">엑셀 분석</button>
-      <button class="tab" role="tab" aria-selected="false" data-tab="margin">마진 · 광고효율</button>
+      <button class="tab" role="tab" aria-selected="false" data-tab="margin">수익 · 광고효율</button>
       <button class="tab" role="tab" aria-selected="false" data-tab="log">판정 기록</button>
       <button class="tab" role="tab" aria-selected="false" data-tab="status">수집 현황</button>
     </div>
@@ -811,7 +830,7 @@ th.srt[data-dir]::after{content:attr(data-dir);margin-left:3px;color:var(--brand
                 <th class="grp" colspan="2">3위 입찰가</th>
                 <th rowspan="2" class="srt" data-sort="eclk" title="3위 입찰가로 광고하면 한 달에 받을 클릭수(모바일 + PC). 아래 작은 글씨는 실제로 나가는 클릭 단가 = 예상 광고비 ÷ 예상 클릭. 네이버 검색광고 예상 실적">3위 광고<br>예상 클릭</th>
                 <th rowspan="2" class="bidcell srt" data-sort="depth" title="이 키워드를 검색했을 때 함께 뜨는 광고 수(PC 통합검색 월평균, 최대 15). 광고로 경쟁하는 판매자가 몇이나 되는지다. 네이버 이름은 '월평균 노출 광고수'">경쟁<br>광고 수</th>
-                <th rowspan="2" class="srt" data-sort="cvr" title="광고로 본전을 맞추려면 클릭 100번에 몇 번 팔려야 하는가 = 실제 클릭 단가 ÷ 주문 1건 마진. 목표 전환율보다 낮으면 광고가 남는다">손익분기<br>전환율</th>
+                <th rowspan="2" class="srt" data-sort="cvr" title="광고로 본전을 맞추려면 클릭 100번에 몇 번 팔려야 하는가 = 실제 클릭 단가 ÷ 주문 1건의 광고 전 수익. 목표 전환율보다 낮으면 광고가 남는다">손익분기<br>전환율</th>
                 <th rowspan="2" class="srt" data-sort="gold">황금<br>점수</th>
                 <th rowspan="2">판정</th>
               </tr>
@@ -871,12 +890,12 @@ th.srt[data-dir]::after{content:attr(data-dir);margin-left:3px;color:var(--brand
     <section id="panel-margin" hidden>
       <div class="mbox" id="marginBox" style="margin-bottom:14px"></div>
       <div class="card" style="margin-bottom:13px">
-        <h3>마진 구성</h3>
+        <h3>수익 구성</h3>
         <p class="note" id="breakNote"></p>
         <div id="breakChart"></div>
       </div>
       <div class="card">
-        <h3>마진 × 목표 전환율 → 광고가 남는 키워드 비율</h3>
+        <h3>광고 전 수익 × 목표 전환율 → 광고가 남는 키워드 비율</h3>
         <p class="note">지금 수집된 13,662개의 3위 모바일 입찰가 분포로 계산 · 굵은 테두리가 현재 설정</p>
         <div class="tscroll"><table class="mx" id="mxTable"></table></div>
         <div class="ramp">
@@ -884,7 +903,7 @@ th.srt[data-dir]::after{content:attr(data-dir);margin-left:3px;color:var(--brand
           <i style="background:var(--seq1)"></i><i style="background:var(--seq2)"></i><i style="background:var(--seq3)"></i>
           <i style="background:var(--seq4)"></i><i style="background:var(--seq5)"></i><i style="background:var(--seq6)"></i><i style="background:var(--seq7)"></i>
           <span>높음</span>
-          <span style="margin-left:14px">감당 CPC 상한 = 마진 × 목표 전환율 ÷ 배수</span>
+          <span style="margin-left:14px">감당 CPC 상한 = 광고 전 수익 × 목표 전환율 ÷ 배수</span>
         </div>
       </div>
       <div class="formula" id="marFormula"></div>
@@ -1309,6 +1328,31 @@ function marginOf(){
   return { fee:fee, margin:m, rate: SET.sell? m/SET.sell : 0, minRoas: m>0 ? SET.sell/m*roasMult() : Infinity };
 }
 function beCvr(cpc,m){ return m>0 && cpc ? cpc*roasMult()/m : Infinity; }
+/* 주문 1건 수익 = 판매가 − 공급가 − 수수료 − 배송비 − 광고비
+   광고비 = 지금 보는 키워드의 클릭 단가 × 안전계수 ÷ 목표 전환율  (전환율 10% 면 클릭 10번에 1건 → 클릭 10번 값이 1건의 광고비)
+   클릭 단가는 네이버 예상 실적의 실제 단가, 없으면 3위 입찰가. 판정이 쓰는 값과 같다 — 목표 전환율이 손익분기 전환율과 같으면 수익은 0 이다. */
+function profitOf(i){
+  var mg=marginOf(), cpc=0, real=false;
+  if(i!=null){ real=S_cpc[i]>0; cpc= real ? S_cpc[i] : (R[i][K.BM3]||0); }
+  var ad= cpc>0 && SET.tgtCvr>0 ? cpc*roasMult()/SET.tgtCvr : 0, net=mg.margin-ad;
+  return { pre:mg.margin, preRate:mg.rate, cpc:cpc, real:real, ad:ad, net:net, rate: SET.sell>0 ? net/SET.sell : 0 };
+}
+function renderProfit(){
+  var vN=document.getElementById("pfNet"); if(!vN) return;
+  var ready= typeof S_cpc!=="undefined" && S_cpc && typeof CUR==="number" && typeof R!=="undefined" && R && R[CUR];
+  var i= ready ? CUR : null, pf=profitOf(i), kw= ready ? R[CUR][K.KW] : "";
+  var sign=function(v){ return (v<0?"−":"+")+fmt(Math.abs(v))+"원"; };
+  var vR=document.getElementById("pfRate"), note=document.getElementById("pfNote");
+  if(!(SET.sell>0)){ vN.textContent="—"; vR.textContent="—"; vN.className="profit-v"; vR.className="profit-v rate";
+    note.innerHTML='공급가 · 판매가 · 배송비를 넣으면 수익과 수익률이 나온다.'; return; }
+  vN.textContent=sign(pf.net); vN.className="profit-v"+(pf.net<0?" loss":"");
+  vR.textContent=(pf.rate*100).toFixed(1)+"%"; vR.className="profit-v rate"+(pf.net<0?" loss":"");
+  var pre='광고 전 수익 <b>'+fmt(pf.pre)+'원</b> ('+(pf.preRate*100).toFixed(1)+'%) = 판매가 − 공급가 − 수수료 '+(feeRate()*100).toFixed(2)+'% − 배송비';
+  note.innerHTML= pf.cpc>0
+    ? '수익 = <b>'+esc(kw)+'</b> 키워드 광고로 1건 팔 때 남는 돈 · 광고 전 수익 <b>'+fmt(pf.pre)+'원</b> ('+(pf.preRate*100).toFixed(1)+'%) − 광고비 <b>'+fmt(pf.ad)+'원</b>'
+      +' (클릭당 '+fmt(pf.cpc)+'원'+(pf.real?'':' · 3위 입찰가')+(roasMult()!==1?' × '+roasMult():'')+' ÷ 전환율 '+(SET.tgtCvr*100).toFixed(1)+'%) · 수익률 = 수익 ÷ 판매가'
+    : (kw?'<b>'+esc(kw)+'</b> 키워드는 클릭 단가를 아직 몰라 광고비를 빼지 못했다':'키워드를 고르면 광고비까지 뺀다')+' · '+pre;
+}
 function fmt(n){ return Math.round(n).toLocaleString("ko-KR"); }
 function el(t,c,x){ var e=document.createElement(t); if(c)e.className=c; if(x!=null)e.textContent=x; return e; }
 
@@ -1620,12 +1664,7 @@ function readSet(){
   document.getElementById("naverFees").hidden=SET.platform!=="naver";
   document.getElementById("coupangFees").hidden=SET.platform!=="coupang";
   var mg=marginOf();
-  /* 계산기와 맞대 볼 수 있게 최소 ROAS(= 판매가 ÷ 마진 × 안전계수)를 같이 적는다. 계산기의 "실제 최소 ROAS" 와 같은 식이다 */
-  var cs=calcSet(), tR= cs ? (SET.platform==="naver" ? cs.nRoas : cs.cRoas) : null, note="";
-  if(isFinite(mg.minRoas)) note+=" · 최소 ROAS "+mg.minRoas.toFixed(2)+(tR ? (mg.minRoas<=tR+0.05 ? " (목표 "+tR+" 안)" : " (목표 "+tR+" 초과)") : "");
-  if(cs && cs.minProfit && mg.margin<cs.minProfit) note+=" · 최소 공헌이익 "+fmt(cs.minProfit)+"원 미달";
-  document.getElementById("feeOut").textContent=
-    (SET.platform==="naver"?"네이버":"쿠팡")+" 수수료 "+(feeRate()*100).toFixed(2)+"% · 마진 "+fmt(mg.margin)+"원 ("+(mg.rate*100).toFixed(1)+"%)"+note;
+  renderProfit();
 }
 document.getElementById("platSeg").querySelectorAll("button").forEach(function(b){
   b.onclick=function(){ SET.platform=b.dataset.p;
@@ -1934,8 +1973,8 @@ function renderTable(){
   document.getElementById("formulaBox").innerHTML=
     "황금점수 = 수요 ÷ (광고경쟁 + 0.2) × 26 × (0.5 + 0.5 × 광고감당) · 구매의도가 없으면 0점<br>"+
     "수요 = log10(<b>검색수 × 구매의도</b> ÷ 100) ÷ 2 · 구매의도 = 식품 쇼핑 클릭 ÷ 검색수 (닭가슴살 = 1) · 광고경쟁 = 광고깊이/15 × 0.5 + 모바일 3위 입찰가/2000 × 0.5 (광고경쟁도는 이 값 × 10)<br>"+
-    "손익분기 전환율 = 3위 입찰가 × "+roasMult().toFixed(1)+" ÷ 마진 · 광고감당 = 목표 전환율 ÷ 손익분기 전환율<br>"+
-    "<b>린정</b> = 검색 "+fmt(RULE.minVol)+"↑ · 마진율 "+(RULE.marginMin*100)+"%↑ · 구매의도 "+RULE.buyNone+"↑ · 광고 감당 · 광고경쟁도 "+RULE.maxComp.toFixed(1)+"↓ 전부 충족 &nbsp;|&nbsp; "+
+    "손익분기 전환율 = 3위 입찰가 × "+roasMult().toFixed(1)+" ÷ 광고 전 수익 · 광고감당 = 목표 전환율 ÷ 손익분기 전환율<br>"+
+    "<b>린정</b> = 검색 "+fmt(RULE.minVol)+"↑ · 광고 전 수익률 "+(RULE.marginMin*100)+"%↑ · 구매의도 "+RULE.buyNone+"↑ · 광고 감당 · 광고경쟁도 "+RULE.maxComp.toFixed(1)+"↓ 전부 충족 &nbsp;|&nbsp; "+
     "<b>반린정</b> = 광고 감당과 광고경쟁도 중 하나만 충족 &nbsp;|&nbsp; 지금 감당 CPC 상한 <b>"+fmt(Math.max(0,mg.margin*SET.tgtCvr/roasMult()))+"원</b>";
 }
 
@@ -2012,7 +2051,7 @@ function renderKpi(){
   var lin=0, ban=0, adOk=0;
   for(var i=0;i<N;i++){ if(C_v[i]===0)lin++; else if(C_v[i]===1)ban++; if(C_ad[i])adOk++; }
   document.getElementById("kpi").innerHTML=
-   cell("마진", fmt(mg.margin)+"원", (mg.rate*100).toFixed(1)+"% · 기준 "+(RULE.marginMin*100)+"%")
+   cell("광고 전 수익", fmt(mg.margin)+"원", "수익률 "+(mg.rate*100).toFixed(1)+"% · 기준 "+(RULE.marginMin*100)+"%")
   +cell("감당 CPC 상한", fmt(Math.max(0,mg.margin*SET.tgtCvr/roasMult()))+"원", "목표 "+(SET.tgtCvr*100).toFixed(1)+"% 기준")
   +cell("최소광고효율", isFinite(mg.minRoas)?mg.minRoas.toFixed(2):"—", "ROAS "+(isFinite(mg.minRoas)?(mg.minRoas*100).toFixed(0):"—")+"%↑")
   +cell("광고 되는 키워드", fmt(adOk), (adOk/R.length*100).toFixed(1)+"% / "+fmt(R.length))
@@ -2020,9 +2059,9 @@ function renderKpi(){
   +cell("지금 표시", fmt(shown), "필터 적용 후");
   var box=document.getElementById("marginAlert");
   if(mg.rate<RULE.marginMin)
-    box.innerHTML='<div class="warn-bar">마진율 '+(mg.rate*100).toFixed(1)+'% — 기준 '+(RULE.marginMin*100)+'% 미달이다. 이 조건에서는 전부 패스다. 공급가나 판매가를 조정해라.</div>';
+    box.innerHTML='<div class="warn-bar">광고 전 수익률 '+(mg.rate*100).toFixed(1)+'% — 기준 '+(RULE.marginMin*100)+'% 미달이다. 이 조건에서는 전부 패스다. 공급가나 판매가를 조정해라.</div>';
   else if(adOk===0)
-    box.innerHTML='<div class="warn-bar">이 마진과 목표 전환율로는 광고가 남는 키워드가 하나도 없다. 감당 CPC 상한 '
+    box.innerHTML='<div class="warn-bar">이 수익과 목표 전환율로는 광고가 남는 키워드가 하나도 없다. 감당 CPC 상한 '
       +fmt(mg.margin*SET.tgtCvr/roasMult())+'원인데 수집된 3위 입찰가 최저가가 '+fmt(minCpc)+'원이다. 목표 전환율을 올리거나 단가가 높은 상품으로 봐라.</div>';
   else box.innerHTML='';
 }
@@ -2102,7 +2141,7 @@ function playbook(i){
   }
   /* 2 광고 한 달 */
   var h2, c2="", l2;
-  if(mg.margin<=0){ h2="마진이 없다"; c2="down"; l2='<p class="pb-n">지금 판매가 · 공급가로는 팔수록 손해다. 위 설정에서 값을 고쳐라.</p>'; }
+  if(mg.margin<=0){ h2="수익이 없다"; c2="down"; l2='<p class="pb-n">지금 판매가 · 공급가로는 팔수록 손해다. 위 설정에서 값을 고쳐라.</p>'; }
   else if(!A){ h2="광고 자료 부족"; c2="skip"; l2='<p class="pb-n">네이버가 이 키워드의 광고 클릭수나 입찰가를 주지 않았다.</p>'; }
   else {
     var beC=A.be/A.clicks;
@@ -2111,8 +2150,8 @@ function playbook(i){
       +li("예상 클릭", '<b>'+(A.clicks>=10?fmt(A.clicks):A.clicks.toFixed(1))+'회</b>')
       +li(A.real?"광고비 (네이버 예상)":"광고비 (상한)", '<b>'+won(A.cost)+'</b>')
       +li("본전 주문", '<b>'+(A.be>=10?fmt(Math.ceil(A.be)):A.be.toFixed(1))+'건 · 전환율 '+(beC*100).toFixed(1)+'%</b>')
-      +li("목표 "+(SET.tgtCvr*100).toFixed(1)+"% 면", '<b>'+(A.orders>=10?fmt(A.orders):A.orders.toFixed(1))+'건 · 마진 '+won(A.orders*mg.margin)+'</b>')
-      +'</ul><p class="pb-n">'+(A.real?"네이버 검색광고 예상 실적(3위 입찰가 · 모바일 + PC)":"3위 입찰가 × 네이버 월평균 광고 클릭수")+'. 주문 1건 마진 '+fmt(mg.margin)+'원 기준.</p>';
+      +li("목표 "+(SET.tgtCvr*100).toFixed(1)+"% 면", '<b>'+(A.orders>=10?fmt(A.orders):A.orders.toFixed(1))+'건 · 광고 전 수익 '+won(A.orders*mg.margin)+'</b>')
+      +'</ul><p class="pb-n">'+(A.real?"네이버 검색광고 예상 실적(3위 입찰가 · 모바일 + PC)":"3위 입찰가 × 네이버 월평균 광고 클릭수")+'. 주문 1건 광고 전 수익 '+fmt(mg.margin)+'원 기준.</p>';
   }
   /* 3 같은 품목에서 더 볼 키워드 */
   var l3= S.list.length
@@ -2131,7 +2170,7 @@ function renderDetail0(){
   /* 판정 근거는 판정 알약에 마우스를 올리면 나온다 */
   var why = c.v==="린정" ? "월 검색 "+fmt(s.tot)+" · 광고경쟁도 "+s.compScore.toFixed(1)+" · 3위 광고 필요 전환율 "+(c.cvr*100).toFixed(1)+"%"
     : c.v==="반린정" ? (c.adOk?"광고는 감당된다":"광고 필요 전환율 "+(c.cvr*100).toFixed(1)+"% 로 목표를 넘는다")+" / "+(c.cmpOk?"광고경쟁도 기준 안":"광고경쟁도 "+s.compScore.toFixed(1)+" 로 기준 초과")
-    : mg.rate<RULE.marginMin ? "마진율 "+(mg.rate*100).toFixed(1)+"% — 기준 미달"
+    : mg.rate<RULE.marginMin ? "광고 전 수익률 "+(mg.rate*100).toFixed(1)+"% — 기준 미달"
     : s.tot<RULE.minVol ? "월 검색 "+fmt(s.tot)+" — 기준 "+RULE.minVol+" 미달"
     : !a[K.BM3] ? "네이버 입찰가를 아직 못 받았다"
     : c.noBuy ? "구매의도 "+irFmt(S_ir[CUR])+" — 검색은 되는데 쇼핑으로 이어지지 않는다"
@@ -2183,7 +2222,7 @@ function drawDevice(a,s){
 function drawCvr(a,c,mg){
   var tgt=SET.tgtCvr;
   document.getElementById("cvrNote").innerHTML=
-    "마진 "+fmt(mg.margin)+"원 기준 · 각 순위로 광고할 때 본전을 맞추려면 필요한 전환율. 초록 구간이 목표 "+(tgt*100).toFixed(1)+"% 안쪽이다.";
+    "광고 전 수익 "+fmt(mg.margin)+"원 기준 · 각 순위로 광고할 때 본전을 맞추려면 필요한 전환율. 초록 구간이 목표 "+(tgt*100).toFixed(1)+"% 안쪽이다.";
   var W=440,H=176,L=42,R2=64,T=14,iw=W-L-R2;
   var mos=[a[K.BM1],a[K.BM2],a[K.BM3]];
   var vals=mos.map(function(v){ return beCvr(v,mg.margin); });
@@ -2414,10 +2453,10 @@ async function renderLog(){
     ["패스 → 남음", rate(by.패스), "패스였는데 남았다면 규칙이 너무 빡빡하다"]
   ]);
   if(!VLOG.length){
-    box.innerHTML=h+'<div class="na" style="padding:22px">아직 기록이 없다. 키워드를 고르고 위쪽 <b>판정 기록 +</b> 를 누르면 그때의 판정·검색수·입찰가·마진 설정이 그대로 남는다. 팔아본 뒤 여기서 결과를 적는다.</div>';
+    box.innerHTML=h+'<div class="na" style="padding:22px">아직 기록이 없다. 키워드를 고르고 위쪽 <b>판정 기록 +</b> 를 누르면 그때의 판정·검색수·입찰가·수익 설정이 그대로 남는다. 팔아본 뒤 여기서 결과를 적는다.</div>';
     return;
   }
-  h+='<div class="tbox"><div class="tscroll"><table class="logt"><thead><tr><th>기록일</th><th>키워드</th><th>판정</th><th>검색수</th><th>3위 입찰가(모바일)</th><th>손익분기 전환율</th><th>마진</th>'
+  h+='<div class="tbox"><div class="tscroll"><table class="logt"><thead><tr><th>기록일</th><th>키워드</th><th>판정</th><th>검색수</th><th>3위 입찰가(모바일)</th><th>손익분기 전환율</th><th>광고 전 수익</th>'
    +'<th>결과</th><th>매출</th><th>광고비</th><th>주문수</th><th>메모</th><th></th></tr></thead><tbody>';
   VLOG.forEach(function(r){
     var d=new Date(r.at), o=r.out||{};
@@ -2700,24 +2739,18 @@ function applyCalc(fi, ri){
   CALCSEL=fi+":"+ri;
   refresh(); renderCalcPick(); saveSet();
   var n=document.getElementById("xErr");
-  if(TAB==="xls" && n) n.innerHTML='<div class="xok">마진 설정에 넣었다 — <b>'+esc(r.name)+'</b> · 원가 '+fmt(r.cost)+'원 · '
+  if(TAB==="xls" && n) n.innerHTML='<div class="xok">판매 설정에 넣었다 — <b>'+esc(r.name)+'</b> · 원가 '+fmt(r.cost)+'원 · '
     +(SET.platform==="coupang" ? '쿠팡 쿠폰 적용가 ' : '네이버 판매가 ')+fmt(price||0)+'원'
     +(SET.platform==="coupang" && r.cPrice ? ' (등록가 '+fmt(r.cPrice)+'원)' : '')+'. 화면 전체 판정이 이 값으로 다시 계산됐다.</div>';
 }
-/* 화면을 다시 열었을 때: 계산기의 수수료 · 안전계수를 맞추고, 지난번에 고른 옵션이 그대로면 고른 상태로 둔다.
-   처음 여는 것이면(남긴 설정이 없으면) 계산기의 기준 옵션을 넣는다 */
+/* 화면을 다시 열었을 때: 계산기 엑셀을 넣어 둔 경우 그 수수료 · 안전계수를 맞추고, 지난번에 넣은 옵션이 그대로면 넣은 상태로 둔다.
+   품목은 키워드마다 다르니 옵션을 알아서 넣지는 않는다 — 공급가 · 판매가 · 배송비는 직접 넣는다 (보갬, 2026-10-12) */
 function restoreCalc(){
   var list=calcRows(); if(!list.length) return;
   applyCalcSet(calcSet(), false);
   var want= SET_SAVED ? (SET_SAVED.calc||"") : "", hit=null;
   if(want) list.forEach(function(x){ if(!hit && x.f.file+"|"+x.r.name===want) hit=x; });
-  if(hit){
-    if(+document.getElementById("supPrice").value===Math.round(hit.r.cost)) CALCSEL=hit.fi+":"+hit.ri;
-  } else if(!SET_SAVED){
-    var cs=calcSet(), base=cs && cs.base;
-    list.forEach(function(x){ if(!hit && base && x.r.name===base) hit=x; });
-    if(hit){ applyCalc(hit.fi, hit.ri); return; }
-  }
+  if(hit && +document.getElementById("supPrice").value===Math.round(hit.r.cost)) CALCSEL=hit.fi+":"+hit.ri;
   refresh();
 }
 function renderCalcPick(){
@@ -2728,10 +2761,6 @@ function renderCalcPick(){
     var k=x.fi+":"+x.ri;
     return '<option value="'+k+'"'+(k===CALCSEL?" selected":"")+'>'+esc(x.r.name)+' · 원가 '+fmt(x.r.cost)+'</option>'; }).join("");
 }
-document.getElementById("calcPick").onchange=function(e){
-  if(!e.target.value){ CALCSEL=""; return; }
-  var p=e.target.value.split(":"); applyCalc(+p[0], +p[1]);
-};
 /* 직접 고치면 계산기 선택은 풀린다 */
 ["supPrice","sellPrice","shipFee"].forEach(function(id){
   document.getElementById(id).addEventListener("input",function(){ if(CALCSEL){ CALCSEL=""; renderCalcPick(); } });
@@ -3017,8 +3046,8 @@ function rateBars(rows){
 
 function calcTable(rows, fi){
   var h='<div class="tbox"><div class="tscroll"><table><thead><tr>'
-   +'<th>마진 계산</th><th>옵션명</th><th>총원가</th><th>네이버 판매가</th><th>공헌이익</th><th>이익률</th><th>최소 ROAS</th>'
-   +'<th title="수수료와 마진을 따지는 값. 등록가에서 판매자 쿠폰을 뺀 가격">쿠팡 쿠폰 적용가</th><th>쿠팡 등록가</th><th>쿠팡 공헌이익</th><th>쿠팡 이익률</th><th>쿠팡 최소 ROAS</th><th>판정</th></tr></thead><tbody>';
+   +'<th>수익 계산</th><th>옵션명</th><th>총원가</th><th>네이버 판매가</th><th>공헌이익</th><th>이익률</th><th>최소 ROAS</th>'
+   +'<th title="수수료와 수익을 따지는 값. 등록가에서 판매자 쿠폰을 뺀 가격">쿠팡 쿠폰 적용가</th><th>쿠팡 등록가</th><th>쿠팡 공헌이익</th><th>쿠팡 이익률</th><th>쿠팡 최소 ROAS</th><th>판정</th></tr></thead><tbody>';
   rows.forEach(function(r, ri){
     h+='<tr><td><button type="button" class="chip'+(CALCSEL===fi+":"+ri?" on":"")+'" data-calc="'+fi+':'+ri+'">'+(CALCSEL===fi+":"+ri?"적용 중":"넣기")+'</button></td>'
      +'<td><span class="kw">'+esc(r.name)+'</span>'
@@ -3117,22 +3146,21 @@ function passAt(cap){ var lo=0,hi=CPC_SORTED.length;
 
 function renderMargin(){
   var mg=marginOf();
-  var adCost = SET.tgtCvr>0 ? (function(){ var best=-1;
-      for(var i=0;i<N;i++) if(C_v[i]===0&&(best<0||C_gold[i]>C_gold[best])) best=i;
-      return best>=0 ? R[best][K.BM3]/SET.tgtCvr : 0; })() : 0;
+  /* 광고비는 위 수익 상자와 같은 값 — 지금 보는 키워드의 클릭 단가 ÷ 목표 전환율 */
+  var pfc=profitOf(CUR), adCost=pfc.ad;
   document.getElementById("marginBox").innerHTML=
     cell("판매가",fmt(SET.sell)+"원","")
    +cell("공급가",fmt(SET.supply)+"원","")
    +cell("수수료",fmt(mg.fee)+"원",(feeRate()*100).toFixed(2)+"%")
-   +cell("마진",fmt(mg.margin)+"원","광고비 전")
-   +cell("마진율",(mg.rate*100).toFixed(1)+"%","기준 "+(RULE.marginMin*100)+"%")
+   +cell("광고 전 수익",fmt(mg.margin)+"원","수익률 "+(mg.rate*100).toFixed(1)+"% · 기준 "+(RULE.marginMin*100)+"%")
+   +cell("수익",(pfc.net<0?"−":"+")+fmt(Math.abs(pfc.net))+"원","수익률 "+(pfc.rate*100).toFixed(1)+"% · 광고비 "+fmt(pfc.ad)+"원 뺀 뒤")
    +cell("최소광고효율",isFinite(mg.minRoas)?mg.minRoas.toFixed(2):"—","ROAS "+(isFinite(mg.minRoas)?(mg.minRoas*100).toFixed(0):"—")+"%↑");
 
   var parts=[["공급가",SET.supply,"var(--s1)"],["수수료",mg.fee,"var(--s2)"],
              ["광고비",Math.min(adCost,Math.max(0,mg.margin)),"var(--warn)"],
-             ["실마진",Math.max(0,mg.margin-adCost),"var(--good)"]];
+             ["수익",Math.max(0,mg.margin-adCost),"var(--good)"]];
   var W=1120,H=104,L=10,iw=W-20,tot=SET.sell||1,x=L;
-  var out='<svg viewBox="0 0 '+W+' '+H+'" role="img" aria-label="마진 구성">';
+  var out='<svg viewBox="0 0 '+W+' '+H+'" role="img" aria-label="수익 구성">';
   parts.forEach(function(p){
     var w=Math.max(0,(p[1]/tot)*iw);
     out+='<rect x="'+x+'" y="20" width="'+Math.max(0,w-2)+'" height="34" rx="4" fill="'+p[2]+'" data-t="'+p[0]+' '+fmt(p[1])+'원 · '+(p[1]/tot*100).toFixed(1)+'%"/>';
@@ -3146,14 +3174,15 @@ function renderMargin(){
   });
   var bc=document.getElementById("breakChart"); bc.innerHTML=out+'</svg>'; bindTips(bc);
   document.getElementById("breakNote").textContent= adCost>0
-    ? "린정 중 최고 점수 키워드의 3위 입찰가와 목표 전환율 "+(SET.tgtCvr*100).toFixed(1)+"% 로 계산한 1회 판매 광고비를 반영했다."
-    : "지금 조건에서는 광고가 남는 키워드가 없어 광고비를 0으로 뒀다.";
+    ? "지금 보는 키워드 "+R[CUR][K.KW]+" 의 클릭 단가 "+fmt(pfc.cpc)+"원과 목표 전환율 "+(SET.tgtCvr*100).toFixed(1)+"% 로 낸 1건 광고비를 반영했다. 위 수익 상자와 같은 값이다."
+      +(pfc.net<0 ? " 광고비가 광고 전 수익보다 커서 1건마다 "+fmt(-pfc.net)+"원 손해다." : "")
+    : "이 키워드는 클릭 단가를 몰라 광고비를 0으로 뒀다.";
 
   /* 마진 × 전환율 표 */
   var MARGINS=[3000,6000,10000,15000,20000,30000,50000];
   var CVRS=[0.01,0.02,0.03,0.05,0.10,0.15,0.20,0.30];
   var nearC=CVRS.reduce(function(b,c){ return Math.abs(c-SET.tgtCvr)<Math.abs(b-SET.tgtCvr) ? c : b; }, CVRS[0]);
-  var h='<thead><tr><th>마진 \\ 목표 전환율</th>';
+  var h='<thead><tr><th>광고 전 수익 \\ 목표 전환율</th>';
   CVRS.forEach(function(c){ h+='<th>'+(c*100).toFixed(0)+'%</th>'; }); h+='</tr></thead><tbody>';
   var curM=mg.margin;
   MARGINS.forEach(function(m){
@@ -3164,15 +3193,16 @@ function renderMargin(){
       var st = pct>=80?7:pct>=60?6:pct>=40?5:pct>=25?4:pct>=12?3:pct>=3?2:1;
       var here = near && c===nearC;
       h+='<td><div class="mxc'+(here?" here":"")+'" style="background:var(--seq'+st+');color:'+(st<=3?"var(--ink-2)":"#fff")+'" '
-        +'data-t="마진 '+fmt(m)+'원 · 전환율 '+(c*100).toFixed(0)+'% → 감당 CPC '+fmt(m*c/roasMult())+'원 → '+pct.toFixed(1)+'%">'+pct.toFixed(0)+'%</div></td>';
+        +'data-t="광고 전 수익 '+fmt(m)+'원 · 전환율 '+(c*100).toFixed(0)+'% → 감당 CPC '+fmt(m*c/roasMult())+'원 → '+pct.toFixed(1)+'%">'+pct.toFixed(0)+'%</div></td>';
     });
     h+='</tr>';
   });
   var mx=document.getElementById("mxTable"); mx.innerHTML=h+'</tbody>'; bindTips(mx);
   document.getElementById("marFormula").innerHTML=
-    "마진 = 판매가 − 공급가 − (판매가 × 수수료) − 배송비<br>"+
-    "최소광고효율 = 판매가 ÷ 마진 × "+roasMult().toFixed(1)+" · 손익분기 전환율 = CPC × "+roasMult().toFixed(1)+" ÷ 마진<br>"+
-    "감당 CPC 상한 = 마진 × 목표 전환율 ÷ "+roasMult().toFixed(1)+" = <b>"+fmt(Math.max(0,mg.margin*SET.tgtCvr/roasMult()))+"원</b><br>"+
+    "광고 전 수익 = 판매가 − 공급가 − (판매가 × 수수료) − 배송비<br>"+
+    "수익 = 광고 전 수익 − 광고비 (광고비 = 클릭 단가 × "+roasMult().toFixed(1)+" ÷ 목표 전환율) · 수익률 = 수익 ÷ 판매가<br>"+
+    "최소광고효율 = 판매가 ÷ 광고 전 수익 × "+roasMult().toFixed(1)+" · 손익분기 전환율 = CPC × "+roasMult().toFixed(1)+" ÷ 광고 전 수익<br>"+
+    "감당 CPC 상한 = 광고 전 수익 × 목표 전환율 ÷ "+roasMult().toFixed(1)+" = <b>"+fmt(Math.max(0,mg.margin*SET.tgtCvr/roasMult()))+"원</b><br>"+
     "참고선 · 네이버 전환율 0.5% → CPC "+fmt(mg.margin*REF.naver)+"원 · 쿠팡 0.1% → CPC "+fmt(mg.margin*REF.coupang/1.1)+"원 "+
     "(둘 다 판정에는 쓰지 않는다. 이 수준에서는 광고가 성립하지 않는다)";
 }
@@ -3399,6 +3429,7 @@ function sp(k,v){ return '<div><span class="hc-sk">'+k+'</span><span class="hc-s
 
 function renderHero(){
   var a=R[CUR], st=ST(CUR), c=CA(CUR), mg=marginOf();
+  renderProfit();
   ensureFresh(CUR);
   var cls=c.v==="린정"?"good":c.v==="반린정"?"warn":"skip";
   document.getElementById("hero").innerHTML=
@@ -3414,7 +3445,7 @@ function renderHero(){
    +'</div><div class="hero-btns">'
    +'<button class="hbtn" type="button" data-go="detail">키워드 상세 →</button>'
    +'<button class="hbtn alt" type="button" id="relGo">'+(F.relSeed===a[K.KW]?"전체 목록으로":"이 키워드의 연관 "+fmt(relGroup(CUR).length)+"개")+'</button>'
-   +'<button class="hbtn alt" type="button" data-go="margin">마진 · 광고효율 →</button>'
+   +'<button class="hbtn alt" type="button" data-go="margin">수익 · 광고효율 →</button>'
    +'<button class="hbtn alt" type="button" id="logAdd">판정 기록 +</button>'
    +'</div></div>';
   document.getElementById("hero").querySelectorAll("[data-go]").forEach(function(b){
@@ -3494,8 +3525,8 @@ function renderHero(){
       return hcard("손익분기 전환율", isFinite(real3)?"실제 클릭 단가로 계산":"3위 입찰가로 계산", f(head)+"<span class='hc-u'>3위 광고</span>",
         sp("3위 · 실제 단가", isFinite(real3)?f(real3):"—")+sp("1위 · 실제 단가", isFinite(real1)?f(real1):"—")+sp("3위 · 입찰가 상한", f(bid3)),
         "목표 "+(SET.tgtCvr*100).toFixed(1)+"% 보다 낮아야 광고가 남는다. "
-        +(ok?"<b style='color:var(--good)'>3위 광고는 남는다.</b>":"<b>3위 광고도 목표를 넘는다 — 이 마진 · 목표 전환율로는 안 남는다.</b>")
-        +(isFinite(real3)?" 주문 1건 마진 "+fmt(mg.margin)+"원, 클릭당 "+fmt(e.cpc3)+"원이면 클릭 "+Math.ceil(mg.margin/Math.max(e.cpc3,1))+"번에 한 번 팔려야 본전이다.":""));
+        +(ok?"<b style='color:var(--good)'>3위 광고는 남는다.</b>":"<b>3위 광고도 목표를 넘는다 — 이 수익 · 목표 전환율로는 안 남는다.</b>")
+        +(isFinite(real3)?" 주문 1건 광고 전 수익 "+fmt(mg.margin)+"원, 클릭당 "+fmt(e.cpc3)+"원이면 클릭 "+Math.ceil(mg.margin/Math.max(e.cpc3,1))+"번에 한 번 팔려야 본전이다.":""));
     })();
 
   var ps=document.getElementById("prodSave");
@@ -4220,7 +4251,7 @@ document.getElementById("stamp").textContent="수집본 "+mdOf(PACK_DAY)+" · �
 document.getElementById("fCompV").textContent=F.comp.toFixed(1);
 document.getElementById("foot").innerHTML=
   "<b>실데이터</b> · 월 검색수 · 클릭수 · CTR · 광고 깊이 · 경쟁정도 · 1~3위 입찰가(PC·모바일)는 NAVER 검색광고 API 에서 받은 값이다. "
- +"수확 캘린더 202품종과 마진 공식은 업로드한 시트에서 왔다.<br>"
+ +"수확 캘린더 202품종과 수익 공식은 업로드한 시트에서 왔다.<br>"
  +"<b>상품수 · 경쟁강도는 뺐다.</b> 네이버가 주지 않는 값이라 아이템스카우트 엑셀이 있어야만 나왔다. 그 자리에 네이버가 직접 주는 세 가지를 둔다 — "
  +"<b>구매의도</b>(식품 쇼핑 클릭 ÷ 검색수, 닭가슴살 = 1배 · 쇼핑인사이트), <b>광고 클릭률</b>(광고가 보였을 때 눌리는 비율 · 검색광고), "
  +"<b>3위 광고 예상 클릭 · 실제 클릭 단가</b>(그 입찰가로 광고하면 한 달에 몇 번 눌리고 얼마가 나가는지 네이버가 추정한 값 · 검색광고 예상 실적).<br>"
