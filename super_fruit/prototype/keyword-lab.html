@@ -166,6 +166,33 @@ tbody tr:last-child td{border-bottom:0}
 .kw{font-weight:600; color:var(--ink)}
 .sub{font-size:11px; color:var(--ink-3); font-weight:400}
 .dim{color:var(--ink-3)} .bidcell{border-left:1px solid var(--line)}
+/* ── 시장 지도 · 트렌드 · 상품명 만들기 ── */
+.trbar{display:flex; flex-wrap:wrap; align-items:center; gap:6px 7px; margin:0 0 11px}
+.trt th{font-size:11.5px; text-transform:none; letter-spacing:0; color:var(--ink-2); padding:8px 10px; white-space:normal; word-break:keep-all; line-height:1.3}
+.trt td{vertical-align:middle; padding:8px 10px}
+.trt td:first-child{white-space:normal}
+.trt .sub{font-size:11.5px; color:var(--ink-3); margin-top:2px}
+.trt .kw{font-size:14px; font-weight:700}
+.spk{display:block; margin:0 auto}
+.mbar{height:4px; border-radius:2px; background:var(--surface-3); margin-top:4px; overflow:hidden} .mbar i{display:block; height:100%; background:var(--brand); border-radius:2px}
+.mpt .mtop{white-space:normal; text-align:left; font-size:12px; line-height:1.5; min-width:170px} .mpt .mtop a{color:var(--brand-ink); font-weight:600; text-decoration:none} .mpt .mtop a:hover{text-decoration:underline}
+th.msrt{cursor:pointer; user-select:none} th.msrt:hover{color:var(--ink)} th.msrt[data-dir]::after{content:attr(data-dir); margin-left:3px; color:var(--brand)}
+#panel-trend .card,#panel-map .card,#panel-name .card{margin-bottom:13px}
+.nm-row{display:flex; gap:12px; padding:9px 0; border-top:1px solid var(--line)}
+.nm-k{flex:0 0 92px; font-size:11px; font-weight:700; color:var(--ink-3); letter-spacing:.03em; padding-top:6px}
+.nm-v{flex:1 1 0; min-width:0; display:flex; flex-wrap:wrap; gap:6px; align-items:center}
+.nmt{font:inherit; font-size:12.5px; font-weight:600; padding:5px 10px; border-radius:8px; border:1px solid var(--line-strong); background:var(--surface); color:var(--ink-2); cursor:pointer}
+.nmt small,.nmtag small{font-family:"IBM Plex Mono",monospace; font-size:10.5px; font-weight:500; margin-left:5px; opacity:.75}
+.nmt.on{background:var(--brand); border-color:var(--brand); color:#fff}
+.nmtag{font-size:12.5px; font-weight:600; padding:4px 9px; border-radius:999px; background:var(--brand-soft); color:var(--brand-ink)}
+.nm-out{border:2px solid var(--brand); border-radius:12px; background:var(--brand-soft); padding:12px 14px; margin:12px 0}
+.nm-out .nm-k{color:var(--brand-ink)}
+.nm-out textarea{display:block; width:100%; margin-top:6px; font:inherit; font-size:17px; font-weight:700; line-height:1.4; color:var(--ink); background:var(--surface); border:1px solid var(--line-strong); border-radius:8px; padding:9px 11px; resize:vertical}
+.nm-meta{display:flex; flex-wrap:wrap; align-items:center; gap:8px 12px; margin-top:8px; font-size:12px}
+.nm-cov{display:grid; grid-template-columns:repeat(auto-fit,minmax(170px,1fr)); border:1px solid var(--line); border-radius:10px; overflow:hidden; margin-bottom:6px}
+.nm-cov>div{padding:11px 15px; background:var(--surface); box-shadow:1px 0 0 var(--line)} .nm-cov .v-v{font-size:19px; font-weight:700}
+.nm-miss{display:flex; flex-wrap:wrap; gap:7px 14px; font-size:12.5px} .nm-miss a{color:var(--ink); font-weight:600; text-decoration:none} .nm-miss small{color:var(--ink-3)} .nm-miss b{color:var(--brand-ink); cursor:pointer; font-weight:700}
+@media (max-width:640px){ .nm-row{flex-direction:column; gap:5px} .nm-k{flex:none; padding-top:0} }
 /* ── 키워드 표 ──
    여섯 묶음(키워드 | 수요 | 광고 시장 | 입찰가 | 3위로 광고하면 | 판단)을 굵은 세로 금과 번갈아 깔리는 옅은 바탕으로 가른다.
    열 너비를 고정해 한 화면에 다 들어오게 한다 (전에는 오른쪽 열이 잘려 보였다).
@@ -736,7 +763,10 @@ th.srt[data-dir]::after{content:attr(data-dir);margin-left:3px;color:var(--brand
 
     <div class="tabs" role="tablist">
       <button class="tab" role="tab" aria-selected="true" data-tab="gold">황금키워드</button>
+      <button class="tab" role="tab" aria-selected="false" data-tab="map">시장 지도</button>
+      <button class="tab" role="tab" aria-selected="false" data-tab="trend">트렌드</button>
       <button class="tab" role="tab" aria-selected="false" data-tab="detail">키워드 상세</button>
+      <button class="tab" role="tab" aria-selected="false" data-tab="name">상품명 만들기</button>
       <button class="tab" role="tab" aria-selected="false" data-tab="xls">엑셀 분석</button>
       <button class="tab" role="tab" aria-selected="false" data-tab="margin">수익 · 광고효율</button>
       <button class="tab" role="tab" aria-selected="false" data-tab="log">판정 기록</button>
@@ -955,6 +985,9 @@ th.srt[data-dir]::after{content:attr(data-dir);margin-left:3px;color:var(--brand
       <div class="formula" id="marFormula"></div>
     </section>
 
+    <section id="panel-map" hidden><div id="mapBox"></div></section>
+    <section id="panel-trend" hidden><div id="trendBox"></div></section>
+    <section id="panel-name" hidden><div id="nameBox"></div></section>
     <section id="panel-log" hidden><div id="logBox"></div></section>
     <section id="panel-status" hidden>
       <div class="grid2">
@@ -1946,13 +1979,16 @@ var qt; document.getElementById("q").addEventListener("input",function(e){
 document.getElementById("moreBtn").onclick=function(){ LIMIT+=200; renderTable(); };
 
 /* 탭 */
-var PANELS={gold:"panel-gold",detail:"panel-detail",xls:"panel-xls",margin:"panel-margin",log:"panel-log",status:"panel-status"};
+var PANELS={gold:"panel-gold",map:"panel-map",trend:"panel-trend",detail:"panel-detail",name:"panel-name",xls:"panel-xls",margin:"panel-margin",log:"panel-log",status:"panel-status"};
 var TAB="gold";
 document.querySelectorAll(".tab").forEach(function(t){ t.onclick=function(){ setTab(t.dataset.tab); }; });
 function setTab(n){ TAB=n; hideTip();
   document.querySelectorAll(".tab").forEach(function(t){ t.setAttribute("aria-selected",t.dataset.tab===n); });
   for(var k in PANELS) document.getElementById(PANELS[k]).hidden=(k!==n);
   if(n==="detail") renderDetail();
+  if(n==="map") renderMap();
+  if(n==="trend") renderTrend();
+  if(n==="name") renderName(true);
   if(n==="xls") renderXls();
   if(n==="margin") renderMargin();
   if(n==="status") renderStatus();
@@ -3593,6 +3629,7 @@ function renderHero(){
    +'</div><div class="hero-btns">'
    +'<button class="hbtn" type="button" data-go="detail">키워드 상세 →</button>'
    +'<button class="hbtn alt" type="button" id="relGo">'+(F.relSeed===a[K.KW]?"전체 목록으로":"이 키워드의 연관 "+fmt(relGroup(CUR).length)+"개")+'</button>'
+   +'<button class="hbtn alt" type="button" data-go="name">상품명 만들기 →</button>'
    +'<button class="hbtn alt" type="button" data-go="margin">수익 · 광고효율 →</button>'
    +'<button class="hbtn alt" type="button" id="logAdd">판정 기록 +</button>'
    +'</div></div>';
@@ -4374,7 +4411,328 @@ function ratioCards(){
 }
 
 /* ── 갱신 ── */
+/* ══ 시장 지도 · 트렌드 · 상품명 만들기 ══
+   아이템스카우트의 아이템 발굴 · 트렌드, 판다랭크의 문구 작성에서 가져온 생각을 우리 자료로 만든 것 (보갬, 2026-10-13).
+   새로 받는 자료는 없다 — 화면 키워드의 검색수 · 구매의도 · 입찰가 · 판정과 3년 주간 검색 추세를 다시 묶는다. */
+
+/* ── 추세 통계 ──
+   v = 주간 검색 지수(그 키워드의 3년 최고 = 100). 맨 끝이 가장 최근 주.
+     mom   최근 4주 평균 ÷ 그 앞 4주 평균 − 1
+     yoy   최근 4주 평균 ÷ 작년 같은 4주 평균 − 1
+     rise  작년(과 재작년) 같은 때 이후 12주 안의 가장 높은 2주 평균 ÷ 그때의 4주 평균 — "철이 오면 지금의 몇 배"
+     wk    그 정점까지 몇 주
+     pk    최근 4주 평균 ÷ 최근 1년 최고 */
+function trStats(v){
+  var n=v.length; if(n<60) return null;
+  var avg=function(e,w){ var s=0,c=0; for(var k=e-w+1;k<=e;k++){ if(k>=0&&k<n){ s+=v[k]; c++; } } return c?s/c:0; };
+  var two=n>=110, now=avg(n-1,4), prev=avg(n-5,4), ly=avg(n-53,4);
+  var yr=0; for(var q=Math.max(0,n-52);q<n;q++) if(v[q]>yr) yr=v[q];
+  var floor=Math.max(1.2, yr*0.02);   /* 거의 0 에서 0 으로 가는 것을 몇 배라고 읽지 않게 */
+  /* 한 해 전 · 두 해 전을 따로 본다: 같은 때의 4주 평균에서 그 뒤 12주 안의 가장 높은 2주 평균까지 */
+  var ahead=function(off){ var base=avg(n-1-off,4), best=0, bw=0; for(var k=1;k<=12;k++){ var a=avg(n-1-off+k,2); if(a>best){ best=a; bw=k; } }
+    return { r: best/Math.max(base,floor), wk:bw }; };
+  var a1=ahead(52), a2= two ? ahead(104) : null, rise= a2 ? Math.min(a1.r,a2.r) : a1.r, wk= a2 ? Math.round((a1.wk+a2.wk)/2) : a1.wk;
+  var lastW=v[n-1]||0, before=avg(n-2,2);
+  var st={ now:now, mom: prev>floor ? now/prev-1 : null, yoy: ly>floor ? now/ly-1 : null, rise: now>floor*0.5 || yr>0 ? rise : null, wk:wk, pk: yr>0 ? now/yr : 0,
+           hold: before>0 ? lastW/before : 1 };   /* 맨 끝 주 ÷ 그 앞 2주 평균 — 방금 무너졌는가 */
+  st.ph= (st.rise!=null && st.rise>=1.5 && st.wk>=2 && !(st.mom!=null && st.mom<-0.2) && st.hold>=0.6) ? 0
+       : (st.mom!=null && st.mom>=0.25 && st.hold>=0.75) ? 1 : (st.pk>=0.85 && st.hold>=0.75) ? 2 : ((st.mom!=null && st.mom<=-0.25) || st.hold<0.6) ? 3 : 4;
+  return st;
+}
+var TR_PH=["곧 철이 온다","오르는 중","지금 한창","내리는 중","잔잔"], TR_CLS=["warn","good","good","skip","skip"];
+function trPhase(st){ return st.ph===3 && st.mom!=null && st.mom>0.1 ? "방금 꺾였다" : TR_PH[st.ph]; }
+/* 품목 · 칸 단위로 모은 추세. 키워드의 지수를 지금 월 검색수에 맞춰 검색량으로 바꾼 뒤 더한다 */
+var TRD=null;
+function trBuild(){
+  if(TRD) return TRD;
+  var kw={}, items={}, leaves={}, nW=0;
+  for(var i=0;i<N;i++){
+    var v=trendOf(R[i][K.KW]); if(!v || S_tot[i]<50) continue;
+    if(v.length>nW) nW=v.length;
+    var st=trStats(v); if(st) kw[i]=st;
+    if(!st || !(st.now>=2.5) || (S_ir[i]>=0 && S_ir[i]<RULE.buyNone)) continue;   /* 품목 합계에는 살 사람이 있는 키워드만. 지금 지수가 너무 작으면 뺀다(지수 한 칸이 약 1.1 이라 검색량으로 바꿀 때 크게 부풀려진다) */
+    var c=catRow(i); if(!c[1] || c[0].indexOf("신선식품")!==0) continue;
+    var it=relInfo(R[i][K.KW].replace(/\s+/g,"").toLowerCase()).item; if(!it || !CAT_MAP[it]) continue;
+    var sc=S_tot[i]/st.now, add=function(o,key,meta){ var x=o[key]; if(!x){ x=o[key]={ s:new Float64Array(v.length), n:0, tot:0, meta:meta }; }
+      for(var t=0;t<v.length && t<x.s.length;t++) x.s[t]+=v[t]*sc; x.n++; x.tot+=S_tot[i]; };
+    add(items, it, CAT_MAP[it]); add(leaves, c[0]+" > "+c[1], c);
+  }
+  var fin=function(o){ Object.keys(o).forEach(function(k){ o[k].st=trStats(o[k].s); }); return o; };
+  return (TRD={ kw:kw, items:fin(items), leaves:fin(leaves), weeks:nW });
+}
+/* 작은 추세선: 굵은 선 = 최근 26주, 점선 = 작년 같은 때(앞으로 12주까지), 세로 금 = 지금 */
+function trSpark(v){
+  var n=v.length, W=150, H=32, pts=38, mx=0, cur=[], ly=[], k;
+  for(k=0;k<26;k++){ cur.push(v[n-26+k]||0); }
+  for(k=0;k<pts;k++){ var t=n-52-26+k; ly.push(t>=0 ? (v[t]||0) : 0); }
+  cur.concat(ly).forEach(function(x){ if(x>mx) mx=x; }); if(!(mx>0)) return "";
+  var X=function(j){ return (j/(pts-1)*W).toFixed(1); }, Y=function(x){ return (H-2-x/mx*(H-5)).toFixed(1); };
+  var path=function(a){ return a.map(function(x,j){ return (j?"L":"M")+X(j)+" "+Y(x); }).join(""); };
+  return '<svg class="spk" viewBox="0 0 '+W+' '+H+'" width="'+W+'" height="'+H+'" role="img" aria-label="최근 26주 추세와 작년 같은 때">'
+    +'<line x1="'+X(25)+'" y1="0" x2="'+X(25)+'" y2="'+H+'" stroke="var(--line-strong)" stroke-width="1"/>'
+    +'<path d="'+path(ly)+'" fill="none" stroke="var(--ink-3)" stroke-width="1.1" stroke-dasharray="3 2" opacity=".7"/>'
+    +'<path d="'+path(cur)+'" fill="none" stroke="var(--brand)" stroke-width="1.9"/>'
+    +'<circle cx="'+X(25)+'" cy="'+Y(cur[25])+'" r="2.7" fill="var(--brand)"/></svg>';
+}
+function trPct(p){ return p==null ? '<span class="dim">—</span>' : p>=3 ? '<b class="up">▲ '+(p+1).toFixed(1)+'배</b>' : pctArrow(p*100); }
+function trSeason(st){ return st.ph===0 ? '<b>'+st.wk+'주 뒤</b> · 지금의 '+st.rise.toFixed(1)+'배' : (st.rise!=null && st.rise>=1.2 && st.wk>=1 ? st.wk+'주 뒤 · '+st.rise.toFixed(1)+'배' : '<span class="dim">더 오를 철이 아니다</span>'); }
+var TRF={ grp:"", sort:"soon", min:1000, buy:true };
+function trGroupOf(meta){ return meta ? String(meta[0]).split(" > ").pop() : ""; }
+function renderTrend(){
+  var D=trBuild(), box=document.getElementById("trendBox"); if(!box) return;
+  var P=(TW.periods||[]), last=P.length ? P[P.length-1] : "", endD=TW.end||"";
+  if(!D.weeks){ box.innerHTML='<div class="na" style="padding:22px">3년 주간 추세를 아직 받지 않았다. PC 에서 "2 오늘 값으로 갱신" 을 돌리면 생긴다.</div>'; return; }
+  var names=Object.keys(D.items).filter(function(k){ return D.items[k].st && D.items[k].n>=3; });
+  var groups={}; names.forEach(function(k){ groups[trGroupOf(D.items[k].meta)]=1; });
+  var list=names.filter(function(k){ return !TRF.grp || trGroupOf(D.items[k].meta)===TRF.grp; });
+  var key={ soon:function(k){ var s=D.items[k].st; return s.ph===0 ? 1000-s.wk*10+Math.min(9,s.rise) : (s.rise||0); },
+            up:function(k){ var s=D.items[k].st; return s.mom==null?-9:s.mom; }, vol:function(k){ return D.items[k].tot; } }[TRF.sort];
+  list.sort(function(a,b){ return key(b)-key(a); });
+  var chip=function(on,attr,label){ return '<button type="button" class="chip'+(on?' on':'')+'" '+attr+'>'+label+'</button>'; };
+  var h='<div class="card"><h3>품목 타이밍</h3>'
+    +'<p class="note">품목마다 살 사람이 있는 키워드의 주간 검색을 더한 것 · 기준 주 '+esc(last)+' ~ '+esc(endD)+' (추세는 달에 한 번 받는다) · 선: 굵은 선이 최근 26주, 점선이 작년 같은 때부터 12주 뒤까지, 세로 금이 지금</p>'
+    +'<div class="trbar"><span class="set-k">묶음</span>'+chip(!TRF.grp,'data-g=""','전체')
+    +Object.keys(groups).sort().map(function(g){ return chip(TRF.grp===g,'data-g="'+esc(g)+'"',esc(g)); }).join("")
+    +'<span class="f-sp" style="flex:1"></span><span class="set-k">정렬</span>'
+    +chip(TRF.sort==="soon",'data-s="soon"','곧 철이 오는 순')+chip(TRF.sort==="up",'data-s="up"','오르는 순')+chip(TRF.sort==="vol",'data-s="vol"','검색 많은 순')+'</div>'
+    +'<div class="tbox"><div class="tscroll"><table class="trt"><thead><tr><th>품목</th><th>키워드</th><th>월 검색수 합</th><th>4주 전 대비</th><th>작년 대비</th><th>작년 기준 다음 정점</th><th>지금</th><th style="text-align:center">최근 26주 · 작년</th></tr></thead><tbody>';
+  list.slice(0,60).forEach(function(k){ var x=D.items[k], s=x.st;
+    h+='<tr data-item="'+esc(k)+'"><td><span class="kw">'+esc(k)+'</span><div class="sub">'+esc(String(x.meta[0]).replace("신선식품 > ","")+" > "+x.meta[1])+'</div></td>'
+      +'<td class="num">'+fmt(x.n)+'</td><td class="num"><b>'+fmt(x.tot)+'</b></td><td class="num">'+trPct(s.mom)+'</td><td class="num">'+trPct(s.yoy)+'</td>'
+      +'<td class="num">'+trSeason(s)+'</td><td><span class="pill '+TR_CLS[s.ph]+'">'+trPhase(s)+'</span></td><td style="text-align:center">'+trSpark(x.s)+'</td></tr>'; });
+  h+='</tbody></table></div></div>'+(list.length>60?'<p class="note" style="margin:8px 0 0">위 60개만 보인다 (전체 '+list.length+'개).</p>':'')+'</div>';
+  /* 키워드 */
+  var rows=[]; for(var i in D.kw){ i=+i; if(S_tot[i]<TRF.min) continue; if(TRF.buy && !(S_ir[i]>=RULE.buyNone)) continue;
+    if(TRF.grp){ var c=catRow(i); if(String(c[0]).split(" > ").pop()!==TRF.grp) continue; } rows.push(i); }
+  var kwTable=function(title, note, arr, col){
+    var t='<div class="card"><h3>'+title+'</h3><p class="note">'+note+'</p><div class="tbox"><div class="tscroll"><table class="trt"><thead><tr><th>키워드</th><th>월 검색수</th><th>4주 전 대비</th><th>작년 대비</th><th>'+col+'</th><th>구매의도</th><th>판정</th><th style="text-align:center">최근 26주 · 작년</th></tr></thead><tbody>';
+    if(!arr.length) t+='<tr><td class="empty" colspan="8">조건에 맞는 키워드가 없다.</td></tr>';
+    arr.forEach(function(i){ var s=D.kw[i], bl=buyLevel(i), v=VN[C_v[i]];
+      t+='<tr data-kw="'+i+'"><td><span class="kw">'+esc(R[i][K.KW])+'</span><div class="sub">'+esc(catLast(i)||"")+'</div></td><td class="num"><b>'+fmt(S_tot[i])+'</b></td>'
+        +'<td class="num">'+trPct(s.mom)+'</td><td class="num">'+trPct(s.yoy)+'</td><td class="num">'+trSeason(s)+'</td>'
+        +'<td><span class="pill buy'+(bl<0?"x":bl)+'">'+(bl<0?"미확인":BUY[bl])+'</span></td><td><span class="pill '+(v==="린정"?"good":v==="반린정"?"warn":"skip")+'">'+v+'</span></td>'
+        +'<td style="text-align:center">'+trSpark(trendOf(R[i][K.KW]))+'</td></tr>'; });
+    return t+'</tbody></table></div></div></div>'; };
+  var up=rows.filter(function(i){ return D.kw[i].mom!=null && D.kw[i].mom>=0.2 && D.kw[i].hold>=0.75; }).sort(function(a,b){ return D.kw[b].mom-D.kw[a].mom; }).slice(0,40);
+  var soon=rows.filter(function(i){ return D.kw[i].ph===0; }).sort(function(a,b){ return (D.kw[a].wk-D.kw[b].wk) || (D.kw[b].rise-D.kw[a].rise); }).slice(0,40);
+  var opt='<div class="trbar"><span class="set-k">월 검색수</span>'+[300,1000,5000].map(function(m){ return chip(TRF.min===m,'data-m="'+m+'"',fmt(m)+' 이상'); }).join("")
+    +chip(TRF.buy,'data-b="1"',(TRF.buy?'✓ ':'')+'살 사람 있는 것만')+'</div>';
+  h+='<div class="card" style="padding:10px 15px">'+opt+'</div>'
+    +kwTable("지금 오르는 키워드","최근 4주 평균이 그 앞 4주보다 20% 넘게 올랐고 맨 끝 주에도 꺾이지 않은 것 · 많이 오른 순 · 줄을 누르면 그 키워드로 간다", up, "작년 기준 다음 정점")
+    +kwTable("곧 철이 오는 키워드","작년과 재작년 둘 다 같은 때 이후 12주 안에 1.5배 이상으로 올랐던 것 · 정점이 가까운 순 — 그 전에 상품과 광고를 준비해 둘 키워드", soon, "작년 기준 다음 정점");
+  box.innerHTML=h;
+  box.querySelectorAll("[data-g]").forEach(function(b){ b.onclick=function(){ TRF.grp=b.dataset.g; renderTrend(); }; });
+  box.querySelectorAll("[data-s]").forEach(function(b){ b.onclick=function(){ TRF.sort=b.dataset.s; renderTrend(); }; });
+  box.querySelectorAll("[data-m]").forEach(function(b){ b.onclick=function(){ TRF.min=+b.dataset.m; renderTrend(); }; });
+  box.querySelectorAll("[data-b]").forEach(function(b){ b.onclick=function(){ TRF.buy=!TRF.buy; renderTrend(); }; });
+  box.querySelectorAll("tr[data-kw]").forEach(function(tr){ tr.onclick=function(){ pickKw(+tr.dataset.kw); }; });
+  box.querySelectorAll("tr[data-item]").forEach(function(tr){ tr.onclick=function(){ document.getElementById("exact").value=tr.dataset.item; setTab("gold"); exactFind(); window.scrollTo({top:0,behavior:"smooth"}); }; });
+}
+
+/* ── 시장 지도 ──
+   네이버 끝 칸(사과 · 갈치 · 소고기 …)마다 화면 키워드를 모아 수요와 광고 형편을 한 줄로.
+   "어느 품목이 지금 할 만한가" 를 키워드를 알기 전에 품목 단위로 본다. 판정 · 손익분기는 위 판매 설정을 따른다. */
+var MPF={ grp:"", sort:"score", dir:-1 };
+function mapBuild(){
+  var L={}, D=trBuild();
+  for(var i=0;i<N;i++){
+    var c=catRow(i); if(!c[1] || c[0].indexOf("신선식품")!==0 || S_tot[i]<RULE.minVol) continue;
+    var key=c[0]+" > "+c[1], x=L[key]||(L[key]={ key:key, parent:c[0], leaf:c[1], n:0, tot:0, irW:0, irS:0, cpc:[], cvr:[], lin:0, ban:0, top:[], clk:0 });
+    x.n++; x.tot+=S_tot[i];
+    if(S_ir[i]>=0){ x.irW+=S_tot[i]; x.irS+=S_tot[i]*Math.min(S_ir[i],3); }
+    var cp= S_cpc[i]>0 ? S_cpc[i] : (R[i][K.BM3]||0); if(cp>0) x.cpc.push(cp);
+    if(isFinite(C_cvr[i])) x.cvr.push(C_cvr[i]);
+    if(C_v[i]===0) x.lin++; else if(C_v[i]===1) x.ban++;
+    var e=est(i); if(e) x.clk+=e.clk3;
+    x.top.push(i);
+  }
+  var med=function(a){ if(!a.length) return null; a.sort(function(p,q){ return p-q; }); return a[a.length>>1]; };
+  var out=Object.keys(L).map(function(k){ var x=L[k];
+    x.ir= x.irW ? x.irS/x.irW : null; x.cpcM=med(x.cpc); x.cvrM=med(x.cvr); x.linR= x.n ? x.lin/x.n : 0;
+    x.demand= x.tot*(x.ir==null ? 0.3 : Math.min(1.5,x.ir));
+    var dm2=function(i){ return S_tot[i]*(S_ir[i]>=0 ? Math.min(1.5,S_ir[i]) : 0.3); };
+    x.top.sort(function(p,q){ return C_v[p]-C_v[q] || dm2(q)-dm2(p); }); x.top=x.top.slice(0,3);
+    x.tr= D.leaves[k] ? D.leaves[k].st : null; return x; });
+  var dm=med(out.map(function(x){ return x.demand; })) || 0;
+  /* 판단: 수요가 칸들의 중앙보다 큰가 × 린정 비율이 칸들 가운데 위 1/3 인가 아래 1/3 인가.
+     비율을 칸끼리 견주는 까닭 — 목표 전환율을 높게 잡으면 어느 칸이나 린정이 많아져 절대 기준으로는 전부 같은 말이 된다 */
+  var rs=out.filter(function(x){ return x.lin>0; }).map(function(x){ return x.linR; }).sort(function(p,q){ return p-q; });
+  var lo= rs.length ? rs[Math.floor(rs.length/3)] : 0, hi= rs.length ? rs[Math.min(rs.length-1, Math.floor(rs.length*2/3))] : 1;
+  out.forEach(function(x){
+    var big=x.demand>=dm;
+    x.tag= x.lin===0 ? ["패스","skip","린정이 하나도 없다"] : (big && x.linR>=hi) ? ["노려볼 만","good","수요가 크고 린정 비율이 칸들 가운데 위 1/3"]
+         : (big && x.linR<=lo) ? ["크지만 빡빡","warn","수요는 큰데 린정 비율이 아래 1/3"] : (!big && x.linR>=hi) ? ["작지만 쉬움","good","수요는 작지만 린정 비율이 위 1/3"] : ["보통","skip",""];
+    x.score= x.demand*(0.15+x.linR);
+  });
+  return out;
+}
+function renderMap(){
+  var box=document.getElementById("mapBox"); if(!box) return;
+  var all=mapBuild(), groups={}; all.forEach(function(x){ groups[x.parent.split(" > ").pop()]=1; });
+  var list=all.filter(function(x){ return !MPF.grp || x.parent.split(" > ").pop()===MPF.grp; });
+  var val={ score:function(x){ return x.score; }, tot:function(x){ return x.tot; }, ir:function(x){ return x.ir==null?-1:x.ir; }, cpc:function(x){ return x.cpcM==null?1e9:x.cpcM; },
+            cvr:function(x){ return x.cvrM==null?9:x.cvrM; }, lin:function(x){ return x.lin; }, mom:function(x){ return x.tr&&x.tr.mom!=null?x.tr.mom:-9; }, n:function(x){ return x.n; } }[MPF.sort];
+  list.sort(function(a,b){ return (val(a)-val(b))*MPF.dir; });
+  var mxTot=Math.max.apply(null, list.map(function(x){ return x.tot; }).concat([1]));
+  var chip=function(on,attr,label){ return '<button type="button" class="chip'+(on?' on':'')+'" '+attr+'>'+label+'</button>'; };
+  var th=function(k,label,title){ return '<th class="msrt" data-ms="'+k+'"'+(title?' title="'+title+'"':'')+(MPF.sort===k?' data-dir="'+(MPF.dir<0?"↓":"↑")+'"':'')+'>'+label+'</th>'; };
+  var mg=marginOf();
+  var h='<div class="card"><h3>시장 지도 · 칸별 수요와 광고 형편</h3>'
+    +'<p class="note">네이버 끝 칸마다 월 검색 '+fmt(RULE.minVol)+' 이상 키워드를 모았다 · 판정과 손익분기는 위 판매 설정(광고 전 수익 '+fmt(mg.margin)+'원 · 목표 전환율 '+(+(SET.tgtCvr*100).toFixed(1))+'%)을 따른다 · 줄을 누르면 그 칸의 키워드만 본다</p>'
+    +(all.every(function(x){ return x.lin===0; }) ? '<div class="warn-bar" style="margin-bottom:11px">지금 설정으로는 린정이 하나도 없다. 위 판매 설정에 내 상품의 공급가 · 판매가와 실제로 기대하는 목표 전환율을 넣으면 칸마다 판단이 갈린다.</div>' : '')
+    +'<div class="trbar"><span class="set-k">묶음</span>'+chip(!MPF.grp,'data-g=""','전체')+Object.keys(groups).sort().map(function(g){ return chip(MPF.grp===g,'data-g="'+esc(g)+'"',esc(g)); }).join("")+'</div>'
+    +'<div class="tbox"><div class="tscroll"><table class="trt mpt"><thead><tr><th>칸</th>'+th("n","키워드")+th("tot","월 검색수 합")+th("ir","구매의도","검색수로 가중한 평균. 닭가슴살 = 1배")
+    +th("cpc","클릭 단가","3위로 광고할 때 실제 클릭 단가의 중앙값(없으면 3위 입찰가)")+th("cvr","손익분기 전환율","키워드들의 중앙값. 목표 전환율보다 낮아야 광고가 남는다")
+    +th("lin","린정","린정 키워드 수 · 칸 안에서의 비율")+th("mom","4주 전 대비")+'<th>지금</th>'+th("score","판단","수요 × 린정 비율로 줄을 세운다")+'<th>대표 키워드</th></tr></thead><tbody>';
+  list.forEach(function(x){ var ok= x.cvrM!=null && x.cvrM<=SET.tgtCvr;
+    h+='<tr data-leaf="'+esc(x.key)+'"><td><span class="kw">'+esc(x.leaf)+'</span><div class="sub">'+esc(x.parent.replace("신선식품 > ",""))+'</div></td>'
+      +'<td class="num">'+fmt(x.n)+'</td>'
+      +'<td class="num"><b>'+fmt(x.tot)+'</b><div class="mbar"><i style="width:'+Math.max(2,x.tot/mxTot*100).toFixed(1)+'%"></i></div></td>'
+      +'<td class="num">'+(x.ir==null?'<span class="dim">—</span>':'<span class="pill buy'+(x.ir<RULE.buyNone?0:x.ir<0.3?1:x.ir<1?2:3)+'">'+irFmt(x.ir)+'</span>')+'</td>'
+      +'<td class="num">'+(x.cpcM==null?'—':fmt(x.cpcM)+'원')+'</td>'
+      +'<td class="num">'+(x.cvrM==null?'—':'<span class="'+(ok?"cvr-ok":"cvr-no")+'">'+(x.cvrM*100).toFixed(1)+'%</span>')+'</td>'
+      +'<td class="num"><b>'+fmt(x.lin)+'</b> <span class="dim">· '+Math.round(x.linR*100)+'%</span></td>'
+      +'<td class="num">'+(x.tr?trPct(x.tr.mom):'<span class="dim">—</span>')+'</td>'
+      +'<td>'+(x.tr?'<span class="pill '+TR_CLS[x.tr.ph]+'">'+trPhase(x.tr)+'</span>':'')+'</td>'
+      +'<td><span class="pill '+x.tag[1]+'" title="'+esc(x.tag[2])+'">'+x.tag[0]+'</span></td>'
+      +'<td class="mtop">'+x.top.map(function(i){ return '<a href="#" data-kw="'+i+'">'+esc(R[i][K.KW])+'</a>'; }).join(" · ")+'</td></tr>'; });
+  h+='</tbody></table></div></div>'
+    +'<p class="note" style="margin:10px 0 0">판단 — <b>노려볼 만</b>: 수요가 칸들의 중앙보다 크고 린정 비율이 위 1/3 · <b>크지만 빡빡</b>: 수요는 큰데 린정 비율이 아래 1/3 · <b>작지만 쉬움</b>: 수요는 작고 린정 비율이 위 1/3 · <b>패스</b>: 린정 없음. 수요 = 월 검색수 합 × 구매의도. 린정 비율은 칸끼리 견준 것이라 판매 설정을 바꾸면 달라진다.</p></div>';
+  box.innerHTML=h;
+  box.querySelectorAll("[data-g]").forEach(function(b){ b.onclick=function(){ MPF.grp=b.dataset.g; renderMap(); }; });
+  box.querySelectorAll("[data-ms]").forEach(function(t){ t.onclick=function(){ var k=t.dataset.ms; if(MPF.sort===k) MPF.dir=-MPF.dir; else { MPF.sort=k; MPF.dir=(k==="cpc"||k==="cvr")?1:-1; } renderMap(); }; });
+  box.querySelectorAll("a[data-kw]").forEach(function(a){ a.onclick=function(e){ e.preventDefault(); e.stopPropagation(); pickKw(+a.dataset.kw); }; });
+  box.querySelectorAll("tr[data-leaf]").forEach(function(tr){ tr.onclick=function(){
+    clearRel(); F.cat=tr.dataset.leaf; F.q=""; document.getElementById("q").value=""; LIMIT=100; setTab("gold"); refresh();
+    var t=document.querySelector("table.kwt"); if(t) t.scrollIntoView({block:"start",behavior:"smooth"}); }; });
+}
+
+/* ── 상품명 만들기 ──
+   지금 보고 있는 연관 목록(씨앗과 같은 품목)의 키워드를 낱말로 쪼개, 어떤 말을 상품명에 넣으면 검색을 얼마나 덮는지 보여 준다.
+   도구는 후보를 내놓을 뿐이다. 산지 · 품종 · 인증 · 등급은 내 상품에 실제로 맞는 것만 켠다 (틀리게 적으면 허위 표시다). */
+var NM_DROP=/가격|시세|도매|직거래|판매처?|파는곳|구매|구입|주문|택배|배송|배달|추천|후기|리뷰|순위|효능|효과|칼로리|보관법|보관|먹는법|요리법?|레시피|만들기|만드는법|삶는법|삶기|찌는법|굽는법|굽기|손질법|맛집|축제|체험|농장|농원|농협|직판장|쇼핑몰?|사이트|홈쇼핑|공영|마켓|수확시기|제철|종류|품종|유명한곳|맛있는|\d{2,4}년|\d+월/g;
+var NM_ATTRS=["선물세트","산지직송","당일수확","국내산","유기농","무농약","친환경","프리미엄","못난이","가정용","선물용","제수용","대용량","소포장","세척","냉동","손질","칼집","특대","왕특","선물","세트","박스","국산","토종","명품","GAP","햇","꿀"];
+var NM_ONE={"생":1,"깐":1,"특":1,"대":1,"중":1,"소":1};
+var NM_TYPE={ V:"품종 · 이름", I:"품목", A:"속성", W:"중량 · 수량", R:"산지 · 그 밖" }, NM_ORD=["R","V","I","A","W"];
+var NMS={ seed:"", on:{}, text:"" };
+function nmTokens(kw, IW){
+  var s=String(kw).replace(/[\s()\[\]·,]+/g,""), T=[], seen={}, put=function(t,w){ var k=t+":"+w; if(!seen[k]){ seen[k]=1; T.push({ t:t, w:w }); } };
+  s=s.replace(/(\d+(?:\.\d+)?)(kg|키로|g|그램|개입|개|입|과|미|마리|수|포기|근|박스|팩|봉|통)/gi, function(m,n,u){ u=u.toLowerCase(); if(u==="키로") u="kg"; if(u==="그램") u="g"; put("W", n+u); return " "; });
+  s=s.replace(NM_DROP," ");
+  IW.forEach(function(x){ if(s.indexOf(x.w)>=0){ put(x.t, x.w); s=s.split(x.w).join(" "); } });
+  NM_ATTRS.forEach(function(a){ if(s.indexOf(a)>=0){ put("A", a); s=s.split(a).join(" "); } });
+  var chunks=s.split(/\s+/).filter(Boolean), tail=s.replace(/\s+$/,"").slice(-1), o0=String(kw).replace(/[\s()\[\]·,]+/g,"");
+  chunks.forEach(function(c, ci){
+    if(c.length===1){ if(NM_ONE[c] && T.length && ((c==="생"||c==="깐") ? (ci===0 && o0.charAt(0)===c) : (ci===chunks.length-1 && tail===c && o0.slice(-1)===c))) put("A", c); return; }   /* 생 · 깐 은 앞, 특 · 대 · 중 · 소 는 맨 끝에서만. 원래 키워드에서도 그 자리여야 한다 (소갈비의 소는 등급이 아니다) */
+    if(!/^\d+$/.test(c)) put("R", /^[a-z+]+$/i.test(c) ? c.toUpperCase() : c); });
+  return T;
+}
+function nmBuild(){
+  if(!F.rel || !F.relSeed) return null;
+  var seed=relSeedKey(), S=relInfo(seed); if(!S.item) return { seed:F.relSeed, none:true };
+  /* 이 품목을 가리키는 낱말: 품목 이름과 품종 · 별칭 (긴 것부터 찾는다) */
+  var IW=[{ t:"I", w:S.item }]; Object.keys(CAT_VAR).forEach(function(k){ if(CAT_VAR[k]===S.item && k!==S.item) IW.push({ t:"V", w:k }); });
+  IW.sort(function(a,b){ return b.w.length-a.w.length; });
+  var tok={}, kws=[], seedRow=BYKW[F.relSeed], freshSeed= seedRow!=null ? catRow(seedRow)[0].indexOf("신선식품")===0 : S.raw===S.item;
+  F.rel.forEach(function(i){
+    if(relTierOf(i)!==1) return;
+    if(freshSeed && catRow(i)[0].indexOf("신선식품")!==0) return;              /* 사과를 파는데 사과즙 · 사과묘목 키워드는 재료가 아니다 */
+    var it=intentOf(i); if(it===1 || it===3) return;                         /* 정보성 · 요리 */
+    if(S_ir[i]>=0 && S_ir[i]<RULE.buyNone) return;                            /* 살 사람이 없는 키워드 */
+    var T=nmTokens(R[i][K.KW], IW); if(!T.length) return;
+    var d=S_tot[i]; kws.push({ i:i, T:T, d:d });
+    T.forEach(function(x){ var k=x.t+":"+x.w, o=tok[k]||(tok[k]={ t:x.t, w:x.w, d:0, n:0 }); o.d+=d; o.n++; });
+  });
+  var list=Object.keys(tok).map(function(k){ tok[k].k=k; return tok[k]; }).filter(function(o){ return o.t!=="R" || o.n>=1; });
+  /* 품목 낱말이 한 번도 안 나오면(쇠고기 ↔ 한우 · 소고기) 가장 많이 쓰인 이름을 품목 자리에 둔다 */
+  var iTok=tok["I:"+S.item], topV=list.filter(function(o){ return o.t==="V"; }).sort(function(a,b){ return b.d-a.d; })[0];
+  if(topV && (!iTok || iTok.d<topV.d*0.1)){ if(iTok) iTok.t="V"; topV.t="I"; }
+  return { seed:F.relSeed, item:S.item, list:list, kws:kws, tok:tok };
+}
+var NM_PRE={"햇":1,"꿀":1,"생":1,"깐":1,"냉동":1,"손질":1,"세척":1,"칼집":1,"국내산":1,"국산":1,"유기농":1,"무농약":1,"친환경":1,"토종":1,"프리미엄":1,"명품":1,"못난이":1,"당일수확":1,"산지직송":1,"GAP":1};
+var NM_USE={"선물세트":1,"선물":1,"세트":1,"박스":1,"가정용":1,"선물용":1,"제수용":1,"대용량":1,"소포장":1};
+function nmTitle(B){
+  var sel=B.list.filter(function(o){ return NMS.on[o.k]; }), by=function(t){ return sel.filter(function(o){ return o.t===t; }).sort(function(a,b){ return b.d-a.d; }); };
+  var item=by("I")[0], iw=item?item.w:"", parts=[], A=by("A");
+  /* 품종과 품목을 어떻게 잇는가: 키워드에 실제로 많이 나오는 순서를 따른다 (감홍사과 / 한우등심) */
+  var txt=B.kws.map(function(x){ return R[x.i][K.KW].replace(/\s+/g,""); }), cnt=function(w){ var c=0; for(var q=0;q<txt.length;q++) if(txt[q].indexOf(w)>=0) c++; return c; };
+  by("R").forEach(function(o){ parts.push(o.w); });
+  A.filter(function(o){ return NM_PRE[o.w]; }).forEach(function(o){ parts.push(o.w); });
+  var vs=by("V");
+  vs.forEach(function(o){ if(!iw || o.w.indexOf(iw)>=0){ parts.push(o.w); return; }
+    var a=cnt(o.w+iw), b=cnt(iw+o.w); parts.push(a>=b && a>0 ? o.w+iw : b>0 ? iw+o.w : iw+" "+o.w); });
+  if(iw && !vs.length) parts.push(iw);
+  A.filter(function(o){ return !NM_PRE[o.w] && !NM_USE[o.w]; }).forEach(function(o){ parts.push(o.w); });
+  by("W").forEach(function(o){ parts.push(o.w); });
+  A.filter(function(o){ return NM_USE[o.w]; }).forEach(function(o){ parts.push(o.w); });
+  return parts.join(" ");
+}
+function nmCover(B, text){
+  /* 상품명 안에 그 키워드의 낱말이 다 들어 있으면 덮는다고 본다 (중량은 옵션으로 걸리는 일이 많아 따지지 않는다) */
+  var t=String(text).replace(/\s+/g,""), cov=[], not=[];
+  B.kws.forEach(function(x){ var ok=x.T.every(function(k){ return k.t==="W" || t.indexOf(k.w)>=0; }); (ok?cov:not).push(x); });
+  return { cov:cov, not:not };
+}
+function copyText(t, btn){
+  var done=function(ok){ if(btn){ var o=btn.textContent; btn.textContent= ok ? "복사됨" : "직접 선택해서 복사"; setTimeout(function(){ btn.textContent=o; }, 1400); } };
+  var fb=function(){ var ta=document.createElement("textarea"); ta.value=t; ta.style.cssText="position:fixed;left:-999px;top:0"; document.body.appendChild(ta); ta.select();
+    var ok=false; try{ ok=document.execCommand("copy"); }catch(e){} ta.remove(); done(ok); };
+  try{ navigator.clipboard.writeText(t).then(function(){ done(true); }, fb); }catch(e){ fb(); }
+}
+function renderName(keep){
+  var box=document.getElementById("nameBox"); if(!box) return;
+  var B=nmBuild();
+  if(!B){ box.innerHTML='<div class="card"><h3>상품명 만들기</h3><p class="note" style="margin:0">먼저 위 검색에서 품목이나 키워드를 찾아라(예: 감홍사과 · 옥광밤 · 제주갈치). 그 연관 목록의 키워드로 상품명 후보를 만든다.</p></div>'; return; }
+  if(B.none){ box.innerHTML='<div class="card"><h3>상품명 만들기</h3><p class="note" style="margin:0"><b>'+esc(B.seed)+'</b> 는 품목을 읽지 못했다. 품목 이름이 든 키워드로 다시 찾아라.</p></div>'; return; }
+  if(NMS.seed!==B.seed){ NMS={ seed:B.seed, on:{}, text:"" };
+    /* 처음에는 찾은 키워드에 든 말만 켠다. 나머지는 내 상품에 맞는 것을 보고 켠다 */
+    var mine={}; nmTokens(B.seed, [{t:"I",w:B.item}].concat(Object.keys(CAT_VAR).filter(function(k){ return CAT_VAR[k]===B.item; }).map(function(k){ return {t:"V",w:k}; }).sort(function(a,b){ return b.w.length-a.w.length; })))
+      .forEach(function(x){ mine[x.w]=1; });
+    B.list.forEach(function(o){ if(o.t==="I" || (mine[o.w] && o.t!=="W")) NMS.on[o.k]=1; });
+    keep=false; }
+  if(!keep) NMS.text=nmTitle(B);
+  var C=nmCover(B, NMS.text), sum=function(a){ var s=0; a.forEach(function(x){ s+=x.d; }); return s; }, allD=sum(B.kws), len=NMS.text.length;
+  var h='<div class="card nmc"><h3>상품명 만들기 · '+esc(B.seed)+'</h3>'
+    +'<p class="note">연관 목록에서 품목이 같고 살 사람이 있는 키워드 '+fmt(B.kws.length)+'개를 낱말로 쪼갰다. 낱말 옆 숫자는 그 말이 든 키워드의 월 검색수 합이다. '
+    +'<b>산지 · 품종 · 인증 · 등급은 내 상품에 실제로 맞는 것만 켠다</b> — 다른 상표나 틀린 원산지 · 품종을 적으면 안 된다.</p>';
+  NM_ORD.forEach(function(t){ var g=B.list.filter(function(o){ return o.t===t; }).sort(function(a,b){ return b.d-a.d; }); if(!g.length) return;
+    var cut= t==="R" ? 28 : 20;
+    h+='<div class="nm-row"><div class="nm-k">'+NM_TYPE[t]+'</div><div class="nm-v">'+g.slice(0,cut).map(function(o){
+      return '<button type="button" class="nmt'+(NMS.on[o.k]?' on':'')+'" data-tok="'+esc(o.k)+'">'+esc(o.w)+'<small>'+near(o.d)+'</small></button>'; }).join("")
+      +(g.length>cut?'<span class="dim" style="font-size:11.5px">외 '+(g.length-cut)+'개</span>':'')+'</div></div>'; });
+  h+='<div class="nm-out"><label class="nm-k" for="nmText">상품명</label>'
+    +'<textarea id="nmText" rows="2" spellcheck="false">'+esc(NMS.text)+'</textarea>'
+    +'<div class="nm-meta"><span class="'+(len>50?'cvr-no':'cvr-ok')+'"><b>'+len+'</b>자</span><span class="dim">네이버 권장 50자 이내 (최대 100자)</span>'
+    +'<span class="f-sp" style="flex:1"></span><button type="button" class="chip" id="nmReset">낱말대로 다시 만들기</button><button type="button" class="chip on" id="nmCopy">상품명 복사</button></div></div>'
+    +'<div class="nm-cov"><div><div class="v-k">이 상품명이 덮는 키워드</div><div class="v-v num">'+fmt(C.cov.length)+'개</div><div class="v-s">'+fmt(B.kws.length)+'개 중</div></div>'
+    +'<div><div class="v-k">덮는 월 검색수</div><div class="v-v num">'+fmt(sum(C.cov))+'</div><div class="v-s">전체 '+fmt(allD)+' 의 '+(allD?Math.round(sum(C.cov)/allD*100):0)+'%</div></div></div>';
+  /* 태그: 상품명이 덮지 못한 키워드 가운데 검색이 많은 것부터 10개 */
+  var tflat=NMS.text.replace(/\s+/g,"");
+  var mineOnly=function(x){ return x.T.every(function(k){ return (k.t!=="V" && k.t!=="R") || tflat.indexOf(k.w)>=0; }); };
+  var tags=C.not.filter(mineOnly).sort(function(a,b){ return b.d-a.d; }).slice(0,10);
+  if(tags.length<10) tags=tags.concat(C.cov.slice().sort(function(a,b){ return b.d-a.d; }).filter(function(x){ return R[x.i][K.KW].replace(/\s+/g,"")!==tflat; }).slice(0,10-tags.length));
+  h+='<div class="nm-row"><div class="nm-k">태그 후보<br><span style="font-weight:500;text-transform:none;letter-spacing:0">최대 10개</span></div><div class="nm-v">'
+    +tags.map(function(x){ return '<span class="nmtag" title="월 검색 '+fmt(x.d)+'">'+esc(R[x.i][K.KW])+'<small>'+near(x.d)+'</small></span>'; }).join("")
+    +(tags.length?'<button type="button" class="chip" id="nmTagCopy">태그 복사</button>':'<span class="dim">남는 키워드가 없다</span>')+'</div></div>'
+    +'<p class="note" style="margin:10px 0 0">태그는 내가 켜지 않은 품종 · 산지가 든 키워드를 빼고, 상품명에 못 넣은 것 가운데 검색이 많은 순으로 골랐다. 태그도 내 상품에 맞는 것만 쓴다. 덮는다는 것은 그 키워드의 낱말이 상품명에 다 들어 있다는 뜻이고, 실제 노출 순위는 판매 · 리뷰 등 다른 것에도 달려 있다.</p></div>';
+  /* 못 덮은 키워드 */
+  var miss=C.not.slice().sort(function(a,b){ return b.d-a.d; }).slice(0,30);
+  if(miss.length) h+='<div class="card"><h3>아직 못 덮은 키워드</h3><p class="note">검색이 많은 순 · 빠진 낱말을 굵게 적었다. 맞는 말이면 위에서 켠다.</p><div class="nm-miss">'
+    +miss.map(function(x){ var t=NMS.text.replace(/\s+/g,""); return '<span><a href="#" data-kw="'+x.i+'">'+esc(R[x.i][K.KW])+'</a> <small>'+near(x.d)+'</small> '
+      +x.T.filter(function(k){ return k.t!=="W" && t.indexOf(k.w)<0; }).map(function(k){ return '<b data-add="'+esc(k.t+":"+k.w)+'">+'+esc(k.w)+'</b>'; }).join(" ")+'</span>'; }).join("")+'</div></div>';
+  box.innerHTML=h;
+  box.querySelectorAll("[data-tok]").forEach(function(b){ b.onclick=function(){ var k=b.dataset.tok; if(NMS.on[k]) delete NMS.on[k]; else NMS.on[k]=1; renderName(false); }; });
+  box.querySelectorAll("[data-add]").forEach(function(b){ b.onclick=function(){ var k=b.dataset.add; if(B.tok[k]){ NMS.on[B.tok[k].k]=1; renderName(false); } }; });
+  box.querySelectorAll("a[data-kw]").forEach(function(a){ a.onclick=function(e){ e.preventDefault(); pickKw(+a.dataset.kw); }; });
+  var ta=document.getElementById("nmText");
+  ta.addEventListener("change", function(){ NMS.text=ta.value.trim(); renderName(true); });
+  document.getElementById("nmReset").onclick=function(){ renderName(false); };
+  document.getElementById("nmCopy").onclick=function(){ copyText(ta.value.trim(), this); };
+  var tc=document.getElementById("nmTagCopy"); if(tc) tc.onclick=function(){ copyText(tags.map(function(x){ return R[x.i][K.KW]; }).join(", "), this); };
+}
+
 function refresh(){ hideTip(); readSet(); recalc(); renderSecBar(); renderHero(); renderBuy(); renderKpi(); renderTable();
+  if(TAB==="map") renderMap(); if(TAB==="name") renderName(true);
   if(TAB==="detail") renderDetail(); if(TAB==="xls") renderXls(); if(TAB==="margin") renderMargin(); if(TAB==="status") renderStatus(); }
 
 /* 처음 열었을 때 1번 행이 아니라 지금 기준에서 제일 좋은 키워드를 보여준다 */
