@@ -4648,7 +4648,7 @@ var NM_DROP=/가격|시세|도매|직거래|판매처?|파는곳|구매|구입|�
 var NM_ATTRS=["선물세트","산지직송","당일수확","국내산","유기농","무농약","친환경","프리미엄","못난이","가정용","선물용","제수용","대용량","소포장","세척","냉동","손질","칼집","특대","왕특","선물","세트","박스","국산","토종","명품","GAP","햇","꿀"];
 var NM_ONE={"생":1,"깐":1,"특":1,"대":1,"중":1,"소":1};
 var NM_TYPE={ V:"품종 · 이름", I:"품목", A:"속성", W:"중량 · 수량", R:"산지 · 그 밖" }, NM_ORD=["R","V","I","A","W"];
-var NMS={ seed:"", on:{}, text:"" };
+var NMS={ seed:"", on:{}, glue:{}, n:0, text:"" };   /* on[낱말] = 누른 차례, glue[낱말] = 띄지 않고 붙여 쓸 앞 낱말 */
 function nmTokens(kw, IW){
   var s=String(kw).replace(/[\s()\[\]·,]+/g,""), T=[], seen={}, put=function(t,w){ var k=t+":"+w; if(!seen[k]){ seen[k]=1; T.push({ t:t, w:w }); } };
   s=s.replace(/(\d+(?:\.\d+)?)(kg|키로|g|그램|개입|개|입|과|미|마리|수|포기|근|박스|팩|봉|통)/gi, function(m,n,u){ u=u.toLowerCase(); if(u==="키로") u="kg"; if(u==="그램") u="g"; put("W", n+u); return " "; });
@@ -4683,23 +4683,43 @@ function nmBuild(){
   if(topV && (!iTok || iTok.d<topV.d*0.1)){ if(iTok) iTok.t="V"; topV.t="I"; }
   return { seed:F.relSeed, item:S.item, list:list, kws:kws, tok:tok };
 }
-var NM_PRE={"햇":1,"꿀":1,"생":1,"깐":1,"냉동":1,"손질":1,"세척":1,"칼집":1,"국내산":1,"국산":1,"유기농":1,"무농약":1,"친환경":1,"토종":1,"프리미엄":1,"명품":1,"못난이":1,"당일수확":1,"산지직송":1,"GAP":1};
-var NM_USE={"선물세트":1,"선물":1,"세트":1,"박스":1,"가정용":1,"선물용":1,"제수용":1,"대용량":1,"소포장":1};
+/* 상품명 = 켠 낱말을 누른 순서 그대로 (보갬, 2026-10-13).
+   전에는 산지 → 속성 → 품종+품목 → 등급 → 중량 → 용도 순으로 도구가 다시 늘어놓았다.
+   찾은 키워드에 원래 붙어 있던 말(감홍사과 · 제주갈치)만 붙여 쓰고, 그 뒤에 누른 낱말은 한 칸씩 띄어 잇는다 */
 function nmTitle(B){
-  var sel=B.list.filter(function(o){ return NMS.on[o.k]; }), by=function(t){ return sel.filter(function(o){ return o.t===t; }).sort(function(a,b){ return b.d-a.d; }); };
-  var item=by("I")[0], iw=item?item.w:"", parts=[], A=by("A");
-  /* 품종과 품목을 어떻게 잇는가: 키워드에 실제로 많이 나오는 순서를 따른다 (감홍사과 / 한우등심) */
+  var sel=B.list.filter(function(o){ return NMS.on[o.k]; }).sort(function(a,b){ return NMS.on[a.k]-NMS.on[b.k]; }), t="";
+  sel.forEach(function(o,j){ t+=(j && NMS.glue[o.k]!==sel[j-1].k ? " " : "")+o.w; });
+  return t;
+}
+/* 처음 켜 두는 낱말 = 찾은 키워드에 든 말, 그 키워드에 적힌 순서로.
+   품목 이름이 키워드에 없으면(감홍 → 사과) 품종의 앞뒤 가운데 실제 키워드에 많이 나오는 자리에 붙인다 */
+function nmInit(B){
+  var mine={}; nmTokens(B.seed, [{t:"I",w:B.item}].concat(Object.keys(CAT_VAR).filter(function(k){ return CAT_VAR[k]===B.item; }).map(function(k){ return {t:"V",w:k}; }).sort(function(a,b){ return b.w.length-a.w.length; })))
+    .forEach(function(x){ mine[x.w]=1; });
+  var sf=String(B.seed).replace(/\s+/g,"").toLowerCase(), pos=function(o){ return sf.indexOf(o.w.toLowerCase()); };
+  var init=B.list.filter(function(o){ return o.t==="I" || (mine[o.w] && o.t!=="W"); });
+  var inS=init.filter(function(o){ return pos(o)>=0; }).sort(function(a,b){ return pos(a)-pos(b); }), n=0;
+  inS.forEach(function(o,j){ NMS.on[o.k]=++n; if(j && pos(inS[j-1])+inS[j-1].w.length===pos(o)) NMS.glue[o.k]=inS[j-1].k; });
   var txt=B.kws.map(function(x){ return R[x.i][K.KW].replace(/\s+/g,""); }), cnt=function(w){ var c=0; for(var q=0;q<txt.length;q++) if(txt[q].indexOf(w)>=0) c++; return c; };
-  by("R").forEach(function(o){ parts.push(o.w); });
-  A.filter(function(o){ return NM_PRE[o.w]; }).forEach(function(o){ parts.push(o.w); });
-  var vs=by("V");
-  vs.forEach(function(o){ if(!iw || o.w.indexOf(iw)>=0){ parts.push(o.w); return; }
-    var a=cnt(o.w+iw), b=cnt(iw+o.w); parts.push(a>=b && a>0 ? o.w+iw : b>0 ? iw+o.w : iw+" "+o.w); });
-  if(iw && !vs.length) parts.push(iw);
-  A.filter(function(o){ return !NM_PRE[o.w] && !NM_USE[o.w]; }).forEach(function(o){ parts.push(o.w); });
-  by("W").forEach(function(o){ parts.push(o.w); });
-  A.filter(function(o){ return NM_USE[o.w]; }).forEach(function(o){ parts.push(o.w); });
-  return parts.join(" ");
+  init.filter(function(o){ return pos(o)<0; }).forEach(function(o){
+    var v=inS.filter(function(x){ return x.t==="V"; }).pop(), a= v ? cnt(v.w+o.w) : 0, b= v ? cnt(o.w+v.w) : 0;
+    if(v && a>=b && a>0){ NMS.on[o.k]=NMS.on[v.k]+0.5; NMS.glue[o.k]=v.k; }          /* 감홍 + 사과 */
+    else if(v && b>0){ NMS.on[o.k]=NMS.on[v.k]-0.5; NMS.glue[v.k]=o.k; }             /* 한우 + 등심 */
+    else NMS.on[o.k]=++n;
+  });
+  NMS.n=n+1;
+}
+/* 낱말을 켜고 끈다. 켜면 상품명 맨 뒤에 붙고, 끄면 그 낱말만 빠진다.
+   상품명을 손으로 고쳐 둔 상태면 고친 글을 지키고 거기에 붙이거나 뺀다 */
+function nmToggle(B, k){
+  var o=B.tok[k]; if(!o) return;
+  var cur=NMS.text.replace(/\s+/g," ").trim(), auto= cur===nmTitle(B);
+  if(NMS.on[k]){ delete NMS.on[k];
+    if(!auto){ var t=" "+cur+" ", at=t.indexOf(" "+o.w+" ");
+      NMS.text=(at>=0 ? t.slice(0,at)+t.slice(at+o.w.length+1) : t.replace(o.w,"")).replace(/\s+/g," ").trim(); } }
+  else { NMS.on[k]=++NMS.n; if(!auto) NMS.text=(cur+" "+o.w).trim(); }
+  if(auto) NMS.text=nmTitle(B);
+  renderName(true);
 }
 function nmCover(B, text){
   /* 상품명 안에 그 키워드의 낱말이 다 들어 있으면 덮는다고 본다 (중량은 옵션으로 걸리는 일이 많아 따지지 않는다) */
@@ -4718,51 +4738,57 @@ function renderName(keep){
   var B=nmBuild();
   if(!B){ box.innerHTML='<div class="card"><h3>상품명 만들기</h3><p class="note" style="margin:0">먼저 위 검색에서 품목이나 키워드를 찾아라(예: 감홍사과 · 옥광밤 · 제주갈치). 그 연관 목록의 키워드로 상품명 후보를 만든다.</p></div>'; return; }
   if(B.none){ box.innerHTML='<div class="card"><h3>상품명 만들기</h3><p class="note" style="margin:0"><b>'+esc(B.seed)+'</b> 는 품목을 읽지 못했다. 품목 이름이 든 키워드로 다시 찾아라.</p></div>'; return; }
-  if(NMS.seed!==B.seed){ NMS={ seed:B.seed, on:{}, text:"" };
-    /* 처음에는 찾은 키워드에 든 말만 켠다. 나머지는 내 상품에 맞는 것을 보고 켠다 */
-    var mine={}; nmTokens(B.seed, [{t:"I",w:B.item}].concat(Object.keys(CAT_VAR).filter(function(k){ return CAT_VAR[k]===B.item; }).map(function(k){ return {t:"V",w:k}; }).sort(function(a,b){ return b.w.length-a.w.length; })))
-      .forEach(function(x){ mine[x.w]=1; });
-    B.list.forEach(function(o){ if(o.t==="I" || (mine[o.w] && o.t!=="W")) NMS.on[o.k]=1; });
+  if(NMS.seed!==B.seed){ NMS={ seed:B.seed, on:{}, glue:{}, n:0, text:"" };
+    nmInit(B);   /* 처음에는 찾은 키워드에 든 말만 켠다. 나머지는 내 상품에 맞는 것을 보고 켠다 */
     keep=false; }
   if(!keep) NMS.text=nmTitle(B);
-  var C=nmCover(B, NMS.text), sum=function(a){ var s=0; a.forEach(function(x){ s+=x.d; }); return s; }, allD=sum(B.kws), len=NMS.text.length;
   var h='<div class="card nmc"><h3>상품명 만들기 · '+esc(B.seed)+'</h3>'
     +'<p class="note">연관 목록에서 품목이 같고 살 사람이 있는 키워드 '+fmt(B.kws.length)+'개를 낱말로 쪼갰다. 낱말 옆 숫자는 그 말이 든 키워드의 월 검색수 합이다. '
+    +'<b>낱말을 누른 순서대로 상품명에 이어 붙는다.</b> 끄면 그 낱말만 빠진다. '
     +'<b>산지 · 품종 · 인증 · 등급은 내 상품에 실제로 맞는 것만 켠다</b> — 다른 상표나 틀린 원산지 · 품종을 적으면 안 된다.</p>';
   NM_ORD.forEach(function(t){ var g=B.list.filter(function(o){ return o.t===t; }).sort(function(a,b){ return b.d-a.d; }); if(!g.length) return;
     var cut= t==="R" ? 28 : 20;
     h+='<div class="nm-row"><div class="nm-k">'+NM_TYPE[t]+'</div><div class="nm-v">'+g.slice(0,cut).map(function(o){
       return '<button type="button" class="nmt'+(NMS.on[o.k]?' on':'')+'" data-tok="'+esc(o.k)+'">'+esc(o.w)+'<small>'+near(o.d)+'</small></button>'; }).join("")
       +(g.length>cut?'<span class="dim" style="font-size:11.5px">외 '+(g.length-cut)+'개</span>':'')+'</div></div>'; });
-  h+='<div class="nm-out"><label class="nm-k" for="nmText">상품명</label>'
+  h+='<div class="nm-out"><label class="nm-k" for="nmText">상품명 · 누른 순서대로</label>'
     +'<textarea id="nmText" rows="2" spellcheck="false">'+esc(NMS.text)+'</textarea>'
-    +'<div class="nm-meta"><span class="'+(len>50?'cvr-no':'cvr-ok')+'"><b>'+len+'</b>자</span><span class="dim">네이버 권장 50자 이내 (최대 100자)</span>'
-    +'<span class="f-sp" style="flex:1"></span><button type="button" class="chip" id="nmReset">낱말대로 다시 만들기</button><button type="button" class="chip on" id="nmCopy">상품명 복사</button></div></div>'
-    +'<div class="nm-cov"><div><div class="v-k">이 상품명이 덮는 키워드</div><div class="v-v num">'+fmt(C.cov.length)+'개</div><div class="v-s">'+fmt(B.kws.length)+'개 중</div></div>'
+    +'<div class="nm-meta"><span id="nmLen"></span><span class="dim">네이버 권장 50자 이내 (최대 100자) · 직접 고쳐도 된다</span>'
+    +'<span class="f-sp" style="flex:1"></span><button type="button" class="chip" id="nmReset">누른 순서대로 다시 만들기</button><button type="button" class="chip on" id="nmCopy">상품명 복사</button></div></div>'
+    +'<div id="nmRes"></div></div><div id="nmMiss"></div>';
+  box.innerHTML=h;
+  box.querySelectorAll("[data-tok]").forEach(function(b){ b.onclick=function(){ nmToggle(B, b.dataset.tok); }; });
+  var ta=document.getElementById("nmText");
+  ta.addEventListener("input", function(){ NMS.text=ta.value; nmResFill(B); });
+  document.getElementById("nmReset").onclick=function(){ renderName(false); };
+  document.getElementById("nmCopy").onclick=function(){ copyText(ta.value.replace(/\s+/g," ").trim(), this); };
+  nmResFill(B);
+}
+/* 상품명 아래: 글자 수 · 덮는 키워드 · 태그 후보 · 아직 못 덮은 키워드 */
+function nmResFill(B){
+  var res=document.getElementById("nmRes"), ms=document.getElementById("nmMiss"); if(!res || !ms) return;
+  var text=NMS.text.replace(/\s+/g," ").trim(), tflat=text.replace(/\s+/g,""), len=text.length;
+  var C=nmCover(B, text), sum=function(a){ var s=0; a.forEach(function(x){ s+=x.d; }); return s; }, allD=sum(B.kws);
+  var le=document.getElementById("nmLen"); if(le){ le.className= len>50 ? "cvr-no" : "cvr-ok"; le.innerHTML='<b>'+len+'</b>자'; }
+  var h='<div class="nm-cov"><div><div class="v-k">이 상품명이 덮는 키워드</div><div class="v-v num">'+fmt(C.cov.length)+'개</div><div class="v-s">'+fmt(B.kws.length)+'개 중</div></div>'
     +'<div><div class="v-k">덮는 월 검색수</div><div class="v-v num">'+fmt(sum(C.cov))+'</div><div class="v-s">전체 '+fmt(allD)+' 의 '+(allD?Math.round(sum(C.cov)/allD*100):0)+'%</div></div></div>';
   /* 태그: 상품명이 덮지 못한 키워드 가운데 검색이 많은 것부터 10개 */
-  var tflat=NMS.text.replace(/\s+/g,"");
   var mineOnly=function(x){ return x.T.every(function(k){ return (k.t!=="V" && k.t!=="R") || tflat.indexOf(k.w)>=0; }); };
   var tags=C.not.filter(mineOnly).sort(function(a,b){ return b.d-a.d; }).slice(0,10);
   if(tags.length<10) tags=tags.concat(C.cov.slice().sort(function(a,b){ return b.d-a.d; }).filter(function(x){ return R[x.i][K.KW].replace(/\s+/g,"")!==tflat; }).slice(0,10-tags.length));
   h+='<div class="nm-row"><div class="nm-k">태그 후보<br><span style="font-weight:500;text-transform:none;letter-spacing:0">최대 10개</span></div><div class="nm-v">'
     +tags.map(function(x){ return '<span class="nmtag" title="월 검색 '+fmt(x.d)+'">'+esc(R[x.i][K.KW])+'<small>'+near(x.d)+'</small></span>'; }).join("")
     +(tags.length?'<button type="button" class="chip" id="nmTagCopy">태그 복사</button>':'<span class="dim">남는 키워드가 없다</span>')+'</div></div>'
-    +'<p class="note" style="margin:10px 0 0">태그는 내가 켜지 않은 품종 · 산지가 든 키워드를 빼고, 상품명에 못 넣은 것 가운데 검색이 많은 순으로 골랐다. 태그도 내 상품에 맞는 것만 쓴다. 덮는다는 것은 그 키워드의 낱말이 상품명에 다 들어 있다는 뜻이고, 실제 노출 순위는 판매 · 리뷰 등 다른 것에도 달려 있다.</p></div>';
+    +'<p class="note" style="margin:10px 0 0">태그는 내가 켜지 않은 품종 · 산지가 든 키워드를 빼고, 상품명에 못 넣은 것 가운데 검색이 많은 순으로 골랐다. 태그도 내 상품에 맞는 것만 쓴다. 덮는다는 것은 그 키워드의 낱말이 상품명에 다 들어 있다는 뜻이고(순서는 따지지 않는다), 실제 노출 순위는 판매 · 리뷰 등 다른 것에도 달려 있다.</p>';
+  res.innerHTML=h;
   /* 못 덮은 키워드 */
   var miss=C.not.slice().sort(function(a,b){ return b.d-a.d; }).slice(0,30);
-  if(miss.length) h+='<div class="card"><h3>아직 못 덮은 키워드</h3><p class="note">검색이 많은 순 · 빠진 낱말을 굵게 적었다. 맞는 말이면 위에서 켠다.</p><div class="nm-miss">'
-    +miss.map(function(x){ var t=NMS.text.replace(/\s+/g,""); return '<span><a href="#" data-kw="'+x.i+'">'+esc(R[x.i][K.KW])+'</a> <small>'+near(x.d)+'</small> '
-      +x.T.filter(function(k){ return k.t!=="W" && t.indexOf(k.w)<0; }).map(function(k){ return '<b data-add="'+esc(k.t+":"+k.w)+'">+'+esc(k.w)+'</b>'; }).join(" ")+'</span>'; }).join("")+'</div></div>';
-  box.innerHTML=h;
-  box.querySelectorAll("[data-tok]").forEach(function(b){ b.onclick=function(){ var k=b.dataset.tok; if(NMS.on[k]) delete NMS.on[k]; else NMS.on[k]=1; renderName(false); }; });
-  box.querySelectorAll("[data-add]").forEach(function(b){ b.onclick=function(){ var k=b.dataset.add; if(B.tok[k]){ NMS.on[B.tok[k].k]=1; renderName(false); } }; });
-  box.querySelectorAll("a[data-kw]").forEach(function(a){ a.onclick=function(e){ e.preventDefault(); pickKw(+a.dataset.kw); }; });
-  var ta=document.getElementById("nmText");
-  ta.addEventListener("change", function(){ NMS.text=ta.value.trim(); renderName(true); });
-  document.getElementById("nmReset").onclick=function(){ renderName(false); };
-  document.getElementById("nmCopy").onclick=function(){ copyText(ta.value.trim(), this); };
+  ms.innerHTML= miss.length ? '<div class="card"><h3>아직 못 덮은 키워드</h3><p class="note">검색이 많은 순 · 빠진 낱말을 굵게 적었다. 맞는 말이면 눌러서 상품명 뒤에 붙인다.</p><div class="nm-miss">'
+    +miss.map(function(x){ return '<span><a href="#" data-kw="'+x.i+'">'+esc(R[x.i][K.KW])+'</a> <small>'+near(x.d)+'</small> '
+      +x.T.filter(function(k){ return k.t!=="W" && tflat.indexOf(k.w)<0; }).map(function(k){ return '<b data-add="'+esc(k.t+":"+k.w)+'">+'+esc(k.w)+'</b>'; }).join(" ")+'</span>'; }).join("")+'</div></div>' : '';
   var tc=document.getElementById("nmTagCopy"); if(tc) tc.onclick=function(){ copyText(tags.map(function(x){ return R[x.i][K.KW]; }).join(", "), this); };
+  ms.querySelectorAll("[data-add]").forEach(function(b){ b.onclick=function(){ var k=b.dataset.add; if(B.tok[k] && !NMS.on[B.tok[k].k]) nmToggle(B, B.tok[k].k); }; });
+  ms.querySelectorAll("a[data-kw]").forEach(function(a){ a.onclick=function(e){ e.preventDefault(); pickKw(+a.dataset.kw); }; });
 }
 
 function refresh(){ hideTip(); readSet(); recalc(); renderSecBar(); renderHero(); renderBuy(); renderKpi(); renderTable();
