@@ -9,9 +9,10 @@ echo  Weekly collection - Naver SearchAd key only (no API HUB calls)
 echo    1. search volume, clicks, click rate, bids, estimated ad results for every screen keyword
 echo    2. related keyword lists for item names (about 490)
 echo    3. tail keywords: item name + 1kg, price, domestic ... asked directly
-echo    4. related keyword lists for every fresh-food keyword with 100+ searches (about 7,000)
+echo    4. related keyword lists for every fresh-food keyword with 100+ searches (about 11,000)
+echo       then every keyword Naver showed in those lists goes into the page
 echo.
-echo  20 to 80 minutes. Safe to stop - run again to continue.
+echo  60 to 120 minutes. Safe to stop - run again to continue.
 echo  Shopping click index, trends and buyers use the API HUB quota:
 echo  run "2" and 25-buyers.bat once a month for those.
 echo  Add the word  auto  after the file name to run without waiting for a key.
@@ -23,7 +24,7 @@ echo.
 echo  [%time%] packing the five sections with the new values
 node --max-old-space-size=8192 pack-data.mjs --section 1,2,3,4,5
 if errorlevel 1 goto fail
-node build-web.mjs ..\naver-out\pack .
+node --max-old-space-size=8192 build-web.mjs ..\naver-out\pack .
 if errorlevel 1 goto fail
 echo.
 echo  [%time%] 2/4 related lists for item names
@@ -37,9 +38,12 @@ node build-related.mjs --max-age 144
 if errorlevel 1 goto fail
 echo.
 echo  [%time%] 4/4 related lists for every fresh-food keyword
-node fetch-related-more.mjs --min 100 --max-age 6
+node --max-old-space-size=8192 fetch-related-more.mjs --min 100 --max-age 6
 if errorlevel 1 goto fail
-node build-related-more.mjs
+echo  [%time%] every keyword in the new lists goes into the page
+node --max-old-space-size=8192 build-web.mjs ..\naver-out\pack .
+if errorlevel 1 goto fail
+node --max-old-space-size=8192 build-related-more.mjs
 if errorlevel 1 goto fail
 echo.
 echo  [%time%] Done. The page on this PC shows the new values.

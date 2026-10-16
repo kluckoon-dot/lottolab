@@ -75,6 +75,10 @@ const cat = ctx.catMake(JSON.parse(sm[1])), MAP = ctx.CAT_MAP;
 const GROUP = { "과일": 1, "채소": 2, "견과류": 3, "쌀/잡곡": 3, "건과류": 3, "수산물": 4, "건어물": 4, "정육": 5, "계란/알류": 5 };
 const require = createRequire(import.meta.url);
 globalThis.window = {}; require(path.join(HERE, "data-kw.js"));
+/* 글자로 품목을 못 읽어도 네이버 이웃 품목이 있으면(엔부 → 사과 · build-web.mjs) 씨앗으로 받는다. 그런 키워드는 섹션 밖 사전(data-dict-N.js)에 있다 */
+let NBH = {}; const DROWS = [];
+try { require(path.join(HERE, "data-head.js")); NBH = (globalThis.window.KWHEAD && globalThis.window.KWHEAD.nb) || {}; } catch {}
+for (let q = 0; q < 64; q++) { const f = path.join(HERE, "data-dict-" + q + ".js"); if (!fs.existsSync(f)) break; require(f); for (const r of globalThis.window.KWDICT[q].rows) if (NBH[r[0]]) DROWS.push(r); }
 let have = {}; try { require(path.join(HERE, "data-relidx.js")); have = globalThis.window.RELIDX.seeds || {}; } catch {}
 /* 받아 둔 것: 씨앗마다 가장 최근 줄만 남긴다(다시 받으면 줄이 쌓인다). 받은 지 오래된 씨앗은 다시 받는다 — 옛 줄은 새 줄이 들어올 때까지 그대로 둔다 */
 const done = new Set();
@@ -85,8 +89,8 @@ if (fs.existsSync(MORE)) {
   for (const [k, v] of last) if (Date.now() - Date.parse(v[0]) < MAX_AGE_D * 86400e3) done.add(JSON.parse('"' + k + '"'));
 }
 let cand = [];
-for (const r of globalThis.window.KWROWS) {
-  const kw = r[0], raw = cat(kw), m = raw && MAP[raw]; if (!m || !m[0].startsWith("신선식품 > ")) continue;
+for (const r of [...globalThis.window.KWROWS, ...DROWS]) {
+  const kw = r[0], raw = cat(kw) || NBH[kw] || "", m = raw && MAP[raw]; if (!m || !m[0].startsWith("신선식품 > ")) continue;
   const g = GROUP[m[0].replace("신선식품 > ", "")]; if (!g || (ONLY && !ONLY.has(g))) continue;
   const key = kw.replace(/\s+/g, ""), v = (r[1] || 0) + (r[2] || 0);
   if (v < MIN || (have[key] && have[key] <= 5) || done.has(key)) continue;

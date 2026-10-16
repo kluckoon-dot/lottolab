@@ -3,10 +3,10 @@
  * fetch-related-more.mjs 가 받아 둔 키워드별 네이버 연관 목록을 저장된 화면용 묶음 파일로 만든다
  *
  * 규칙
- *   - 목록에서 **씨앗과 품목이 같거나(1) 묶음이 같은(2) 키워드만** 싣는다 (감홍사과 → 사과 키워드 + 다른 과일. 미니오이 · 오이피클은 뺀다).
- *     네이버가 준 순서는 그대로. 화면은 기본으로 같은 품목(1)만 보여 주고 단추로 묶음(2)까지 넓힌다.
- *     네이버가 준 전체 개수는 tot 에 적어 둔다 — 화면이 "387개 중 302개를 실었다" 라고 말할 수 있게.
- *     품목 이름 씨앗(build-related.mjs 의 442개 · 묶음 1~5)은 전부 실려 있으니 "전부" 는 거기서 본다.
+ *   - 네이버가 준 목록을 **자르지 않고 전부, 준 순서 그대로** 싣는다 (보갬, 2026-10-16: "모든 키워드들이 완벽하게 네이버 키워드 도구와 일치해야 한다").
+ *     전에는 씨앗과 품목 · 묶음이 같은 것만 실었다(감홍사과 → 미니오이 · 오이피클을 뺐다). 화면은 기본으로 "네이버 그대로" 를 보여 주고,
+ *     같은 품목만 보는 것은 단추("○○ 관련만")로 한다. 품목을 못 읽는 씨앗의 목록도 싣는다.
+ *     네이버가 준 전체 개수는 tot 에 적어 둔다.
  *   - 같은 품목인지는 화면과 같은 분류기로 본다 (keyword-lab.html 에서 그대로 꺼내 쓴다. 아래 tierOf 는 화면의 relTierOf 와 같은 규칙).
  *   - 화면 데이터에 없는 키워드는 응답에 든 검색수 · 클릭 · 클릭률에 입찰가 · 예상 실적을 받아 붙인다 (검색 --min-bid 이상만, 기본 50).
  *   - 묶음 번호는 과일 101~ · 채소 201~ · 견과 · 쌀/잡곡 · 건과 301~ · 수산 401~ · 정육 501~.
@@ -27,6 +27,7 @@ import vm from "node:vm";
 import crypto from "node:crypto";
 import { fileURLToPath } from "node:url";
 import { createRequire } from "node:module";
+import { latestRows } from "./naver-latest.mjs";
 
 const HERE = path.dirname(fileURLToPath(import.meta.url));
 const ROOT = path.basename(HERE).toLowerCase() === "app" ? path.dirname(HERE) : HERE;
@@ -89,20 +90,18 @@ for (const [k, j] of seedsRaw) {
   if (oldIdx[k] && oldIdx[k] < FIRST) continue;                    // 품목 씨앗으로 이미 전부 실려 있다
   if (GROUPS && !GROUPS.has(j.g)) continue;
   const seed = norm(k), S = info(seed);
-  if (!S.item && !S.raw) { dropNoItem++; continue; }
+  if (!S.item && !S.raw) dropNoItem++;   // 품목을 못 읽어도 싣는다 (세어만 둔다)
   const list = []; const seen = new Set(); let same = 0;
   for (const row of j.rows) { const name = row[0]; if (seen.has(name)) continue; seen.add(name);
-    const tr = tierOf(seed, S, norm(name)); if (tr > 2) continue;
-    if (tr === 1) same++;
+    if (tierOf(seed, S, norm(name)) === 1) same++;
     list.push(name); if (!SCREEN.has(name) && !stat.has(name)) stat.set(name, row); }
   rowsAll += j.rows.length;
-  /* 같은 품목이 저 혼자여도 같은 묶음 줄이 넉넉하면 싣는다 (대구탕 → 동태탕 · 매운탕). 화면이 묶음까지 넓혀 보여 준다 */
-  if (same < 2 && list.length < 6) { dropShort++; continue; }
+  if (!list.length) { dropShort++; continue; }
   rowsKept += list.length; rowsSame += same;
   kept.push({ k, g: j.g, item: S.item || S.raw, vol: SCREEN.get(k) || 0, list, tot: j.rows.length, at: j.at });
 }
 const newKw = [...stat.keys()];
-console.error(`씨앗 ${seedsRaw.size.toLocaleString()} → 싣는 것 ${kept.length.toLocaleString()} (품목을 못 읽음 ${dropNoItem} · 같은 품목이 저 혼자 ${dropShort})`);
+console.error(`씨앗 ${seedsRaw.size.toLocaleString()} → 싣는 것 ${kept.length.toLocaleString()} (품목을 못 읽는 씨앗 ${dropNoItem}개도 실음 · 빈 목록 ${dropShort})`);
 console.error(`목록 줄 ${rowsAll.toLocaleString()} → 싣는 줄 ${rowsKept.toLocaleString()} (${(rowsKept / Math.max(1, rowsAll) * 100).toFixed(0)}% · 같은 품목 ${rowsSame.toLocaleString()}) · 화면에 없던 키워드 ${newKw.length.toLocaleString()}`);
 const big = newKw.filter(k => (stat.get(k)[1] + stat.get(k)[2]) >= MINBID);
 console.error(`  그중 검색 ${MINBID}↑ ${big.length.toLocaleString()} · 입찰가 가진 것 ${big.filter(k => X[k] && X[k].b).length.toLocaleString()}`);
@@ -167,7 +166,9 @@ if (!NOFETCH) {
 /* ── 3. 묶음 파일 ── */
 const GNAME = { 1: "과일", 2: "채소", 3: "견과 · 쌀/잡곡 · 건과", 4: "수산물 · 건어물", 5: "정육 · 계란" };
 kept.sort((x, y) => x.g - y.g || (x.item < y.item ? -1 : x.item > y.item ? 1 : 0) || y.vol - x.vol);
-const extraRow = name => { const st = stat.get(name), x = X[name] || {}, f = FR[name], shop = f ? (f.c != null ? f.c : f.f === 0 ? 0 : -1) : -1;
+/* 숫자는 받아 둔 목록 전부에서 가장 새로 받은 줄 (먼저 만난 목록의 숫자는 며칠 전 값일 수 있다) */
+const LATEST = latestRows(OUTDIR);
+const extraRow = name => { const st = (LATEST.get(name) || {}).x || stat.get(name), x = X[name] || {}, f = FR[name], shop = f ? (f.c != null ? f.c : f.f === 0 ? 0 : -1) : -1;
   /* [pc, mo, depth, comp, clickPc, clickMo, ctrPc, ctrMo, bp1, bp2, bp3, bm1, bm2, bm3, masked, ad5pc, ad5mo, shop, 예상실적 10칸] */
   return [...st.slice(1, 9), ...(x.b || [0, 0, 0, 0, 0, 0]), st[9] || 0, ...(x.m || [0, 0]), shop, ...(x.e || [-1, 0, 0, 0, 0, 0, 0, 0, 0, 0])]; };
 const day = new Date().toISOString(), idx = {}; for (const k in oldIdx) if (oldIdx[k] < FIRST) idx[k] = oldIdx[k];

@@ -26,6 +26,7 @@ import vm from "node:vm";
 import crypto from "node:crypto";
 import { fileURLToPath } from "node:url";
 import { createRequire } from "node:module";
+import { latestRows } from "./naver-latest.mjs";
 
 const HERE = path.dirname(fileURLToPath(import.meta.url));
 const ROOT = path.basename(HERE).toLowerCase() === "app" ? path.dirname(HERE) : HERE;
@@ -114,7 +115,9 @@ let TAILS = {}; try { TAILS = JSON.parse(fs.readFileSync(path.join(OUTDIR, "rela
 const stat = {}; for (const [k] of seeds) { for (const row of (R.seeds[k]?.rows || [])) if (!SCREEN.has(row[0])) stat[row[0]] = row;
   for (const row of (TAILS[k]?.rows || [])) if (!SCREEN.has(row[0]) && !stat[row[0]]) stat[row[0]] = row; }
 const exList = Object.keys(stat);
-for (const k of exList) (R.extra[k] ||= {}).st = stat[k].slice(1);
+/* 숫자는 받아 둔 목록 전부에서 가장 새로 받은 줄 (naver-latest.mjs) */
+const LATEST = latestRows(path.join(ROOT, "naver-out"));
+for (const k of exList) (R.extra[k] ||= {}).st = ((LATEST.get(k) || {}).x || stat[k]).slice(1);
 const needB = exList.filter(k => !R.extra[k].b);
 console.error(`화면에 없는 키워드 ${exList.length.toLocaleString()}개 · 입찰가 받을 것 ${needB.length.toLocaleString()}개`);
 for (let i = 0; i < needB.length; i += 50) {
