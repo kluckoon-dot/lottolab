@@ -72,8 +72,12 @@ try {
     const o = last.get(j.k); if (!o || String(j.at) > String(o.at)) last.set(j.k, j); }
   for (const j of last.values()) LIST.push([j.k, j.at, j.rows]);
 } catch (e) { if (e.code !== "ENOENT") throw e; }
+const NSEED = LIST.length;
+/* 목록 밖 키워드를 직접 물은 오늘 값 (fetch-stale.mjs). 씨앗이 아니라 숫자만 — 품목 표에는 안 넣는다 */
+try { for (const line of fs.readFileSync(path.join(NO, "related-stats.ndjson"), "utf8").split("\n")) { if (!line.trim()) continue; let j; try { j = JSON.parse(line); } catch { continue; } if (j && j.rows) LIST.push(["", j.at, j.rows]); } }
+catch (e) { if (e.code !== "ENOENT") throw e; }
 const LT = new Map(), VOTE = new Map();   // 키워드 → 가장 새 목록 줄 · 씨앗 품목 표
-for (const [sd, at, rows] of LIST) { const it = seedItem(sd);
+for (const [sd, at, rows] of LIST) { const it = sd ? seedItem(sd) : "";
   for (const x of rows) { const k = x[0]; const o = LT.get(k); if (!o || String(at) > String(o.at)) LT.set(k, { x, at, seed: sd });
     if (it) { let v = VOTE.get(k); if (!v) VOTE.set(k, v = { items: {}, n: 0 }); v.items[it] = (v.items[it] || 0) + 1; v.n++; } } }
 /* 입찰가 · 예상 실적 · 식품 판정 (목록에만 있던 키워드) */
@@ -103,7 +107,7 @@ const NB = {};
 for (const [k, v] of VOTE) { if (v.n < 5 || CATF(nkw(k))) continue;
   let best = "", bc = 0; for (const it in v.items) if (v.items[it] > bc) { bc = v.items[it]; best = it; }
   if (bc / v.n >= 0.8) NB[k] = best; }
-console.log(`네이버 목록  씨앗 ${LIST.length.toLocaleString()} · 나온 키워드 ${LT.size.toLocaleString()} · 화면 줄 값을 더 새것으로 ${nUpd.toLocaleString()} · 새로 담은 키워드 ${nAdd.toLocaleString()} · 네이버 이웃 품목 ${Object.keys(NB).length.toLocaleString()}`);
+console.log(`네이버 목록  씨앗 ${NSEED.toLocaleString()} · 나온 키워드 ${LT.size.toLocaleString()} · 화면 줄 값을 더 새것으로 ${nUpd.toLocaleString()} · 새로 담은 키워드 ${nAdd.toLocaleString()} · 네이버 이웃 품목 ${Object.keys(NB).length.toLocaleString()}`);
 
 /* ── 섹션 다시 계산 ──
    한 글자 낱말을 어디까지 인정할지가 관건이다. 넓게 잡으면 롯데시네마가 과일이 되고
@@ -164,6 +168,8 @@ if (notFood) {
 }
 const keep = R.filter(r => r[18]);
 const set = new Set(keep.map(r => r[0]));
+/* 화면 키워드 목록 — 정기 수집이 입찰가 · 예상 실적을 다시 받을 대상 (refresh-naver.mjs --list) */
+try { fs.writeFileSync(path.join(NO, "screen-keywords.txt"), keep.map(r => r[0]).join("\n"), "utf8"); } catch {}
 console.log(`\n담을 키워드 ${keep.length.toLocaleString()}개`);
 /* 섹션 밖이지만 네이버 목록에 나온 키워드 — 찾을 때 · 연관 목록에서 볼 때만 읽는다. 묶음 번호 = 글자 해시 (화면의 dictPart 와 같은 셈) */
 const DICT_N = 12, dictPart = k => { let h = 0; const t = String(k).replace(/\s+/g, ""); for (let q = 0; q < t.length; q++) h = (h * 31 + t.charCodeAt(q)) >>> 0; return h % DICT_N; };
