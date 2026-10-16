@@ -71,13 +71,14 @@ globalThis.window = {}; require(path.join(HERE, "data-kw.js")); require(path.joi
 const kws = window.KWROWS.map(r => r[0]);
 for (let q = 0; q < (window.KWHEAD.dictN || 0); q++) { const f = path.join(HERE, "data-dict-" + q + ".js"); if (!fs.existsSync(f)) break; require(f); for (const r of window.KWDICT[q].rows) kws.push(r[0]); }
 let FR = {}; try { FR = JSON.parse(fs.readFileSync(path.join(OUTDIR, "fresh.json"), "utf8")).rows || {}; } catch {}
-const L = latestRows(OUTDIR), TODAY = day(new Date().toISOString());
+/* "오늘 값이 아니다" = 가장 새 값이 18시간보다 오래됐다. 달력 날짜로 세면 자정을 넘긴 순간 전날 받은 것이 전부 낡은 것이 돼 버린다(2026-10-17 새벽에 한 번 그랬다) */
+const L = latestRows(OUTDIR), OLD = Date.now() - 18 * 3600e3;
 const stale = [...new Set(kws)].filter(k => {
   const a = L.get(k), f = FR[k];
-  return Math.max(a ? day(a.at) : 0, f && f.sAt ? day(f.sAt) : 0) < TODAY;
+  return Math.max(a ? Date.parse(a.at) || 0 : 0, f && f.sAt ? Date.parse(f.sAt) || 0 : 0) < OLD;
 });
 const askable = stale.filter(k => { const c = k.replace(/\s+/g, ""); return c.length >= 1 && c.length <= 20 && !/[,()]/.test(c); });
-console.error(`키워드 ${kws.length.toLocaleString()} 중 오늘 값이 아닌 것 ${stale.length.toLocaleString()} · 물을 수 있는 것 ${askable.length.toLocaleString()} (호출 ${Math.ceil(askable.length / 5).toLocaleString()}회)`);
+console.error(`키워드 ${kws.length.toLocaleString()} 중 18시간 넘은 값(오늘 값이 아닌 것) ${stale.length.toLocaleString()} · 물을 수 있는 것 ${askable.length.toLocaleString()} (호출 ${Math.ceil(askable.length / 5).toLocaleString()}회)`);
 if (STAT) process.exit(0);
 
 const t0 = Date.now(); let calls = 0, got = 0, fail = 0;
