@@ -86,6 +86,7 @@ for (const [k, v] of Object.entries((RR && RR.extra) || {})) if (!XB[k] || !XB[k
 const FR = (rdj("fresh.json") || {}).rows || {};
 const COMPI = { "낮음": 0, "중간": 1, "높음": 2 };
 const BY = new Map(); R.forEach((r, i) => { if (!BY.has(r[0])) BY.set(r[0], i); });
+const ADDED = new Set();   // 9월 수집분(pack)에 없고 네이버 목록에서 새로 들인 키워드
 let nUpd = 0, nAdd = 0;
 for (const [k, o] of LT) {
   const x = o.x, d = dayInt(o.at), i = BY.get(k);
@@ -100,7 +101,7 @@ for (const [k, o] of LT) {
   if (f.b) for (let q = 0; q < 6; q++) row[9 + q] = f.b[q] || 0;
   if (f.m) { row[22] = f.m[0] || 0; row[23] = f.m[1] || 0; }
   if (f.e && f.e.length === 10) for (let q = 0; q < 10; q++) row[28 + q] = f.e[q];
-  R.push(row); BY.set(k, R.length - 1); nAdd++;
+  R.push(row); BY.set(k, R.length - 1); ADDED.add(k); nAdd++;
 }
 /* 네이버 이웃 품목 */
 const NB = {};
@@ -150,13 +151,15 @@ const before = SEC.map(() => 0), after = SEC.map(() => 0);
    refresh-naver.mjs 가 네이버 쇼핑인사이트 식품 분야에서 클릭이 있는지 재둔 값(r[25])으로 거른다.
    0 = 식품 분야 쇼핑 클릭 없음 → 화면 섹션에서 뺀다. 원본 keywords.json 에는 그대로 남는다.
    -1 = 아직 모름 → 글자 규칙대로 둔다. */
-let notFood = 0; const notFoodTop = []; const SECMOVE = {};
+let notFood = 0; const notFoodTop = []; const SECMOVE = {}, TEXTONLY = [];
 for (const r of R) {
   for (let i = 0; i < SEC.length; i++) if (r[18] & (1 << i)) before[i]++;
   /* 섹션: 글자 규칙 + (목록에 나온 키워드라면) 분류기. 분류기가 신선식품 품목을 읽었으면 그 품목의 섹션이 이긴다 —
      글자 규칙은 "곱창" 이 든 곱창김을 축산물에 넣었다. 선물세트(16)는 판매 문맥이라 글자 규칙 쪽을 지킨다 (2026-10-17) */
   const tb = excluded(r[0]) ? 0 : secOf(r[0]), cb = (LT.has(r[0]) || tb) ? catBits(r[0]) : 0;
-  const m = cb ? (cb | (tb & 16)) : tb;
+  /* 네이버 목록에서 새로 들인 키워드는 분류기가 품목을 읽을 때만 (선물세트 16 은 글자 규칙 그대로) */
+  const m = cb ? (cb | (tb & 16)) : (ADDED.has(r[0]) ? (tb & 16) : tb);
+  if (!cb && ADDED.has(r[0]) && (tb & ~16)) TEXTONLY.push([r[0], (r[1] || 0) + (r[2] || 0)]);
   if (tb && cb && (tb & ~16) !== (cb & ~16)) { const t = (tb & ~16) + "→" + (cb & ~16); const o = SECMOVE[t] || (SECMOVE[t] = { n: 0, ex: [] }); o.n++; if (o.ex.length < 12) o.ex.push(r[0]); }
   if (m && r[25] === 0) { notFood++; if (notFoodTop.length < 400) notFoodTop.push([r[0], (r[1] || 0) + (r[2] || 0)]); r[18] = 0; continue; }
   r[18] = m;
@@ -164,6 +167,8 @@ for (const r of R) {
 }
 if (Object.keys(SECMOVE).length) { console.log("분류기 품목을 따라 섹션을 옮긴 것 (1 과일·채소 · 2 곡물 · 4 수산 · 8 축산)");
   for (const [t, o] of Object.entries(SECMOVE).sort((x, y) => y[1].n - x[1].n)) console.log(`  ${t}  ${o.n}개 — ${o.ex.join(", ")}`); }
+if (TEXTONLY.length) { TEXTONLY.sort((a, b) => b[1] - a[1]);
+  console.log(`글자 규칙에만 걸려 섹션에서 뺀 새 키워드 ${TEXTONLY.length.toLocaleString()}개 (섹션 밖 사전에 남는다) — 예: ` + TEXTONLY.slice(0, 30).map(x => x[0]).join(" · ")); }
 console.log("섹션별  (접을 때 → 다시 계산)");
 SEC.forEach((s, i) => console.log(`  ${s.name.padEnd(14)} ${before[i].toLocaleString().padStart(8)} → ${after[i].toLocaleString().padStart(8)}`));
 
