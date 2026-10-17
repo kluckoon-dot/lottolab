@@ -18,7 +18,7 @@ echo.
 echo  [%time%] 1/3 bids and estimated ad results
 node --max-old-space-size=8192 refresh-naver.mjs --steps bids,perf --list ..\naver-out\screen-keywords.txt
 if errorlevel 1 goto fail
-node --max-old-space-size=8192 pack-data.mjs --section 1,2,3,4,5
+node --max-old-space-size=8192 pack-data.mjs --section 1,2,3,4,5,6
 if errorlevel 1 goto fail
 echo.
 echo  [%time%] 2/3 tail keywords

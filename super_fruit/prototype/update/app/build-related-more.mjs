@@ -36,7 +36,7 @@ const MORE = path.join(OUTDIR, "related-more.ndjson"), XC = path.join(OUTDIR, "r
 const args = process.argv.slice(2);
 const val = f => { const i = args.indexOf(f); return i >= 0 ? args[i + 1] : null; };
 const NOFETCH = args.includes("--no-fetch"), STAT = args.includes("--stat");
-const MINBID = +(val("--min-bid") || 50), PART_MAX = +(val("--part") || 1200000), FIRST = 6;
+const MINBID = +(val("--min-bid") || 50), PART_MAX = +(val("--part") || 1200000), FIRST = 7;   // 1~6 = 품목 씨앗 묶음 (6 김치 · 반찬, 2026-10-17)
 const GROUPS = val("--groups") ? new Set(val("--groups").split(",").map(Number)) : null;
 
 /* ── 분류기 (화면과 같은 코드) ── */
@@ -164,7 +164,7 @@ if (!NOFETCH) {
 }
 
 /* ── 3. 묶음 파일 ── */
-const GNAME = { 1: "과일", 2: "채소", 3: "견과 · 쌀/잡곡 · 건과", 4: "수산물 · 건어물", 5: "정육 · 계란" };
+const GNAME = { 1: "과일", 2: "채소", 3: "견과 · 쌀/잡곡 · 건과", 4: "수산물 · 건어물", 5: "정육 · 계란", 6: "김치 · 반찬" };
 kept.sort((x, y) => x.g - y.g || (x.item < y.item ? -1 : x.item > y.item ? 1 : 0) || y.vol - x.vol);
 /* 숫자는 받아 둔 목록 전부에서 가장 새로 받은 줄 (먼저 만난 목록의 숫자는 며칠 전 값일 수 있다) */
 const LATEST = latestRows(OUTDIR);

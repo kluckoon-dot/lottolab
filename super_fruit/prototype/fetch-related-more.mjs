@@ -72,7 +72,7 @@ const sm = /var SEEDS=(\[[^\n]*\]);/.exec(html);
 if (a0 < 0 || b0 < 0 || !sm) { console.error("keyword-lab.html 에서 분류기를 못 찾았다."); process.exit(1); }
 const ctx = {}; vm.createContext(ctx); vm.runInContext(html.slice(a0, b0) + "\nthis.catMake=catMake;this.CAT_MAP=CAT_MAP;", ctx);
 const cat = ctx.catMake(JSON.parse(sm[1])), MAP = ctx.CAT_MAP;
-const GROUP = { "과일": 1, "채소": 2, "견과류": 3, "쌀/잡곡": 3, "건과류": 3, "수산물": 4, "건어물": 4, "정육": 5, "계란/알류": 5 };
+const GROUP = { "과일": 1, "채소": 2, "견과류": 3, "쌀/잡곡": 3, "건과류": 3, "수산물": 4, "건어물": 4, "정육": 5, "계란/알류": 5, "김치": 6, "반찬": 6 };
 const require = createRequire(import.meta.url);
 globalThis.window = {}; require(path.join(HERE, "data-kw.js"));
 /* 글자로 품목을 못 읽어도 네이버 이웃 품목이 있으면(엔부 → 사과 · build-web.mjs) 씨앗으로 받는다. 그런 키워드는 섹션 밖 사전(data-dict-N.js)에 있다 */
@@ -98,7 +98,7 @@ for (const r of [...globalThis.window.KWROWS, ...DROWS]) {
 }
 cand.sort((x, y) => x[1] - y[1] || y[2] - x[2]);
 cand = cand.slice(0, MAX);
-console.error(`받을 씨앗 ${cand.length.toLocaleString()}개 (검색 ${MIN}↑ · 이미 받은 것 ${done.size.toLocaleString()}) · ` + [1, 2, 3, 4, 5].map(g => g + ":" + cand.filter(x => x[1] === g).length).join(" "));
+console.error(`받을 씨앗 ${cand.length.toLocaleString()}개 (검색 ${MIN}↑ · 이미 받은 것 ${done.size.toLocaleString()}) · ` + [1, 2, 3, 4, 5, 6].map(g => g + ":" + cand.filter(x => x[1] === g).length).join(" "));
 
 fs.mkdirSync(OUTDIR, { recursive: true });
 const t0 = Date.now(); let n = 0, fail = 0, rows = 0;

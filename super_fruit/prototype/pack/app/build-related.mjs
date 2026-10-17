@@ -70,14 +70,14 @@ const html = fs.readFileSync(path.join(HERE, "keyword-lab.html"), "utf8").replac
 const a0 = html.indexOf("var CAT_VAR="), b0 = html.indexOf("/* 김치는 종류가 곧 네이버 끝 칸이다");
 if (a0 < 0 || b0 < 0) { console.error("keyword-lab.html 에서 분류표를 못 찾았다."); process.exit(1); }
 const ctx = {}; vm.createContext(ctx); vm.runInContext(html.slice(a0, b0) + "\nthis.CAT_FRESH=CAT_FRESH;this.CAT_VAR=CAT_VAR;this.CAT_MAP=CAT_MAP;", ctx);
-const GROUP = { "과일": 1, "채소": 2, "견과류": 3, "쌀/잡곡": 3, "건과류": 3, "수산물": 4, "건어물": 4, "정육": 5, "계란/알류": 5 };
-const GNAME = { 1: "과일", 2: "채소", 3: "견과 · 쌀/잡곡 · 건과", 4: "수산물 · 건어물", 5: "정육 · 계란" };
-const HEAD = { 1: ["과일"], 2: ["채소", "야채"], 3: ["견과류", "쌀", "잡곡", "건과일"], 4: ["수산물", "해산물", "생선", "건어물"], 5: ["소고기", "한우", "돼지고기", "닭고기", "계란", "달걀"] };
+const GROUP = { "과일": 1, "채소": 2, "견과류": 3, "쌀/잡곡": 3, "건과류": 3, "수산물": 4, "건어물": 4, "정육": 5, "계란/알류": 5, "김치": 6, "반찬": 6 };
+const GNAME = { 1: "과일", 2: "채소", 3: "견과 · 쌀/잡곡 · 건과", 4: "수산물 · 건어물", 5: "정육 · 계란", 6: "김치 · 반찬" };
+const HEAD = { 1: ["과일"], 2: ["채소", "야채"], 3: ["견과류", "쌀", "잡곡", "건과일"], 4: ["수산물", "해산물", "생선", "건어물"], 5: ["소고기", "한우", "돼지고기", "닭고기", "계란", "달걀"], 6: ["김치", "반찬", "밑반찬", "장아찌"] };
 const seedG = new Map();
 /* 품목 이름이지만 그 말만 물으면 다른 뜻의 목록이 오는 것은 씨앗으로 쓰지 않는다 (대구 = 도시) */
 const NOSEED = new Set(["대구"]);
 const addSeed = (k, g) => { if (String(k).includes("/")) return; k = clean(k); if (NOSEED.has(k)) return; if (!k || (/^기타|류$|세트$/.test(k) && k.length > 3)) return; if (!seedG.has(k)) seedG.set(k, g); };
-for (const g of [1, 2, 3, 4, 5]) {
+for (const g of [1, 2, 3, 4, 5, 6]) {
   for (const h of HEAD[g]) addSeed(h, g);
   for (const [grp, leaf, items] of ctx.CAT_FRESH) { if (GROUP[grp] !== g) continue;
     for (const part of leaf.split("/")) if (!/^기타|류$/.test(part)) addSeed(part, g);
@@ -86,7 +86,7 @@ for (const g of [1, 2, 3, 4, 5]) {
   for (const [k, v] of Object.entries(ctx.CAT_VAR)) { const m = ctx.CAT_MAP[v]; if (m && GROUP[m[0].replace("신선식품 > ", "")] === g) addSeed(k, g); }
 }
 let seeds = [...seedG.entries()].filter(([, g]) => !ONLY || ONLY.has(g));
-console.error(`씨앗 ${seeds.length}개 · ` + [1, 2, 3, 4, 5].map(g => GNAME[g] + " " + seeds.filter(x => x[1] === g).length).join(" · "));
+console.error(`씨앗 ${seeds.length}개 · ` + [1, 2, 3, 4, 5, 6].map(g => GNAME[g] + " " + seeds.filter(x => x[1] === g).length).join(" · "));
 
 /* ── 1. 씨앗마다 키워드도구 ── */
 let R = { rule: "씨앗 하나에 한 번 물은 응답 그대로. rows = [kw, pc, mo, depth, comp, clickPc, clickMo, ctrPc, ctrMo, masked]", seeds: {} };
@@ -152,7 +152,7 @@ saveRaw();
 /* ── 3. 묶음 파일로 ── */
 const day = new Date().toISOString();
 const idx = {}; let total = 0, bytes = 0, tailN = 0;
-for (const g of [1, 2, 3, 4, 5]) {
+for (const g of [1, 2, 3, 4, 5, 6]) {
   const mine = [...seedG.entries()].filter(x => x[1] === g && R.seeds[x[0]] && R.seeds[x[0]].rows.length > 1);
   if (!mine.length) continue;
   const names = [], nidx = new Map(), ref = k => { let i = nidx.get(k); if (i == null) { i = names.length; names.push(k); nidx.set(k, i); } return i; };

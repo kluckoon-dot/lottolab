@@ -14,7 +14,7 @@ echo.
 echo  This packs just those. Expect roughly 10 MB, about 4 MB zipped.
 echo  Nothing is deleted. The other keywords stay in keywords.json untouched.
 echo.
-node --max-old-space-size=8192 pack-data.mjs --section 1,2,3,4,5
+node --max-old-space-size=8192 pack-data.mjs --section 1,2,3,4,5,6
 echo.
 echo   Result: naver-out\pack\
 echo   Zip that ONE folder and send it.

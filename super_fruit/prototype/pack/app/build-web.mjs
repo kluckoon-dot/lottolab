@@ -54,7 +54,7 @@ const VC = {}; vm.createContext(VC);
 vm.runInContext(HTML.slice(c0, c1) + "\n" + HTML.slice(i0, i1) + "\nthis.catMake=catMake;this.CAT_MAP=CAT_MAP;this.intentGuess=intentGuess;", VC);
 const CATF = VC.catMake(JSON.parse(sm[1])), CMAP = VC.CAT_MAP, intentGuess = VC.intentGuess;
 const nkw = k => String(k).replace(/\s+/g, "").toLowerCase();
-const GBIT = { "과일": 1, "채소": 1, "견과류": 2, "쌀/잡곡": 2, "건과류": 2, "수산물": 4, "건어물": 4, "정육": 8, "계란/알류": 8 };
+const GBIT = { "과일": 1, "채소": 1, "견과류": 2, "쌀/잡곡": 2, "건과류": 2, "수산물": 4, "건어물": 4, "정육": 8, "계란/알류": 8, "김치": 32, "반찬": 32 };
 const catBits = kw => { const raw = CATF(nkw(kw)), m = raw && CMAP[raw]; if (!m || m[0].indexOf("신선식품 > ") !== 0) return 0;
   return (GBIT[m[0].slice(7)] || 0) | (m[1] === "과일세트" || m[1] === "축산선물세트" ? 16 : 0); };
 const SITEM = new Map();
@@ -108,6 +108,17 @@ const NB = {};
 for (const [k, v] of VOTE) { if (v.n < 5 || CATF(nkw(k))) continue;
   let best = "", bc = 0; for (const it in v.items) if (v.items[it] > bc) { bc = v.items[it]; best = it; }
   if (bc / v.n >= 0.8) NB[k] = best; }
+/* 소인가 돼지인가: 불고기는 글자만으로는 못 가른다(고추장불고기 · 간장불고기 · 콩나물불고기는 돼지인 경우가 많다).
+   종(소 · 한우 · 돼지 · 한돈 …)이 글자에 없으면, 그 키워드를 목록에 띄운 씨앗들의 품목에서 소고기 · 돼지고기 표를 센다.
+   한쪽이 5표 이상 · 70% 이상이면 그쪽으로 본다 (KWHEAD.nbo — 화면이 분류기보다 먼저 본다) */
+const NBO = {}; let nNbo = 0;
+for (const [k, v] of VOTE) {
+  if (!/불고기/.test(k) || /소|한우|쇠|우불|돼지|한돈|돈|흑돼지|제육|오리|닭|버섯|오징어|낙지|주꾸미|쭈꾸미/.test(k.replace(/불고기/g, ""))) continue;
+  const it = CATF(nkw(k)); if (it !== "쇠고기" && it !== "돼지고기") continue;
+  const b = v.items["쇠고기"] || 0, p = v.items["돼지고기"] || 0, t = b + p; if (t < 5) continue;
+  const win = b / t >= 0.7 ? "쇠고기" : p / t >= 0.7 ? "돼지고기" : ""; if (win && win !== it) { NBO[k] = win; nNbo++; }
+}
+if (nNbo) console.log(`불고기 이웃으로 소 · 돼지 고침 ${nNbo}개 — 예: ` + Object.entries(NBO).slice(0, 12).map(([k, v]) => k + "→" + v).join(" · "));
 console.log(`네이버 목록  씨앗 ${NSEED.toLocaleString()} · 나온 키워드 ${LT.size.toLocaleString()} · 화면 줄 값을 더 새것으로 ${nUpd.toLocaleString()} · 새로 담은 키워드 ${nAdd.toLocaleString()} · 네이버 이웃 품목 ${Object.keys(NB).length.toLocaleString()}`);
 
 /* ── 섹션 다시 계산 ──
@@ -156,7 +167,7 @@ for (const r of R) {
   for (let i = 0; i < SEC.length; i++) if (r[18] & (1 << i)) before[i]++;
   /* 섹션: 글자 규칙 + (목록에 나온 키워드라면) 분류기. 분류기가 신선식품 품목을 읽었으면 그 품목의 섹션이 이긴다 —
      글자 규칙은 "곱창" 이 든 곱창김을 축산물에 넣었다. 선물세트(16)는 판매 문맥이라 글자 규칙 쪽을 지킨다 (2026-10-17) */
-  const tb = excluded(r[0]) ? 0 : secOf(r[0]), cb = (LT.has(r[0]) || tb) ? catBits(r[0]) : 0;
+  const ex = excluded(r[0]), tb = ex ? 0 : secOf(r[0]), cb = ex ? 0 : ((LT.has(r[0]) || tb) ? catBits(r[0]) : 0);   // 제외어(맛집 · 카페 · 마스크 …)에 걸리면 섹션에 안 넣는다
   /* 네이버 목록에서 새로 들인 키워드는 분류기가 품목을 읽을 때만 (선물세트 16 은 글자 규칙 그대로) */
   const m = cb ? (cb | (tb & 16)) : (ADDED.has(r[0]) ? (tb & 16) : tb);
   if (!cb && ADDED.has(r[0]) && (tb & ~16)) TEXTONLY.push([r[0], (r[1] || 0) + (r[2] || 0)]);
@@ -191,7 +202,7 @@ console.log(`섹션 밖 · 네이버 목록에 나온 키워드 ${dict.length.to
 fs.mkdirSync(OUT, { recursive: true });
 const head = { fetchedAt: H.fetchedAt, freshAt: H.freshAt || "", anchor: H.anchor || null, calls: H.calls, failed: H.failed, cols: H.cols,
                sections: SEC.map(x => ({ id: x.id, name: x.name, naver: x.naver })),
-               dictN: DICT_N, dictRows: dict.length, dictAt: new Date().toISOString(), nb };
+               dictN: DICT_N, dictRows: dict.length, dictAt: new Date().toISOString(), nb, nbo: NBO };
 const w = (f, js) => { fs.writeFileSync(path.join(OUT, f), js, "utf8");
                        console.log(`  → ${f.padEnd(16)} ${MB(Buffer.byteLength(js))}`); };
 w("data-head.js", "window.KWHEAD=" + JSON.stringify(head) + ";");

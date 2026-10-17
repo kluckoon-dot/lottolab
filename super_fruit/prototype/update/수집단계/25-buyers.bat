@@ -16,7 +16,7 @@ node refresh-buyers.mjs --max-calls 9000
 if errorlevel 1 goto fail
 echo.
 echo  Packing the five sections with the new values
-node --max-old-space-size=8192 pack-data.mjs --section 1,2,3,4,5
+node --max-old-space-size=8192 pack-data.mjs --section 1,2,3,4,5,6
 if errorlevel 1 goto fail
 node build-web.mjs ..\naver-out\pack .
 if errorlevel 1 goto fail
