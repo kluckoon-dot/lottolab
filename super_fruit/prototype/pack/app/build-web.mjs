@@ -163,6 +163,13 @@ const before = SEC.map(() => 0), after = SEC.map(() => 0);
    0 = 식품 분야 쇼핑 클릭 없음 → 화면 섹션에서 뺀다. 원본 keywords.json 에는 그대로 남는다.
    -1 = 아직 모름 → 글자 규칙대로 둔다. */
 let notFood = 0; const notFoodTop = []; const SECMOVE = {}, TEXTONLY = [];
+/* 쇼핑인사이트는 검색이 적은 키워드에는 값을 주지 않는다. 그러면 클릭 0 으로 적혀 "식품 아님" 이 된다 —
+   과메기주문 · 한돈가격 · 목포한우선물세트 처럼 사는 키워드도 빠지고 있었다 (2026-10-19).
+   분류기가 신선식품 품목으로 읽고 · 판매 말이 붙어 있고 · 판매 아닌 문맥이 아니면 되살린다.
+   이 줄의 쇼핑 클릭은 0 이 아니라 모름(-1)으로 둔다 — 0 으로 두면 화면이 구매의도 없음 · 패스로 읽는다 */
+const RESCUE_SELL = /가격|시세|kg|키로|택배|구매|구입|주문|산지|직송|판매|파는곳|선물세트|국내산|햇/i;
+const RESCUE_NOT = /박스|호텔|CC|낚시|보호대|칫솔|파비스|드라이비트|위탁|진사|무한리필|함박|제작|크기|에기|채비|맛집|식당|뷔페|해루질|세면대/i;
+let rescued = 0; const rescuedTop = [];
 for (const r of R) {
   for (let i = 0; i < SEC.length; i++) if (r[18] & (1 << i)) before[i]++;
   /* 섹션: 글자 규칙 + (목록에 나온 키워드라면) 분류기. 분류기가 신선식품 품목을 읽었으면 그 품목의 섹션이 이긴다 —
@@ -172,6 +179,8 @@ for (const r of R) {
   const m = cb ? (cb | (tb & 16)) : (ADDED.has(r[0]) ? (tb & 16) : tb);
   if (!cb && ADDED.has(r[0]) && (tb & ~16)) TEXTONLY.push([r[0], (r[1] || 0) + (r[2] || 0)]);
   if (tb && cb && (tb & ~16) !== (cb & ~16)) { const t = (tb & ~16) + "→" + (cb & ~16); const o = SECMOVE[t] || (SECMOVE[t] = { n: 0, ex: [] }); o.n++; if (o.ex.length < 12) o.ex.push(r[0]); }
+  if (m && r[25] === 0 && cb && RESCUE_SELL.test(r[0]) && !RESCUE_NOT.test(r[0])) {
+    r[25] = -1; r[27] = -1; rescued++; if (rescuedTop.length < 400) rescuedTop.push([r[0], (r[1] || 0) + (r[2] || 0)]); }
   if (m && r[25] === 0) { notFood++; if (notFoodTop.length < 400) notFoodTop.push([r[0], (r[1] || 0) + (r[2] || 0)]); r[18] = 0; continue; }
   r[18] = m;
   for (let i = 0; i < SEC.length; i++) if (r[18] & (1 << i)) after[i]++;
@@ -187,6 +196,11 @@ if (notFood) {
   notFoodTop.sort((a, b) => b[1] - a[1]);
   console.log(`\n식품 아님으로 뺀 것 ${notFood.toLocaleString()}개 (네이버 쇼핑인사이트 식품 분야 클릭 없음)`);
   console.log("  예: " + notFoodTop.slice(0, 30).map(x => x[0]).join(" · "));
+}
+if (rescued) {
+  rescuedTop.sort((a, b) => b[1] - a[1]);
+  console.log(`식품 아님에서 되살린 것 ${rescued.toLocaleString()}개 (검색이 적어 쇼핑 클릭 값이 안 온 판매 키워드 · 쇼핑 클릭은 모름으로 둔다)`);
+  console.log("  예: " + rescuedTop.slice(0, 30).map(x => x[0]).join(" · "));
 }
 const keep = R.filter(r => r[18]);
 const set = new Set(keep.map(r => r[0]));

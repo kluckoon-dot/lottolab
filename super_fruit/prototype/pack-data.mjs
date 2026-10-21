@@ -298,7 +298,7 @@ if (want) console.log(`  걸러낸 뒤 ${packed.length.toLocaleString()}개를 �
     const inAll = packedAll.filter(r => r[19]).length;
     console.log(`  상품수 — 가져온 ${nImp.toLocaleString()}개 중 화면에 붙은 것 ${onScreen.toLocaleString()}개 (화면의 ${(onScreen / packed.length * 100).toFixed(1)}%)`);
     if (inAll > onScreen)
-      console.log(`    ${(inAll - onScreen).toLocaleString()}개는 수집분에 있으나 다섯 섹션 밖이라 이번엔 안 담았다.`);
+      console.log(`    ${(inAll - onScreen).toLocaleString()}개는 수집분에 있으나 고른 섹션(${want ? SEC.filter((_, si) => want & (1 << si)).length : SEC.length}개) 밖이라 이번엔 안 담았다.`);
     if (nImp > inAll)
       console.log(`    ${(nImp - inAll).toLocaleString()}개는 우리가 아직 안 모은 키워드다 (띄어쓰기 변형이 대부분이다).`);
   }

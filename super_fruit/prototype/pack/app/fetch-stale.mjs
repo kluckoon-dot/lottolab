@@ -12,8 +12,9 @@
  *   다섯 개씩 묻고 그 키워드 자신의 줄만 naver-out/related-stats.ndjson 에 적는다 { at, rows:[[kw, pc, mo, depth, comp, clickPc, clickMo, ctrPc, ctrMo, masked], …] }.
  *   build-web.mjs · naver-latest.mjs 가 이 파일도 "가장 새 값" 의 원본으로 읽는다. 검색광고 API 만 쓴다.
  *
- * 실행:  node fetch-stale.mjs            오늘 값이 아닌 것 전부
- *        node fetch-stale.mjs --stat     세어 보기만
+ * 실행:  node fetch-stale.mjs                 오늘 값이 아닌 것 — 섹션 키워드는 전부, 사전은 오래된 값부터 하루 상한까지
+ *        node fetch-stale.mjs --max-calls 3000  하루 상한 (기본 3,000회 = 1만 5천 개 · 약 20분). 남은 것은 다음 날 이어서
+ *        node fetch-stale.mjs --stat          세어 보기만
  */
 import fs from "node:fs";
 import path from "node:path";
@@ -26,6 +27,7 @@ const HERE = path.dirname(fileURLToPath(import.meta.url));
 const ROOT = path.basename(HERE).toLowerCase() === "app" ? path.dirname(HERE) : HERE;
 const OUTDIR = path.join(ROOT, "naver-out"), FILE = path.join(OUTDIR, "related-stats.ndjson");
 const STAT = process.argv.includes("--stat");
+const MAXCALLS = (() => { const i = process.argv.indexOf("--max-calls"); return i >= 0 ? +process.argv[i + 1] : 3000; })();
 
 /* ── 키 ── */
 const o = {}; const AL = { naver_ad_api_key: "KEY", naver_ad_secret: "SECRET", naver_ad_customer: "CUSTOMER" };
@@ -68,7 +70,7 @@ if (fs.existsSync(FILE)) {
 /* ── 오늘 값이 아닌 키워드 ── */
 const require = createRequire(import.meta.url);
 globalThis.window = {}; require(path.join(HERE, "data-kw.js")); require(path.join(HERE, "data-head.js"));
-const kws = window.KWROWS.map(r => r[0]);
+const kws = window.KWROWS.map(r => r[0]), SEC = new Set(kws);
 for (let q = 0; q < (window.KWHEAD.dictN || 0); q++) { const f = path.join(HERE, "data-dict-" + q + ".js"); if (!fs.existsSync(f)) break; require(f); for (const r of window.KWDICT[q].rows) kws.push(r[0]); }
 let FR = {}; try { FR = JSON.parse(fs.readFileSync(path.join(OUTDIR, "fresh.json"), "utf8")).rows || {}; } catch {}
 /* "오늘 값이 아니다" = 가장 새 값이 18시간보다 오래됐다. 달력 날짜로 세면 자정을 넘긴 순간 전날 받은 것이 전부 낡은 것이 돼 버린다(2026-10-17 새벽에 한 번 그랬다) */
@@ -77,8 +79,13 @@ const stale = [...new Set(kws)].filter(k => {
   const a = L.get(k), f = FR[k];
   return Math.max(a ? Date.parse(a.at) || 0 : 0, f && f.sAt ? Date.parse(f.sAt) || 0 : 0) < OLD;
 });
-const askable = stale.filter(k => { const c = k.replace(/\s+/g, ""); return c.length >= 1 && c.length <= 20 && !/[,()]/.test(c); });
-console.error(`키워드 ${kws.length.toLocaleString()} 중 18시간 넘은 값(오늘 값이 아닌 것) ${stale.length.toLocaleString()} · 물을 수 있는 것 ${askable.length.toLocaleString()} (호출 ${Math.ceil(askable.length / 5).toLocaleString()}회)`);
+const newest = k => { const a = L.get(k), f = FR[k]; return Math.max(a ? Date.parse(a.at) || 0 : 0, f && f.sAt ? Date.parse(f.sAt) || 0 : 0); };
+/* 순서: 섹션 키워드(황금키워드 표) 먼저 전부 → 사전은 값이 오래된 것부터. 상한을 넘는 사전 키워드는 다음 날 이어서 */
+const askAll = stale.filter(k => { const c = k.replace(/\s+/g, ""); return c.length >= 1 && c.length <= 20 && !/[,()]/.test(c); })
+  .sort((a, b) => (SEC.has(b) - SEC.has(a)) || (newest(a) - newest(b)));
+const nSec = askAll.filter(k => SEC.has(k)).length, cap = Math.max(nSec, MAXCALLS * 5);
+const askable = askAll.slice(0, cap);
+console.error(`키워드 ${kws.length.toLocaleString()} 중 18시간 넘은 값(오늘 값이 아닌 것) ${stale.length.toLocaleString()} (섹션 ${nSec.toLocaleString()}) · 물을 수 있는 것 ${askAll.length.toLocaleString()} → 오늘 묻는 것 ${askable.length.toLocaleString()} (호출 ${Math.ceil(askable.length / 5).toLocaleString()}회 · 남은 ${(askAll.length - askable.length).toLocaleString()}개는 다음 날 오래된 것부터)`);
 if (STAT) process.exit(0);
 
 const t0 = Date.now(); let calls = 0, got = 0, fail = 0;
