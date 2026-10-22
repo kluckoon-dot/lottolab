@@ -10,7 +10,7 @@
   --bg:#faf9f5; --surface:#ffffff; --surface-2:#f2f1ec; --surface-3:#e8e7e0;
   --line:#dedcd3; --line-strong:#c4c2b6;
   --ink:#14160f; --ink-2:#54564c; --ink-3:#7c7e72;
-  --brand:#15654e; --brand-soft:#e3efe9; --brand-ink:#0d4433;
+  --brand:#15654e; --brand-soft:#e3efe9; --brand-ink:#0d4433; --on-brand:#fff;
   --up:#c0392b; --down:#1d5ca8;
   --good:#1a7f47; --good-bg:#e4f2e9;
   --warn:#a8620a; --warn-bg:#f8eddd;
@@ -26,7 +26,7 @@
     --bg:#131611; --surface:#1b1e18; --surface-2:#232720; --surface-3:#2d3129;
     --line:#333730; --line-strong:#4a4e45;
     --ink:#f2f3ea; --ink-2:#b6b9ab; --ink-3:#8b8e81;
-    --brand:#4fae8c; --brand-soft:#1c3129; --brand-ink:#8fd4b8;
+    --brand:#4fae8c; --brand-soft:#1c3129; --brand-ink:#8fd4b8; --on-brand:#0c241b;
     --up:#e5695a; --down:#6fa4e8;
     --good:#57b382; --good-bg:#1a3126;
     --warn:#d99a45; --warn-bg:#33281a;
@@ -42,7 +42,7 @@
   --bg:#131611; --surface:#1b1e18; --surface-2:#232720; --surface-3:#2d3129;
   --line:#333730; --line-strong:#4a4e45;
   --ink:#f2f3ea; --ink-2:#b6b9ab; --ink-3:#8b8e81;
-  --brand:#4fae8c; --brand-soft:#1c3129; --brand-ink:#8fd4b8;
+  --brand:#4fae8c; --brand-soft:#1c3129; --brand-ink:#8fd4b8; --on-brand:#0c241b;
   --up:#e5695a; --down:#6fa4e8;
   --good:#57b382; --good-bg:#1a3126;
   --warn:#d99a45; --warn-bg:#33281a;
@@ -130,11 +130,16 @@ input[type=number]{font-family:"IBM Plex Mono",monospace; width:96px}
 .itemnote{font-size:12.5px; color:var(--ink-2); background:var(--surface-2); border-left:3px solid var(--brand);
   padding:9px 13px; border-radius:0 7px 7px 0; margin-bottom:14px; line-height:1.6}
 
-.tabs{display:flex; gap:2px; border-bottom:1px solid var(--line); margin-bottom:16px; overflow-x:auto}
-.tab{background:none; border:0; border-bottom:2px solid transparent; cursor:pointer; font:inherit; font-weight:600;
-  font-size:13.5px; color:var(--ink-3); padding:9px 14px; white-space:nowrap; margin-bottom:-1px}
-.tab:hover{color:var(--ink)}
-.tab[aria-selected="true"]{color:var(--brand); border-bottom-color:var(--brand)}
+/* 메뉴 탭 — 가장 많이 누르는 곳. 흰 카드들 사이에서 묻히지 않게 연초록 띠 위에 굵은 글자로 두고,
+   고른 탭은 진초록으로 꽉 채운다. 좁은 화면에서는 옆으로 밀지 않고 줄을 바꾼다 (2026-10-22 보갬 요청) */
+.tabs{display:flex; flex-wrap:wrap; gap:4px; padding:5px; margin-bottom:16px;
+  background:var(--brand-soft); border:1.5px solid color-mix(in srgb,var(--brand) 40%, transparent); border-radius:12px}
+.tab{flex:1 1 auto; background:transparent; border:0; border-radius:9px; cursor:pointer; font:inherit; font-weight:700;
+  font-size:15px; letter-spacing:-.01em; color:var(--brand-ink); padding:10px 14px; white-space:nowrap; transition:background .12s,color .12s}
+.tab:hover{background:var(--surface); color:var(--ink)}
+.tab[aria-selected="true"],.tab[aria-selected="true"]:hover{background:var(--brand); color:var(--on-brand);
+  box-shadow:0 1px 2px rgba(20,22,15,.18), 0 3px 10px color-mix(in srgb,var(--brand) 35%, transparent)}
+@media (max-width:640px){ .tab{font-size:14px; padding:9px 11px} }
 :focus-visible{outline:2px solid var(--brand); outline-offset:2px; border-radius:4px}
 
 .filters{display:flex; gap:18px; align-items:center; flex-wrap:wrap; background:var(--surface);
