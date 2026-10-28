@@ -29,6 +29,14 @@ for (const f of fs.readdirSync(PACK).filter(x => /^(kw-head|kw-\d+|shop|supply|t
 const H = window.KWHEAD, R = window.KWROWS, S = window.SHOPDATA, T = window.TRENDDATA || {}, CK = window.CLICKDATA || {};
 const SUP = window.SUPPLYDATA || null;
 const META = JSON.parse(fs.readFileSync(path.join(PACK, "meta.json"), "utf8"));
+/* 3년 추세: 새로 받은 추세(naver-out/trend-fresh.json)가 있으면 pack 것 대신 그것을 쓴다 (2026-10-28).
+   pack 은 월요일에만 다시 만들어지고 섹션 키워드만 담는다. 여기서는 섹션 밖 사전 키워드의 추세도 사전 묶음에 함께 싣는다.
+   빈 값("")은 "물어봤지만 네이버 데이터랩이 값을 주지 않은 키워드"(검색이 아주 적음)다. */
+let TFS = null;
+try { const TF = JSON.parse(fs.readFileSync(path.join(ROOT, "naver-out", "trend-fresh.json"), "utf8"));
+  if (TF && TF.search && Array.isArray(TF.periods)) { TFS = TF; META.trendWeeks = { start: TF.start, end: TF.end, unit: "week", periods: TF.periods, fresh: TF.at, clickChars: TF.clickChars || 1 }; } }
+catch (e) { if (e.code !== "ENOENT") console.log("trend-fresh.json 을 못 읽었다: " + e.message); }
+const TT = TFS ? TFS.search : T, CC = TFS ? (TFS.click || {}) : CK;
 console.log(`읽음  키워드 ${R.length.toLocaleString()} · 추세 ${Object.keys(T).length.toLocaleString()} · 구매층 ${Object.keys(S.d).length.toLocaleString()}`);
 
 /* ── 네이버가 연관으로 준 키워드는 모두 담는다 ──
@@ -76,6 +84,8 @@ const NSEED = LIST.length;
 /* 목록 밖 키워드를 직접 물은 오늘 값 (fetch-stale.mjs). 씨앗이 아니라 숫자만 — 품목 표에는 안 넣는다 */
 try { for (const line of fs.readFileSync(path.join(NO, "related-stats.ndjson"), "utf8").split("\n")) { if (!line.trim()) continue; let j; try { j = JSON.parse(line); } catch { continue; } if (j && j.rows) LIST.push(["", j.at, j.rows]); } }
 catch (e) { if (e.code !== "ENOENT") throw e; }
+/* 품목 이름 + 쓰임 · 요리 · 산지 말을 정확히 그 말로 물은 값 (fetch-combos.mjs, 2026-10-28) — 연관 목록에 안 나오는 조합 키워드 */
+try { for (const line of fs.readFileSync(path.join(NO, "related-combos.ndjson"), "utf8").split("\n")) { if (!line.trim()) continue; let j; try { j = JSON.parse(line); } catch { continue; } if (j && j.rows) LIST.push(["", j.at, j.rows.filter(r => (r[1] || 0) + (r[2] || 0) >= 30)]); } } catch (e) { if (e.code !== "ENOENT") throw e; }   // 네이버는 묻는 말을 "< 10" 으로라도 돌려준다 — 검색 30 아래는 담지 않는다
 const LT = new Map(), VOTE = new Map();   // 키워드 → 가장 새 목록 줄 · 씨앗 품목 표
 for (const [sd, at, rows] of LIST) { const it = sd ? seedItem(sd) : "";
   for (const x of rows) { const k = x[0]; const o = LT.get(k); if (!o || String(at) > String(o.at)) LT.set(k, { x, at, seed: sd });
@@ -214,27 +224,32 @@ const nb = {}; for (const k in NB) if (set.has(k) || LT.has(k)) nb[k] = NB[k];
 console.log(`섹션 밖 · 네이버 목록에 나온 키워드 ${dict.length.toLocaleString()}개 → data-dict-0~${DICT_N - 1}.js`);
 
 fs.mkdirSync(OUT, { recursive: true });
+/* 3년 추세를 물어봤는데 네이버가 값을 주지 않은 섹션 키워드 — 화면이 "아직 안 받음" 과 구분해 말한다 */
+const trNo = keep.filter(r => TT[r[0]] === "").map(r => r[0]);
 const head = { fetchedAt: H.fetchedAt, freshAt: H.freshAt || "", anchor: H.anchor || null, calls: H.calls, failed: H.failed, cols: H.cols,
                sections: SEC.map(x => ({ id: x.id, name: x.name, naver: x.naver })),
-               dictN: DICT_N, dictRows: dict.length, dictAt: new Date().toISOString(), nb, nbo: NBO };
+               dictN: DICT_N, dictRows: dict.length, dictAt: new Date().toISOString(), nb, nbo: NBO, trNo };
 const w = (f, js) => { fs.writeFileSync(path.join(OUT, f), js, "utf8");
                        console.log(`  → ${f.padEnd(16)} ${MB(Buffer.byteLength(js))}`); };
 w("data-head.js", "window.KWHEAD=" + JSON.stringify(head) + ";");
 w("data-kw.js",   "window.KWROWS=" + JSON.stringify(keep) + ";");
 { const parts = Array.from({ length: DICT_N }, () => []); for (const r of dict) parts[dictPart(r[0])].push(r);
-  let tot = 0; parts.forEach((rows, q) => { const js = "window.KWDICT=window.KWDICT||{};window.KWDICT[" + q + "]=" + JSON.stringify({ at: head.dictAt, rows }) + ";";
+  /* 사전 키워드의 3년 추세는 그 키워드가 든 묶음에 같이 싣는다. 묶음을 읽을 때 화면의 TRENDDATA 에 합쳐져 섹션 키워드와 똑같이 그려진다 */
+  let tot = 0, ntr = 0; parts.forEach((rows, q) => { const tr = {}; for (const r of rows) if (r[0] in TT) { tr[r[0]] = TT[r[0]]; if (TT[r[0]]) ntr++; }
+    const js = "window.KWDICT=window.KWDICT||{};window.KWDICT[" + q + "]=" + JSON.stringify({ at: head.dictAt, rows, tr }) + ";"
+      + "(function(t){var T=window.TRENDDATA=window.TRENDDATA||{};for(var k in t)if(t[k])T[k]=t[k];})(window.KWDICT[" + q + "].tr);";
     fs.writeFileSync(path.join(OUT, "data-dict-" + q + ".js"), js, "utf8"); tot += Buffer.byteLength(js); });
-  console.log(`  → data-dict-0~${DICT_N - 1}.js ${MB(tot)} (${dict.length.toLocaleString()}개)`); }
+  console.log(`  → data-dict-0~${DICT_N - 1}.js ${MB(tot)} (${dict.length.toLocaleString()}개 · 3년 추세 ${ntr.toLocaleString()}개)`); }
 const sh = {}; for (const [k, v] of Object.entries(S.d)) if (set.has(k)) sh[k] = v;
 const shw = {}; for (const [k, v] of Object.entries(S.w || {})) if (set.has(k)) shw[k] = v;
 w("data-shop.js", "window.SHOPDATA=" + JSON.stringify({ ...S, d: sh, w: shw }) + ";");
-const tr = {}; for (const [k, v] of Object.entries(T)) if (set.has(k)) tr[k] = v;
+const tr = {}; for (const [k, v] of Object.entries(TT)) if (v && set.has(k)) tr[k] = v;
 w("data-trend.js", "window.TRENDDATA=" + JSON.stringify(tr) + ";");
 /* 쇼핑 클릭 추세. 새로 받은 추세가 있을 때만 값이 있다. 없어도 빈 파일을 둬서 화면이 404 를 안 맞게 한다 */
-const ck = {}; for (const [k, v] of Object.entries(CK)) if (set.has(k)) ck[k] = v;
+const ck = {}; for (const [k, v] of Object.entries(CC)) if (v && set.has(k)) ck[k] = v;
 w("data-click.js", "window.CLICKDATA=" + JSON.stringify(ck) + ";");
 w("data-meta.js", "window.TRENDMETA=" + JSON.stringify({ alphabet: META.alphabet, trendWeeks: META.trendWeeks }) + ";");
 /* 공급가는 손대지 않고 그대로 넘긴다. 섹션 재계산과 상관없는 자료다. */
 if (SUP) w("data-supply.js", "window.SUPPLYDATA=" + JSON.stringify(SUP) + ";");
 else console.log("  공급가 없음 — data-supply.js 는 만들지 않는다");
-console.log(`\n구매층 ${Object.keys(sh).length.toLocaleString()} · 추세 ${Object.keys(tr).length.toLocaleString()}`);
+console.log(`\n구매층 ${Object.keys(sh).length.toLocaleString()} · 3년 추세 ${Object.keys(tr).length.toLocaleString()} / ${keep.length.toLocaleString()} (네이버가 값을 안 준 것 ${trNo.length.toLocaleString()}) · 기간 ${META.trendWeeks && META.trendWeeks.end}까지`);

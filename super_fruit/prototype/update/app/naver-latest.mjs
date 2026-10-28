@@ -17,7 +17,7 @@ export function latestRows(outdir) {
   const rd = f => { try { return JSON.parse(fs.readFileSync(path.join(outdir, f), "utf8")); } catch (e) { if (e.code === "ENOENT") return null; throw e; } };
   const raw = rd("related-raw.json"); if (raw) for (const [k, v] of Object.entries(raw.seeds || {})) put(k, v.at, v.rows);
   const tl = rd("related-tails.json"); if (tl) for (const [k, v] of Object.entries(tl.seeds || {})) put(k, v.at, v.rows);
-  for (const f of ["related-more.ndjson", "related-stats.ndjson"]) try {
+  for (const f of ["related-more.ndjson", "related-stats.ndjson", "related-combos.ndjson"]) try {
     for (const line of fs.readFileSync(path.join(outdir, f), "utf8").split("\n")) {
       if (!line.trim()) continue; let j; try { j = JSON.parse(line); } catch { continue; }
       if (j && j.rows) put(j.k || "", j.at, j.rows);
