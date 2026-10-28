@@ -68,13 +68,16 @@ const COMPI = { "낮음": 0, "중간": 1, "높음": 2 };
 const require = createRequire(import.meta.url);
 globalThis.window = {}; require(path.join(HERE, "data-relidx.js"));
 const idx = globalThis.window.RELIDX.seeds || {};
-const seeds = new Set(Object.keys(idx).filter(k => idx[k] <= 6 && k.length >= 2 && k.length <= 8 && !/[0-9a-z]/i.test(k)));
+/* 한 글자 품목(귤 · 배 · 감 · 밤 · 쌀 · 김 · 무 · 굴 · 콩 · 꿀 …)도 씨앗이다 — 귤효능 · 배즙 · 밤조림 이 여기서 나온다 (10/28 처음에 빼서 귤효능이 없었다) */
+const seeds = new Set(Object.keys(idx).filter(k => idx[k] <= 6 && k.length >= 1 && k.length <= 8 && !/[0-9a-z]/i.test(k)));
 try { for (const [k, x] of Object.entries(JSON.parse(fs.readFileSync(path.join(OUTDIR, "vocab-result.json"), "utf8")))) if (x.found && x.vol >= 30 && k.length <= 8) seeds.add(k); } catch {}
 const VOL = new Map();
 require(path.join(HERE, "data-kw.js")); for (const r of globalThis.window.KWROWS) VOL.set(r[0], (r[1] || 0) + (r[2] || 0));
 try { for (const [k, x] of Object.entries(JSON.parse(fs.readFileSync(path.join(OUTDIR, "vocab-result.json"), "utf8")))) if (x.vol && !VOL.has(k)) VOL.set(k, x.vol); } catch {}
 let done = {}; try { done = JSON.parse(fs.readFileSync(DONE, "utf8")); } catch {}
-const todo = [...seeds].filter(k => !(done[k] && Date.now() - Date.parse(done[k]) < MAX_AGE_D * 864e5)).sort((a, b) => (VOL.get(b) || 0) - (VOL.get(a) || 0));
+const ONLYSEEDS = val("--seeds") ? new Set(val("--seeds").split(",").map(x => x.trim()).filter(Boolean)) : null;   // --seeds 귤,배 → 그 씨앗만 (씨앗 목록에 없어도 묻는다)
+if (ONLYSEEDS) for (const k of ONLYSEEDS) seeds.add(k);
+const todo = [...seeds].filter(k => (!ONLYSEEDS || ONLYSEEDS.has(k)) && !(done[k] && Date.now() - Date.parse(done[k]) < MAX_AGE_D * 864e5)).sort((a, b) => (VOL.get(b) || 0) - (VOL.get(a) || 0));
 /* 묻는 묶음: 씨앗마다 후보를 만들어 5개씩 */
 const jobs = [];
 for (const k of todo) { const heads = (VOL.get(k) || 0) >= 5000 ? [...HEAD, ...REGION] : HEAD;
