@@ -43,6 +43,11 @@ echo.
 echo  [%time%] 4/4 shopping click trends
 node --max-old-space-size=8192 refresh-trend.mjs --all-section --keep-period --max-calls 3500
 if errorlevel 1 echo  [!] Click trends were not fetched. Going on.
+rem page files again so this week's click trends show today (10/29: they waited for the next daily run)
+node --max-old-space-size=8192 build-web.mjs ..\naver-out\pack .
+if errorlevel 1 goto fail
+node --max-old-space-size=8192 pack-z.mjs
+if errorlevel 1 goto fail
 echo.
 echo  [%time%] Weekly collection done.
 echo.

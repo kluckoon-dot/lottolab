@@ -51,11 +51,7 @@ echo  [%time%] 4/6 keywords in none of today's lists
 node --max-old-space-size=8192 fetch-stale.mjs
 if errorlevel 1 goto fail
 echo.
-echo  [%time%] 5/6 3-year weekly trends
-node --max-old-space-size=8192 refresh-trend.mjs --all-section --dict-min 300 --extra ..\naver-out\requests-all.txt --search-only --keep-period --refresh-days 28 --max-calls 15000
-if errorlevel 1 echo  [!] Trends were not refreshed. Going on.
-echo.
-echo  [%time%] 6/6 page files
+echo  [%time%] 5/6 page files
 node --max-old-space-size=8192 build-web.mjs ..\naver-out\pack .
 if errorlevel 1 goto fail
 node --max-old-space-size=8192 build-related-more.mjs
@@ -63,6 +59,16 @@ if errorlevel 1 goto fail
 node --max-old-space-size=8192 build-related.mjs --max-age 100000
 if errorlevel 1 goto fail
 node --max-old-space-size=8192 build-related-more.mjs --no-fetch
+if errorlevel 1 goto fail
+echo.
+rem 3-year trends AFTER page files: refresh-trend picks keywords from data-kw / data-dict, so keywords that came in today get trends today (10/29: they waited a day)
+echo  [%time%] 6/6 3-year weekly trends
+node --max-old-space-size=8192 refresh-trend.mjs --all-section --dict-min 300 --extra ..\naver-out\requests-all.txt --search-only --keep-period --refresh-days 28 --max-calls 15000
+if errorlevel 1 echo  [!] Trends were not refreshed. Going on.
+node --max-old-space-size=8192 build-web.mjs ..\naver-out\pack .
+if errorlevel 1 goto fail
+rem related and dictionary bundles as gzip+base64 z\*.txt - the claude.ai page holds at most 256 MB per version (10/29: 304 MB)
+node --max-old-space-size=8192 pack-z.mjs
 if errorlevel 1 goto fail
 node --max-old-space-size=8192 fetch-stale.mjs --stat
 echo.

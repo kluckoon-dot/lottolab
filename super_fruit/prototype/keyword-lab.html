@@ -1666,15 +1666,29 @@ var RELIDX=(window.RELIDX&&window.RELIDX.seeds)||{}, RELWAIT={};
 /* ── 섹션 밖 사전 (data-dict-N.js · build-web.mjs) ──
    네이버 목록에는 나오는데 섹션에 안 드는 키워드(농협 · 저녁메뉴추천 · 엔부 …). 황금키워드 표에는 안 내고, 찾을 때 그 묶음 하나만 읽는다 */
 var DICT_N=(window.KWHEAD&&window.KWHEAD.dictN)||0, DICTWAIT={}, DICTTRY={};
+/* ── 묶음 파일 읽기 (2026-10-29) ──
+   저장본(claude.ai) 한 버전은 256MB 까지만 담는다. 10/29 연관 목록 묶음 199MB + 사전 묶음 81MB 로 넘쳐서,
+   pack-z.mjs 가 묶음 자료를 gzip 해 base64 글자로 적은 z/*.txt 로 올린다(약 40%, 저장본은 이진 파일을 받지 않는다).
+   https 로 열리면 .txt 를 받아 풀고, PC(1 키워드랩 열기 · 파일로 열기)이거나 .txt 를 못 받으면 원래 .js 를 읽는다. 주소 끝 ?z=1 이면 PC 에서도 .txt */
+var ZBIN=location.protocol==="https:" || /[?&]z=1/.test(location.search);
+function partLoad(base, put, cb){
+  var js=function(){ var sc=document.createElement("script"); sc.src=base+".js"; sc.charset="utf-8";
+    sc.onload=function(){ cb(true); }; sc.onerror=function(){ cb(false); }; document.head.appendChild(sc); };
+  if(!ZBIN || typeof DecompressionStream==="undefined" || !window.fetch || !window.Response) return js();
+  fetch("z/"+base+".txt").then(function(r){ if(!r.ok) throw new Error(r.status); return r.text(); }).then(function(s){
+    var a=atob(s.trim()), b=new Uint8Array(a.length); for(var i=0;i<a.length;i++) b[i]=a.charCodeAt(i);
+    return new Response(new Blob([b]).stream().pipeThrough(new DecompressionStream("gzip"))).text();
+  }).then(function(t){ put(JSON.parse(t)); cb(true); }).catch(function(){ js(); });
+}
 function dictPart(k){ var h=0, t=String(k).replace(/\s+/g,""); for(var q=0;q<t.length;q++) h=(h*31+t.charCodeAt(q))>>>0; return h%DICT_N; }
 function dictLoad(g, cb){
   if(window.KWDICT && window.KWDICT[g]) return cb(true);
   if(DICTWAIT[g]){ DICTWAIT[g].push(cb); return; }
   DICTWAIT[g]=[cb];
-  var sc=document.createElement("script"); sc.src="data-dict-"+g+".js"; sc.charset="utf-8";
   var fin=function(ok){ var q=DICTWAIT[g]||[]; delete DICTWAIT[g]; q.forEach(function(f){ f(ok && !!(window.KWDICT&&window.KWDICT[g])); }); };
-  sc.onload=function(){ fin(true); }; sc.onerror=function(){ fin(false); };
-  document.head.appendChild(sc);
+  /* .js 는 읽히면서 묶음의 3년 추세를 TRENDDATA 에 합친다 — .bin 도 같게 */
+  partLoad("data-dict-"+g, function(o){ (window.KWDICT=window.KWDICT||{})[g]=o;
+    var T=window.TRENDDATA=window.TRENDDATA||{}, t=o.tr||{}; for(var k in t) if(t[k]) T[k]=t[k]; }, fin);
 }
 /* 사전의 줄을 화면 줄로 */
 function dictAdd(kw){
@@ -1747,10 +1761,8 @@ function relLoad(g, cb){
   if(window.RELPART && window.RELPART[g]) return cb(true);
   if(RELWAIT[g]){ RELWAIT[g].push(cb); return; }
   RELWAIT[g]=[cb];
-  var sc=document.createElement("script"); sc.src="data-rel-"+g+".js"; sc.charset="utf-8";
   var fin=function(ok){ var q=RELWAIT[g]||[]; delete RELWAIT[g]; q.forEach(function(f){ f(ok && !!(window.RELPART&&window.RELPART[g])); }); };
-  sc.onload=function(){ fin(true); }; sc.onerror=function(){ fin(false); };
-  document.head.appendChild(sc);
+  partLoad("data-rel-"+g, function(o){ (window.RELPART=window.RELPART||{})[g]=o; }, fin);
 }
 /* 받아 둔 목록을 줄 번호로. 없던 키워드는 줄을 만든다 */
 function relBaked(kw){
