@@ -40,7 +40,7 @@ const MINBID = +(val("--min-bid") || 50), PART_MAX = +(val("--part") || 1200000)
 const GROUPS = val("--groups") ? new Set(val("--groups").split(",").map(Number)) : null;
 
 /* ── 분류기 (화면과 같은 코드) ── */
-const html = fs.readFileSync(path.join(HERE, "keyword-lab.html"), "utf8").replace(/\r\n/g, "\n");
+const html = /* 화면 코드는 11/04 부터 keyword-lab.js 에 있다 */ ["keyword-lab.html", "keyword-lab.js"].map(f => { try { return fs.readFileSync(path.join(HERE, f), "utf8"); } catch { return ""; } }).join("\n").replace(/\r\n/g, "\n");
 const a0 = html.indexOf("var CAT_VAR="), b0 = html.indexOf("/* 줄마다 한 번만 낸다:");
 const sm = /var SEEDS=(\[[^\n]*\]);/.exec(html);
 if (a0 < 0 || b0 < 0 || !sm) { console.error("keyword-lab.html 에서 분류기를 못 찾았다."); process.exit(1); }

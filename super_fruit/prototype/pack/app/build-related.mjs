@@ -66,7 +66,7 @@ const clean = s => String(s).replace(/\([^)]*\)/g, "").replace(/[\s&/,·]+/g, ""
 const COMPI = { "낮음": 0, "중간": 1, "높음": 2 };
 
 /* ── 씨앗: 화면의 신선식품 분류표에서 품목 · 품종 이름을 뽑는다 ── */
-const html = fs.readFileSync(path.join(HERE, "keyword-lab.html"), "utf8").replace(/\r\n/g, "\n");
+const html = /* 화면 코드는 11/04 부터 keyword-lab.js 에 있다 */ ["keyword-lab.html", "keyword-lab.js"].map(f => { try { return fs.readFileSync(path.join(HERE, f), "utf8"); } catch { return ""; } }).join("\n").replace(/\r\n/g, "\n");
 const a0 = html.indexOf("var CAT_VAR="), b0 = html.indexOf("/* 김치는 종류가 곧 네이버 끝 칸이다");
 if (a0 < 0 || b0 < 0) { console.error("keyword-lab.html 에서 분류표를 못 찾았다."); process.exit(1); }
 const ctx = {}; vm.createContext(ctx); vm.runInContext(html.slice(a0, b0) + "\nthis.CAT_FRESH=CAT_FRESH;this.CAT_VAR=CAT_VAR;this.CAT_MAP=CAT_MAP;", ctx);

@@ -54,7 +54,7 @@ const NO = path.join(ROOT, "naver-out");
 const rdj = f => { try { return JSON.parse(fs.readFileSync(path.join(NO, f), "utf8")); } catch (e) { if (e.code === "ENOENT") return null; throw e; } };
 const dayInt = t => { if (!t) return 0; const d = new Date(t); return d.getFullYear() * 10000 + (d.getMonth() + 1) * 100 + d.getDate(); };
 /* 화면과 같은 분류기 · 의도 규칙 (keyword-lab.html 에서 그대로 꺼낸다) */
-const HTML = fs.readFileSync(path.join(APPDIR, "keyword-lab.html"), "utf8").replace(/\r\n/g, "\n");
+const HTML = /* 화면 코드는 11/04 부터 keyword-lab.js 에 있다 */ ["keyword-lab.html", "keyword-lab.js"].map(f => { try { return fs.readFileSync(path.join(APPDIR, f), "utf8"); } catch { return ""; } }).join("\n").replace(/\r\n/g, "\n");
 const c0 = HTML.indexOf("var CAT_VAR="), c1 = HTML.indexOf("/* 줄마다 한 번만 낸다:"), sm = /var SEEDS=(\[[^\n]*\]);/.exec(HTML);
 const i0 = HTML.indexOf("var RE_HOWTO_P="), i1 = HTML.indexOf("\n", HTML.indexOf("function intentGuess"));
 if (c0 < 0 || c1 < 0 || !sm || i0 < 0 || i1 < 0) { console.error("keyword-lab.html 에서 분류기 · 의도 규칙을 못 찾았다."); process.exit(1); }

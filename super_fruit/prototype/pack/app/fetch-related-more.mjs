@@ -66,7 +66,7 @@ const masked = v => typeof v === "string" && /</.test(v);
 const COMPI = { "낮음": 0, "중간": 1, "높음": 2 };
 
 /* ── 씨앗 후보: 화면의 신선식품 키워드 (분류는 화면과 같은 코드) ── */
-const html = fs.readFileSync(path.join(HERE, "keyword-lab.html"), "utf8").replace(/\r\n/g, "\n");
+const html = /* 화면 코드는 11/04 부터 keyword-lab.js 에 있다 */ ["keyword-lab.html", "keyword-lab.js"].map(f => { try { return fs.readFileSync(path.join(HERE, f), "utf8"); } catch { return ""; } }).join("\n").replace(/\r\n/g, "\n");
 const a0 = html.indexOf("var CAT_VAR="), b0 = html.indexOf("/* 줄마다 한 번만 낸다:");
 const sm = /var SEEDS=(\[[^\n]*\]);/.exec(html);
 if (a0 < 0 || b0 < 0 || !sm) { console.error("keyword-lab.html 에서 분류기를 못 찾았다."); process.exit(1); }

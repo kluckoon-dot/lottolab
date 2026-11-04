@@ -575,9 +575,13 @@ function relUseIS(rec, seedKw){
    그래서 연관 목록은 기본으로 같은 품목만 보여 주고, 단추로 같은 묶음이나 전부를 본다.
    2026-10-16 바꿈: 그 키워드로 네이버에 물은 목록이면 기본은 "네이버 그대로"(0) — 키워드도구 화면과 같은 줄 · 같은 순서 (보갬: "완벽하게 일치해야 한다").
      0 네이버 그대로   네이버가 준 줄 전부 (뒤에 붙인 꼬리 키워드만 뺀다)
+       2026-11-04 바꿈: 0 은 "네이버 화면처럼" — 네이버가 준 순서의 앞 NV_SCREEN 개만. 줄 전부는 4 "네이버 전체".
+       키워드도구 화면은 API 가 주는 목록의 앞쪽만 보여 준다. 곶감: 화면 185개는 전부 API 352개 안에 있고 184개가 앞 200개 안,
+       API 201~352위는 설 선물 · 과일 선물세트 같은 먼 키워드라 화면에 없었다(보갬 다운로드 엑셀과 맞대 봄). 숫자는 185개 모두 같았다.
      1 같은 품목   품목이 같다 (품종 · 산지 · 포장 · 즙 · 묘목까지. 감홍사과 ↔ 홍로 · 청송사과 · 사과즙) 또는 씨앗 글자가 들어 있다
      2 같은 묶음   네이버 묶음이 같다 (사과 ↔ 배 · 멜론 · 과일선물세트)
      3 그 밖 */
+var NV_SCREEN=200;
 var RINFO={};
 function relInfo(kw){
   var c=RINFO[kw]; if(c) return c;
@@ -729,7 +733,7 @@ function relLoad(g, cb){
 function relBaked(kw){
   var g=relPartOf(kw), P=g && window.RELPART && window.RELPART[g]; if(!P) return null;
   var list=P.lists[String(kw).replace(/\s+/g,"")]; if(!list) return null;
-  var day=todayInt(P.at), idx=[], key=String(kw).replace(/\s+/g,""), nt=0, inList={}, tails=[];
+  var day=todayInt(P.at), idx=[], key=String(kw).replace(/\s+/g,""), nt=0, inList={}, tails=[], top=[];
   /* 네이버 목록 뒤에 꼬리 키워드(품목 이름에 1kg · 가격 · 국내산 … 을 붙여 직접 물어 찾은 것)를 잇는다 */
   var tl=(P.tails && P.tails[key]) || [], all=list.concat(tl);
   for(var n=0;n<all.length;n++){
@@ -744,13 +748,13 @@ function relBaked(kw){
       a[K.DAY]=day; statRow(i);
     }
     idx.push(i);
-    if(n<list.length) inList[i]=1; else if(!inList[i]){ nt++; tails.push(i); }
+    if(n<list.length){ inList[i]=1; if(n<NV_SCREEN) top.push(i); } else if(!inList[i]){ nt++; tails.push(i); }
   }
-  return { idx:idx, at:P.at, tot:(P.tot && P.tot[key]) || list.length, tails:nt, tailIdx:tails };
+  return { idx:idx, at:P.at, tot:(P.tot && P.tot[key]) || list.length, tails:nt, tailIdx:tails, topIdx:top };
 }
 function relUseBaked(b, seedKw){
   var order={}; b.idx.forEach(function(i,n){ if(order[i]==null) order[i]=n; });
-  F.rel=new Set(b.idx); F.relOrder=order; F.relSeed=seedKw; F.relName="네이버 키워드도구"; F.relLabel=""; F.relIS=null; F.relBaked=b.at; F.relTot=b.tot||b.idx.length; F.relTails=b.tails||0; F.relTailSet=new Set(b.tailIdx||[]);
+  F.rel=new Set(b.idx); F.relOrder=order; F.relSeed=seedKw; F.relName="네이버 키워드도구"; F.relLabel=""; F.relIS=null; F.relBaked=b.at; F.relTot=b.tot||b.idx.length; F.relTails=b.tails||0; F.relTailSet=new Set(b.tailIdx||[]); F.relTopSet=new Set(b.topIdx||b.idx);
 }
 /* 저장본에서의 네이버 연관: 수집할 때 이 씨앗이 물고 온 키워드(+ 이 키워드를 물고 온 씨앗의 형제) */
 function relNaver(i){
@@ -799,6 +803,8 @@ function exportIntent(){
   return lines.length;
 }
 
+/* 지금 연관 목록이 이 키워드로 네이버에 물은 목록인가 (받아 둔 것 · 실시간) — "네이버 화면처럼 · 네이버 전체" 단추가 이때만 나온다 */
+function relOwn(){ return !!(F.relBaked||F.relLive) && !F.relVia && !F.relIS && F.relMode!=="wide"; }
 function passes(i){
   /* 연관 보기일 때는 의도·판정 필터를 걸지 않는다.
      아이템스카우트 연관키워드 탭은 그 씨앗이 물고 온 것을 그대로 보여준다.
@@ -807,7 +813,8 @@ function passes(i){
      판정·광고경쟁도·섹션·품목은 황금키워드 전용이다.
      연관을 처음 열 때 유형은 전체, 검색수는 제한 없음으로 풀어서 "그대로" 다 보이게 한다. */
   if(F.rel && !F.rel.has(i)) return false;
-  if(F.rel && F.relTier===0 && F.relBaked && F.relTailSet && F.relTailSet.has(i)) return false;   /* 네이버 그대로: 뒤에 붙인 꼬리 키워드는 뺀다 */
+  if(F.rel && (F.relTier===0||F.relTier===4) && F.relBaked && F.relTailSet && F.relTailSet.has(i)) return false;   /* 네이버 화면처럼 · 네이버 전체: 뒤에 붙인 꼬리 키워드는 뺀다 */
+  if(F.rel && F.relTier===0 && relOwn() && F.relTopSet && !F.relTopSet.has(i)) return false;   /* 네이버 화면처럼: 네이버가 준 순서의 앞 NV_SCREEN 개만 */
   if(F.rel && F.relTier>=1 && F.relTier<3 && relTierOf(i)>F.relTier) return false;
   if(!F.intent[intentOf(i)]) return false;
   if(F.vmin!=null && S_tot[i]<F.vmin) return false;
@@ -1118,6 +1125,7 @@ function renderTable(){
         +'<span class="rel-src">'+(LIVE && rt ? 'NAVER 검색광고가 지금 준 그대로 · 준 순서 · '+String(rt.getHours()).padStart(2,"0")+':'+String(rt.getMinutes()).padStart(2,"0")
             : F.relBaked ? (F.relVia ? '품목 <b>'+esc(F.relVia)+'</b> 에 NAVER 검색광고가 준 목록 · 준 순서 · '+mdOf(String(F.relBaked).slice(0,10))+' 받아 둔 것 (이 키워드로 물은 목록은 받아 두지 않았다)'
                 : 'NAVER 검색광고가 이 키워드에 준 '+fmt(F.rel.size-(F.relTailSet?F.relTailSet.size:0))+'개 · 준 순서 · '+mdOf(String(F.relBaked).slice(0,10))+' 받아 둔 것 (숫자도 그날 네이버 값)'
+                  +(F.relTopSet && F.rel.size-(F.relTailSet?F.relTailSet.size:0)>F.relTopSet.size ? ' · 키워드도구 화면은 그 앞쪽만 보여 준다 — "네이버 화면처럼" 은 앞 '+NV_SCREEN+'개' : '')
                   +(F.relTot>F.rel.size-(F.relTailSet?F.relTailSet.size:0) ? ' · 네이버가 준 '+fmt(F.relTot)+'개 중 '+fmt(F.rel.size-(F.relTailSet?F.relTailSet.size:0))+'개를 실었다(나머지는 PC 실시간에서)' : '')
                   +(F.relTot<10 ? ' · 네이버가 이 씨앗에는 '+F.relTot+'개만 준다 — 같은 품목 수집분은 "확장 목록" 에 있다' : ''))
               +(F.relTails ? ' · <b>꼬리 키워드 '+fmt(F.relTails)+'개</b>를 뒤에 붙였다(품목 이름에 1kg · 가격 · 국내산 같은 말을 붙여 네이버에 직접 물어 찾은 것)' : '')
@@ -1131,8 +1139,8 @@ function renderTable(){
     var tierHtml="";
     /* 이 키워드로 네이버에 물은 목록이면(받아 둔 것 · 실시간) "네이버 그대로" 가 기본이다 — 네이버 키워드도구 화면과 같은 줄 · 같은 순서 (보갬, 2026-10-16).
        네이버는 씨앗과 품목이 다른 키워드도 섞어 준다(사과 → 딸기 · 멜론 · 오이). 같은 품목만 보려면 "○○ 관련만" */
-    var own= !!(F.relBaked||F.relLive) && !F.relVia && !F.relIS && F.relMode!=="wide";
-    var tailN= F.relBaked && F.relTailSet ? F.relTailSet.size : 0, nNv= F.rel.size-tailN;
+    var own= relOwn();
+    var tailN= F.relBaked && F.relTailSet ? F.relTailSet.size : 0, nNv= F.rel.size-tailN, nTop= F.relTopSet ? Math.min(F.relTopSet.size, nNv) : nNv;
     if(!own && F.relTier===0) F.relTier=1;
     if(own || relTierable() || !(F.relBaked||F.relLive||F.relIS)){
       var tierable=relTierable(), tn=[0,0,0,0]; if(tierable) F.rel.forEach(function(ix){ tn[relTierOf(ix)]++; });
@@ -1140,14 +1148,16 @@ function renderTable(){
       var tb=function(k, label, n){ return '<button type="button" data-tier="'+k+'"'+(F.relTier===k?' class="on"':'')+'>'+label+' <b>'+fmt(n)+'</b></button>'; };
       var mix= tierable && tn[2]+tn[3]>0;
       if(own || mix)
-        tierHtml='<span class="rel-tier" title="'+(own ? '네이버 그대로 = 네이버 키워드도구가 이 키워드에 준 줄 전부, 준 순서. 네이버는 품목이 다른 키워드도 섞어 준다' : '네이버는 씨앗과 품목이 다른 키워드도 섞어 준다. 기본은 같은 품목만 보여 준다')+'">'
-          +(own ? tb(0, '네이버 그대로', nNv) : '')
+        tierHtml='<span class="rel-tier" title="'+(own ? '네이버 화면처럼 = 네이버가 준 순서의 앞 '+NV_SCREEN+'개 (키워드도구 화면은 앞쪽만 보여 준다). 네이버 전체 = 준 줄 전부. 네이버는 품목이 다른 키워드도 섞어 준다' : '네이버는 씨앗과 품목이 다른 키워드도 섞어 준다. 기본은 같은 품목만 보여 준다')+'">'
+          +(own ? tb(0, '네이버 화면처럼', nTop) : '')
+          +(own && nNv>nTop ? tb(4, '네이버 전체', nNv) : '')
           +(mix ? tb(1, esc(S0.item||F.relSeed)+' 관련만', tn[1]) : '')
           +(mix && gName && tn[2] ? tb(2, esc(gName)+'까지', tn[1]+tn[2]) : '')
           +(own ? (tailN ? tb(3, '+ 꼬리 키워드', F.rel.size) : '') : (mix && tn[3] ? tb(3, '전부', tn[1]+tn[2]+tn[3]) : ''))+'</span>';
       if(F.relAuto && F.relTier===2 && tierHtml) tierHtml+='<span class="rel-src" style="flex:none">같은 품목이 거의 없어 '+esc(gName)+'까지 넓혀 보여 준다</span>';
       /* 고른 단계의 단추가 이 목록에 없으면(받아 둔 범위 밖) 그 옆 단계로 본다 */
-      if(F.relTier===3 && !(own ? tailN : (mix && tn[3]))) F.relTier= own ? 0 : ((gName && tn[2]) ? 2 : 1);
+      if(F.relTier===4 && !(own && nNv>nTop)) F.relTier= own ? 0 : 1;
+      else if(F.relTier===3 && !(own ? tailN : (mix && tn[3]))) F.relTier= own ? 0 : ((gName && tn[2]) ? 2 : 1);
       else if(F.relTier===2 && !(mix && gName && tn[2])) F.relTier= own ? 0 : 1;
       else if(F.relTier===1 && !mix && own) F.relTier=0;
     }
@@ -3030,6 +3040,7 @@ async function liveFind(v, fresh, wide){
     if(F.relSeed!==v) F.relTier= j.wide ? 1 : 0;   /* 네이버가 지금 준 목록 그대로가 기본 */
     F.relSeed=v; F.relName="네이버 실시간 연관"; F.relLabel=""; F.relIS=null; F.relLive=idx; F.relAt=j.at;
     F.relOrder=null; if(!j.wide){ F.relOrder={}; idx.forEach(function(i2,n2){ if(F.relOrder[i2]==null) F.relOrder[i2]=n2; }); }
+    F.relTopSet= j.wide ? null : new Set(idx.slice(0, NV_SCREEN));
     F.relMode= j.wide ? "wide" : (F.relMode==="is" ? "is" : "");
     if(F.relMode==="is"){ var isRec=isRecFor(v); if(isRec) relUseIS(isRec, v); else F.relMode=""; }
     relAuto();
