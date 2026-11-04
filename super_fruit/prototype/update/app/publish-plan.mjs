@@ -20,7 +20,8 @@ const LIM = 60 * 1048576, MAXN = 250;
 const num = f => +(f.match(/(\d+)\.\w+$/) || [0, 0])[1];
 const bins = fs.readdirSync(path.join(HERE, "z")).filter(f => /^data-(rel|dict)-\d+\.txt$/.test(f))
   .sort((a, b) => (a.includes("dict") - b.includes("dict")) || num(a) - num(b)).map(f => "z/" + f);
-const main = ["data-kw.js", "data-meta.js", "data-relidx.js", "data-trend.js", "data-click.js", "data-shop.js", "data-head.js"];
+/* keyword-lab.js = 화면 코드 (11/04 화면 파일에서 뺐다 — 새 세션이 다시 올리기 전에 읽어야 하는 화면 파일을 405KB → 72KB 로) */
+const main = ["keyword-lab.js", "data-kw.js", "data-meta.js", "data-relidx.js", "data-trend.js", "data-click.js", "data-shop.js", "data-head.js"];
 const size = p => fs.statSync(path.join(HERE, p)).size;
 
 /* 올라가 있는데 이제 안 쓰는 것 */
