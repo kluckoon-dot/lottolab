@@ -113,7 +113,8 @@ else if (ALL_SEC || DICT_MIN != null) {
   if (DICT_MIN != null) {
     const d = [];
     for (let q = 0; q < (globalThis.window.KWHEAD.dictN || 0); q++) { req(path.join(HERE, "data-dict-" + q + ".js")); for (const r of globalThis.window.KWDICT[q].rows) if (vol(r) >= DICT_MIN) d.push(r); }
-    d.sort((a, b) => vol(b) - vol(a)); targets.push(...d.map(r => r[0]));
+    /* 한 줄씩 넣는다 — targets.push(...d.map(…)) 로 펼치면 사전 키워드가 12만 개를 넘은 11월 중순부터 "Maximum call stack size exceeded" 로 멈췄다 (11/25 고침) */
+    d.sort((a, b) => vol(b) - vol(a)); for (const r of d) targets.push(r[0]);
   }
 } else {
   const list = fs.readFileSync(path.join(OUTDIR, "section-keywords.txt"), "utf8").split(/\r?\n/).map(x => x.trim()).filter(Boolean);
