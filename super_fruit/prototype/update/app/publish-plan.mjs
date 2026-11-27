@@ -21,7 +21,9 @@ const num = f => +(f.match(/(\d+)\.\w+$/) || [0, 0])[1];
 const bins = fs.readdirSync(path.join(HERE, "z")).filter(f => /^data-(rel|dict)-\d+\.txt$/.test(f))
   .sort((a, b) => (a.includes("dict") - b.includes("dict")) || num(a) - num(b)).map(f => "z/" + f);
 /* keyword-lab.js = 화면 코드 (11/04 화면 파일에서 뺐다 — 새 세션이 다시 올리기 전에 읽어야 하는 화면 파일을 405KB → 72KB 로) */
-const main = ["keyword-lab.js", "data-kw.js", "data-meta.js", "data-relidx.js", "data-trend.js", "data-click.js", "data-shop.js", "data-head.js"];
+/* data-tags.js = 네이버 태그사전 (11/27 fetch-tags.mjs — 상품명 만들기의 태그 후보). 아직 없으면 빼고 짠다 */
+const main = ["keyword-lab.js", "data-kw.js", "data-meta.js", "data-relidx.js", "data-trend.js", "data-click.js", "data-shop.js", "data-tags.js", "data-head.js"]
+  .filter(p => fs.existsSync(path.join(HERE, p)));
 const size = p => fs.statSync(path.join(HERE, p)).size;
 
 /* 올라가 있는데 이제 안 쓰는 것 */

@@ -190,6 +190,9 @@ th.msrt{cursor:pointer; user-select:none} th.msrt:hover{color:var(--ink)} th.msr
 .nmt small,.nmtag small{font-family:"IBM Plex Mono",monospace; font-size:10.5px; font-weight:500; margin-left:5px; opacity:.75}
 .nmt.on{background:var(--brand); border-color:var(--brand); color:#fff}
 .nmtag{font-size:12.5px; font-weight:600; padding:4px 9px; border-radius:999px; background:var(--brand-soft); color:var(--brand-ink)}
+/* 태그사전 확인 전 (2026-11-27) — 점선 · 흐리게 */
+.nmtag.q{background:transparent; border:1px dashed var(--line-strong); color:var(--ink-3)}
+.nm-cut{font-size:12px; color:var(--ink-3); line-height:1.6} .nm-cut s{color:var(--ink-3)}
 .nm-out{border:2px solid var(--brand); border-radius:12px; background:var(--brand-soft); padding:12px 14px; margin:12px 0}
 .nm-out .nm-k{color:var(--brand-ink)}
 .nm-out textarea{display:block; width:100%; margin-top:6px; font:inherit; font-size:17px; font-weight:700; line-height:1.4; color:var(--ink); background:var(--surface); border:1px solid var(--line-strong); border-radius:8px; padding:9px 11px; resize:vertical}
@@ -1039,5 +1042,6 @@ th.srt[data-dir]::after{content:attr(data-dir);margin-left:3px;color:var(--brand
 <script src="data-is.js" charset="utf-8"></script>
 <script src="data-calc.js" charset="utf-8"></script>
 <script src="data-relidx.js" charset="utf-8"></script>
+<script src="data-tags.js" charset="utf-8"></script>
 <script src="xlsx-lab.js" charset="utf-8"></script>
 <script src="keyword-lab.js" charset="utf-8"></script>

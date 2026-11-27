@@ -67,6 +67,10 @@ node --max-old-space-size=8192 refresh-trend.mjs --all-section --dict-min 300 --
 if errorlevel 1 echo  [!] Trends were not refreshed. Going on.
 node --max-old-space-size=8192 build-web.mjs ..\naver-out\pack .
 if errorlevel 1 goto fail
+rem Naver tag dictionary (Commerce API, 11/27): tag candidates on the product-name tab keep only tags Naver applies. 2 calls a second, up to 7,000 a day (about 1 hour)
+echo  [%time%] tag dictionary (Commerce API)
+node --max-old-space-size=8192 fetch-tags.mjs --max-calls 7000 --max-age 30
+if errorlevel 1 echo  [!] Tag dictionary was not checked. Going on.
 rem related and dictionary bundles as gzip+base64 z\*.txt - the claude.ai page holds at most 256 MB per version (10/29: 304 MB)
 node --max-old-space-size=8192 pack-z.mjs
 if errorlevel 1 goto fail

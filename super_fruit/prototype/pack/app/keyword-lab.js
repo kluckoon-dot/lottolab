@@ -3910,6 +3910,30 @@ function renderName(keep){
   document.getElementById("nmCopy").onclick=function(){ copyText(ta.value.replace(/\s+/g," ").trim(), this); };
   nmResFill(B);
 }
+/* 네이버 태그사전 (2026-11-27, 커머스API · fetch-tags.mjs → data-tags.js window.KWTAGS)
+   네이버 스마트스토어는 태그사전에 있는 태그만 검색에 반영한다.
+   has 사전 태그(사전 표기) · full 20개 미만으로 온 말(그 말로 시작하는 사전 태그는 has 에 다 있다) · part 20개 꽉 찬 말 · rx 제한 태그 */
+var TAGD=null;
+function tagDict(){
+  if(TAGD) return TAGD;
+  var T=window.KWTAGS, nk=function(s){ return String(s).replace(/\s+/g,"").toLowerCase(); };
+  TAGD={ ok:!!(T && T.has), at: T && T.at, has:{}, full:{}, part:{}, rx:{} };
+  if(!TAGD.ok) return TAGD;
+  T.has.forEach(function(t){ TAGD.has[nk(t)]=t; });
+  (T.full||[]).forEach(function(k){ TAGD.full[k]=1; });
+  (T.part||[]).forEach(function(k){ TAGD.part[k]=1; });
+  (T.rx||[]).forEach(function(t){ TAGD.rx[nk(t)]=1; });
+  return TAGD;
+}
+/* in 사전에 있음(t = 사전 표기) · rx 제한 태그 · out 사전에 없음 · ? 아직 묻지 못함(t = 띄어쓰기 없이 영문 소문자 — 사전 표기가 그렇다) */
+function tagState(kw){
+  var D=tagDict(), k=String(kw).replace(/\s+/g,"").toLowerCase();
+  if(D.rx[k]) return { s:"rx", t:D.has[k]!=null ? D.has[k] : k };
+  if(D.has[k]!=null) return { s:"in", t:D.has[k] };
+  if(D.full[k] || D.part[k]) return { s:"out", t:k };
+  for(var n=k.length-1;n>=1;n--) if(D.full[k.slice(0,n)]) return { s:"out", t:k };
+  return { s:"?", t:k };
+}
 /* 상품명 아래: 글자 수 · 덮는 키워드 · 태그 후보 · 아직 못 덮은 키워드 */
 function nmResFill(B){
   var res=document.getElementById("nmRes"), ms=document.getElementById("nmMiss"); if(!res || !ms) return;
@@ -3918,21 +3942,37 @@ function nmResFill(B){
   var le=document.getElementById("nmLen"); if(le){ le.className= len>50 ? "cvr-no" : "cvr-ok"; le.innerHTML='<b>'+len+'</b>자'; }
   var h='<div class="nm-cov"><div><div class="v-k">이 상품명이 덮는 키워드</div><div class="v-v num">'+fmt(C.cov.length)+'개</div><div class="v-s">'+fmt(B.kws.length)+'개 중</div></div>'
     +'<div><div class="v-k">덮는 월 검색수</div><div class="v-v num">'+fmt(sum(C.cov))+'</div><div class="v-s">전체 '+fmt(allD)+' 의 '+(allD?Math.round(sum(C.cov)/allD*100):0)+'%</div></div></div>';
-  /* 태그: 상품명이 덮지 못한 키워드 가운데 검색이 많은 것부터 10개 */
+  /* 태그: 상품명이 덮지 못한 키워드 가운데 검색이 많은 것부터 10개.
+     2026-11-27 보갬 "후보로 지정해주는것이 실제로 네이버에 적용되지 않는 태그들이 많아서 내가 또 일일이 작성해야" →
+     네이버 태그사전(커머스API, fetch-tags.mjs → data-tags.js)에 있는 것만 고르고 사전 표기(10KG → 10kg)로 쓴다.
+     사전에 없거나 제한 태그(샤인머스캣 · 남의 상표 등)인 키워드는 뺀다. 아직 사전을 묻지 못한 키워드는 사전 태그가 모자랄 때만 점선으로 보탠다 */
   var mineOnly=function(x){ return x.T.every(function(k){ return (k.t!=="V" && k.t!=="R") || tflat.indexOf(k.w)>=0; }); };
-  var tags=C.not.filter(mineOnly).sort(function(a,b){ return b.d-a.d; }).slice(0,10);
-  if(tags.length<10) tags=tags.concat(C.cov.slice().sort(function(a,b){ return b.d-a.d; }).filter(function(x){ return R[x.i][K.KW].replace(/\s+/g,"")!==tflat; }).slice(0,10-tags.length));
+  var byD=function(a,b){ return b.d-a.d; };
+  var tNot=C.not.filter(mineOnly).sort(byD), tCov=C.cov.slice().sort(byD).filter(function(x){ return R[x.i][K.KW].replace(/\s+/g,"")!==tflat; });
+  var TD=tagDict(), tags=[], seenT={}, cut=[];
+  var take=function(list, want){ list.forEach(function(x){ if(tags.length>=10) return; var st=tagState(R[x.i][K.KW]);
+    if(st.s!==want) return; var key=st.t.toLowerCase(); if(seenT[key] || key===tflat.toLowerCase()) return; seenT[key]=1; tags.push({ i:x.i, d:x.d, t:st.t, s:st.s }); }); };
+  take(tNot,"in"); take(tCov,"in"); take(tNot,"?"); take(tCov,"?");
+  tNot.concat(tCov).sort(byD).forEach(function(x){ if(cut.length>=10) return; var st=tagState(R[x.i][K.KW]); if(st.s==="out" || st.s==="rx") cut.push({ w:R[x.i][K.KW], s:st.s }); });
   h+='<div class="nm-row"><div class="nm-k">태그 후보<br><span style="font-weight:500;text-transform:none;letter-spacing:0">최대 10개</span></div><div class="nm-v">'
-    +tags.map(function(x){ return '<span class="nmtag" title="월 검색 '+fmt(x.d)+'">'+esc(R[x.i][K.KW])+'<small>'+near(x.d)+'</small></span>'; }).join("")
+    +tags.map(function(x){ return x.s==="in"
+      ? '<span class="nmtag" title="네이버 태그사전에 있음 · 월 검색 '+fmt(x.d)+'">'+esc(x.t)+'<small>'+near(x.d)+'</small></span>'
+      : '<span class="nmtag q" title="태그사전을 아직 확인하지 못한 키워드 — 네이버에 반영되지 않을 수 있다 · 월 검색 '+fmt(x.d)+'">'+esc(x.t)+'<small>'+near(x.d)+'</small></span>'; }).join("")
     +(tags.length?'<button type="button" class="chip" id="nmTagCopy">태그 복사</button>':'<span class="dim">남는 키워드가 없다</span>')+'</div></div>'
-    +'<p class="note" style="margin:10px 0 0">태그는 내가 켜지 않은 품종 · 산지가 든 키워드를 빼고, 상품명에 못 넣은 것 가운데 검색이 많은 순으로 골랐다. 태그도 내 상품에 맞는 것만 쓴다. 덮는다는 것은 그 키워드의 낱말이 상품명에 다 들어 있다는 뜻이고(순서는 따지지 않는다), 실제 노출 순위는 판매 · 리뷰 등 다른 것에도 달려 있다.</p>';
+    +(cut.length?'<div class="nm-row"><div class="nm-k">뺀 키워드</div><div class="nm-v nm-cut">'
+      +cut.map(function(c){ return '<s>'+esc(c.w)+'</s>'+(c.s==="rx"?' <small>제한 태그</small>':''); }).join(" · ")
+      +' <span class="dim">— 네이버 태그사전에 없어'+(cut.some(function(c){ return c.s==="rx"; })?'(또는 제한 태그라)':'')+' 태그로 넣어도 검색에 반영되지 않는다</span></div></div>':'')
+    +'<p class="note" style="margin:10px 0 0">'
+    +(TD.ok ? '<b>네이버 태그사전'+(TD.at?'('+mdOf(String(TD.at).slice(0,10))+' 확인)':'')+'에 있는 태그만 골랐고, 사전 표기 그대로 적었다</b>(절임배추10KG → 절임배추10kg). 점선은 아직 사전을 확인하지 못한 키워드다. '
+      : '<b>네이버 태그사전을 아직 받지 못해 검색 키워드를 그대로 적었다</b> — 사전에 없는 말은 검색에 반영되지 않는다. ')
+    +'태그는 내가 켜지 않은 품종 · 산지가 든 키워드를 빼고, 상품명에 못 넣은 것 가운데 검색이 많은 순으로 골랐다. 태그도 내 상품에 맞는 것만 쓴다. 덮는다는 것은 그 키워드의 낱말이 상품명에 다 들어 있다는 뜻이고(순서는 따지지 않는다), 실제 노출 순위는 판매 · 리뷰 등 다른 것에도 달려 있다.</p>';
   res.innerHTML=h;
   /* 못 덮은 키워드 */
   var miss=C.not.slice().sort(function(a,b){ return b.d-a.d; }).slice(0,30);
   ms.innerHTML= miss.length ? '<div class="card"><h3>아직 못 덮은 키워드</h3><p class="note">검색이 많은 순 · 빠진 낱말을 굵게 적었다. 맞는 말이면 눌러서 상품명 뒤에 붙인다.</p><div class="nm-miss">'
     +miss.map(function(x){ return '<span><a href="#" data-kw="'+x.i+'">'+esc(R[x.i][K.KW])+'</a> <small>'+near(x.d)+'</small> '
       +x.T.filter(function(k){ return k.t!=="W" && tflat.indexOf(k.w)<0; }).map(function(k){ return '<b data-add="'+esc(k.t+":"+k.w)+'">+'+esc(k.w)+'</b>'; }).join(" ")+'</span>'; }).join("")+'</div></div>' : '';
-  var tc=document.getElementById("nmTagCopy"); if(tc) tc.onclick=function(){ copyText(tags.map(function(x){ return R[x.i][K.KW]; }).join(", "), this); };
+  var tc=document.getElementById("nmTagCopy"); if(tc) tc.onclick=function(){ copyText(tags.map(function(x){ return x.t; }).join(", "), this); };
   ms.querySelectorAll("[data-add]").forEach(function(b){ b.onclick=function(){ var k=b.dataset.add; if(B.tok[k] && !NMS.on[B.tok[k].k]) nmToggle(B, B.tok[k].k); }; });
   ms.querySelectorAll("a[data-kw]").forEach(function(a){ a.onclick=function(e){ e.preventDefault(); pickKw(+a.dataset.kw); }; });
 }
